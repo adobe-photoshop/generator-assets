@@ -24,34 +24,79 @@
 (function () {
     "use strict";
 
-    var util = require("util"),
-        resolve = require("path").resolve;
+    var fs = require("fs"),
+        resolve = require("path").resolve,
+        mkdirp = require("mkdirp"),
+        convert = require("./lib/convert"),
+        xpm2png = require("./lib/xpm2png");
 
-    var GET_LAYER_PIXMAP_FILENAME = resolve(__dirname, "lib/jsx/get_layer_pixmap.jsx");
+    var assetGenerationDir = null;
+
+    function getUserHomeDirectory() {
+        return process.env[(process.platform === "win32") ? "USERPROFILE" : "HOME"];
+    }
 
     var _generator = null;
 
-    function handleImageChanged(message) {
-        console.log("Asset got image changed: \n" + util.inspect(message, false, 5) + "\n\n");
+    function savePixmap(pixmap, filename) {
+        _generator.publish("assets.dump", filename);
 
-        var changeInfo = message[0];
-        if (changeInfo.documentID && changeInfo.layerEvents) {
-            changeInfo.layerEvents.forEach(function (e) {
-                console.log("[dump] %d-%d", changeInfo.documentID, e.layerID);
-                _generator.executeJSXFile(GET_LAYER_PIXMAP_FILENAME, {layerID : e.layerID, scale: 1}).then(
-                    function () {
-                        console.log("dump resolved", arguments);
-                    }, function () {
-                        console.log("dump rejected", arguments);
-                    }
-                );
+        var args = ["-", "-size", pixmap.width + "x" + pixmap.height, "-", "png:-"];
+        var proc = convert(args);
+        var fileStream = fs.createWriteStream(filename);
+        var stderr = "";
+
+        proc.stderr.on("data", function (chunk) { stderr += chunk; });
+        
+        xpm2png(pixmap, proc.stdin.end.bind(proc.stdin));
+        proc.stdout.pipe(fileStream);
+        
+        proc.stderr.on("close", function () {
+            if (stderr) {
+                _generator.publish("assets.error", "error from ImageMagick: " + stderr);
+            }
+        });
+    }
+
+    function handleImageChanged(message) {
+        if (message.documentID && message.layerEvents) {
+            message.layerEvents.forEach(function (e) {
+                _generator.getPixmap(e.layerID, 100).then(
+                    function (pixmap) {
+                        if (assetGenerationDir) {
+                            savePixmap(
+                                pixmap,
+                                resolve(assetGenerationDir, message.documentID + "-" + e.layerID + ".png")
+                            );
+                        }
+                    }, function (err) {
+                        _generator.publish("assets.getPixmap", "Error: " + err);
+                    });
             });
         }
     }
 
     function init(generator) {
         _generator = generator;
-        _generator.subscribe("photoshop.imageChanged", handleImageChanged);
+        _generator.subscribe("photoshop.event.imageChanged", handleImageChanged);
+
+        // create a place to save assets
+        var homeDir = getUserHomeDirectory();
+        if (homeDir) {
+            var newDir = resolve(homeDir, "Desktop", "generator-assets");
+            mkdirp(newDir, function (err) {
+                if (err) {
+                    _generator.publish(
+                        "assets.error",
+                        "Could not create directory '" + newDir + "', no assets will be dumped"
+                    );
+                } else {
+                    assetGenerationDir = newDir;
+                }
+            });
+        } else {
+            _generator.publish("assets.error", "Could not locate home directory in env vars, no assets will be dumped");
+        }
     }
 
     exports.init = init;
