@@ -43,6 +43,7 @@
 
         var args = ["-", "-size", pixmap.width + "x" + pixmap.height, "-", "png:-"];
         var proc = convert(args, _generator._photoshop._applicationPath);
+    _generator.publish("assets.info", "app Path: " + _generator._photoshop._applicationPath);
         var fileStream = fs.createWriteStream(filename);
         var stderr = "";
 
