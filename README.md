@@ -1,1 +1,3 @@
 # assets.generate
+
+test
