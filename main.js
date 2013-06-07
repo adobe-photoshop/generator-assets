@@ -39,7 +39,7 @@
     var _generator = null;
 
     function savePixmap(pixmap, filename) {
-        _generator.publish("assets.dump", filename);
+        _generator.publish("assets.debug.dump", "dumping " + filename);
 
         var args = ["-", "-size", pixmap.width + "x" + pixmap.height, "png:-"];
         var proc = convert(args, _generator._photoshop._applicationPath);
@@ -53,7 +53,7 @@
         
         proc.stderr.on("close", function () {
             if (stderr) {
-                _generator.publish("assets.error", "error from ImageMagick: " + stderr);
+                _generator.publish("assets.error.convert", "error from ImageMagick: " + stderr);
             }
         });
     }
@@ -70,7 +70,7 @@
                             );
                         }
                     }, function (err) {
-                        _generator.publish("assets.getPixmap", "Error: " + err);
+                        _generator.publish("assets.error.getPixmap", "Error: " + err);
                     });
             });
         }
@@ -87,7 +87,7 @@
             mkdirp(newDir, function (err) {
                 if (err) {
                     _generator.publish(
-                        "assets.error",
+                        "assets.error.init",
                         "Could not create directory '" + newDir + "', no assets will be dumped"
                     );
                 } else {
@@ -95,7 +95,10 @@
                 }
             });
         } else {
-            _generator.publish("assets.error", "Could not locate home directory in env vars, no assets will be dumped");
+            _generator.publish(
+                "assets.error.init",
+                "Could not locate home directory in env vars, no assets will be dumped"
+            );
         }
     }
 
