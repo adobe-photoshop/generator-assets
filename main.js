@@ -41,7 +41,7 @@
     function savePixmap(pixmap, filename) {
         _generator.publish("assets.dump", filename);
 
-        var args = ["-", "-size", pixmap.width + "x" + pixmap.height, "-", "png:-"];
+        var args = ["-", "-size", pixmap.width + "x" + pixmap.height, "png:-"];
         var proc = convert(args, _generator._photoshop._applicationPath);
         var fileStream = fs.createWriteStream(filename);
         var stderr = "";
