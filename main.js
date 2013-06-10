@@ -76,37 +76,9 @@
         }
     }
 
-    function handleUpdatePhotoshop(message) {
-        if (message.documentID) {
-            var params = {flags: {compInfo: false, imageInfo: false, layerInfo: true,
-                                  expandSmartObjects: false, getTextStyles: true,
-                                  selectedLayers: false, getCompSettings: false}};
-        
-            _generator.evaluateJSXFile("./jsx/getDocumentInfo.jsx", params).then(
-                function () { // success
-                    _generator.publish("generator.info.psState", "Requested PS state");
-                },
-                function (err) {
-                    _generator.publish("photoshop.info.psState", "error requestiong state: " + err);
-                });
-        }
-    };
-
-    function handlePsInfoMessage(message) {
-        if (message.body.hasOwnProperty('sendDocumentInfoToNetworkClient')) {
-            var i;
-            for (i in message.body.layerEvents) {
-                var layerInfo = message.body.layerEvents[i];
-                console.log('  layer[' + layerInfo.layerID+']: '+layerInfo.layerChangedName);
-            }
-        }
-    }            
-
     function init(generator) {
         _generator = generator;
         _generator.subscribe("photoshop.event.imageChanged", handleImageChanged);
-        _generator.subscribe("photoshop.event.imageChanged", handleUpdatePhotoshop);
-        _generator.subscribe("photoshop.message", handlePsInfoMessage);
 
         // create a place to save assets
         var homeDir = getUserHomeDirectory();
