@@ -61,17 +61,25 @@
     function handleImageChanged(message) {
         if (message.documentID && message.layerEvents) {
             message.layerEvents.forEach(function (e) {
-                _generator.getPixmap(e.layerID, 100).then(
-                    function (pixmap) {
-                        if (assetGenerationDir) {
-                            savePixmap(
-                                pixmap,
-                                resolve(assetGenerationDir, message.documentID + "-" + e.layerID + ".png")
-                            );
-                        }
-                    }, function (err) {
-                        _generator.publish("assets.getPixmap", "Error: " + err);
-                    });
+                var layerInfo = _generator.getLayerInfo( e.layerID );
+                if (layerInfo && (layerInfo.layerChangedName.search(/[.]svg$/) >= 0)) {
+                    var params = {layerID:e.layerID,
+                                  path:resolve( assetGenerationDir, layerInfo.layerChangedName ) };
+                    _generator.evaluateJSXFile("./jsx/layerSVG.jsx", params);
+                }
+                else {
+                    _generator.getPixmap(e.layerID, 100).then(
+                        function (pixmap) {
+                            if (assetGenerationDir) {
+                                savePixmap(
+                                    pixmap,
+                                    resolve(assetGenerationDir, message.documentID + "-" + e.layerID + ".png")
+                                );
+                            }
+                        }, function (err) {
+                            _generator.publish("assets.getPixmap", "Error: " + err);
+                        });
+                }
             });
         }
     }
