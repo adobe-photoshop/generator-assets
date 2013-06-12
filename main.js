@@ -39,6 +39,16 @@
     var _generator = null,
         _photoshopState = null;
 
+    function requestStateUpdate() {
+        _generator.getDocumentInfo().then(
+            function () {
+                _generator.publish("generator.info.psState", "Requested PS State");
+            },
+            function (err) {
+                _generator.publish("generator.info.psState", "error requestiong state: " + err);
+            });
+    }        
+
     function savePixmap(pixmap, filename) {
         _generator.publish("assets.dump", filename);
 
@@ -86,21 +96,25 @@
     }
     
     function handlePsInfoMessage(message) {
-        if (message.body.hasOwnProperty("sendDocumentInfoToNetworkClient")) {
+        if (message.body.hasOwnProperty("version")) {
             _generator.publish("generator.info.psState", "Receiving PS state info");
             _photoshopState = message.body;
             // Add quick reference for layers
-            _photoshopState.layerEvents.forEach(function (layerInfo) {
-                                                        //self._layerState[layerInfo.layerID] = layerInfo;
-                                                        console.log("Layer ['" + layerInfo.layerID + "]: " + layerInfo.name);
-                                                    });
+            if (_photoshopState.layers) {
+                console.log("---layerstate---");
+                _photoshopState.layers.forEach(function (layerInfo) {
+                                                            //self._layerState[layerInfo.layerID] = layerInfo;
+                                                            console.log("Layer [" + layerInfo.id + "]: " + layerInfo.name);
+                                                        });
+            }
         }
     }
-
+    
     function init(generator) {
         _generator = generator;
         _generator.subscribe("photoshop.event.imageChanged", handleImageChanged);
         _generator.subscribe("photoshop.message", handlePsInfoMessage);
+        requestStateUpdate();
 
         // create a place to save assets
         var homeDir = getUserHomeDirectory();
