@@ -32,8 +32,10 @@
         convert = require("./lib/convert"),
         xpm2png = require("./lib/xpm2png");
 
-    var assetGenerationDir = null;
-    var contextPerLayer = {};
+    var DELAY_TO_WAIT_TILL_USER_DONE = 300;
+
+    var assetGenerationDir = null,
+        contextPerLayer = {};
 
     function getUserHomeDirectory() {
         return process.env[(process.platform === "win32") ? "USERPROFILE" : "HOME"];
@@ -71,7 +73,6 @@
     }
 
     function handleImageChanged(message) {
-        // console.log("Image changed", JSON.stringify(message, null, "\t"));
         if (message.documentID && message.layerEvents) {
             // Will eventually not be named layerEvents => use variable name layer instead of e for event
             message.layerEvents.forEach(function (layer) {
@@ -84,9 +85,8 @@
         if (!assetGenerationDir) {
             return;
         }
-        
-        var contextID    = message.documentID + "-" + layer.layerID,
-            layerContext = contextPerLayer[contextID];
+
+        var contextID = message.documentID + "-" + layer.layerID;
         
         if (!contextPerLayer[contextID]) {
             // Initialize the context object for this layer.
@@ -94,11 +94,12 @@
             // without the image changing during the update.
             contextPerLayer[contextID] = {
                 // Store the context ID here so the context can be deleted by finishLayerUpdate
-                contextID:        contextID,
-                documentID:       message.documentID,
-                layerID:          layer.layerID,
-                updateInProgress: false,
-                updateIsObsolete: false
+                contextID:          contextID,
+                documentID:         message.documentID,
+                layerID:            layer.layerID,
+                updateIsScheduled:  false,
+                updateIsObsolete:   false,
+                updateDelayTimeout: null
             };
         }
 
@@ -107,10 +108,18 @@
 
     // Run the update now if none is in progress, or wait until the current one is finished
     function scheduleLayerUpdate(layerContext) {
-        if (!layerContext.updateInProgress) {
-            layerContext.updateInProgress = true;
-            startLayerUpdate(layerContext);
-        } else if (!layerContext.updateIsObsolete) {
+        // If no update is scheduled or the scheduled update is still being delayed, start from scratch
+        if (!layerContext.updateIsScheduled || layerContext.updateDelayTimeout) {
+            layerContext.updateIsScheduled = true;
+            clearTimeout(layerContext.updateDelayTimeout);
+
+            layerContext.updateDelayTimeout = setTimeout(function () {
+                layerContext.updateDelayTimeout = null;
+                startLayerUpdate(layerContext);
+            }, DELAY_TO_WAIT_TILL_USER_DONE);
+        }
+        // Otherwise, mark the scheduled update as obsolete so we can start over when it's done
+        else if (!layerContext.updateIsObsolete) {
             layerContext.updateIsObsolete = true;
         }
     }
@@ -158,11 +167,15 @@
 
     // Run a pending update if necessary
     function finishLayerUpdate(layerContext) {
+        layerContext.updateIsScheduled = false;
+        // If the update is obsolete, schedule another one right after
+        // This update will still be delayed to give Photoshop some time to catch its breath
         if (layerContext.updateIsObsolete) {
             layerContext.updateIsObsolete = false;
-            startLayerUpdate(layerContext);
-        } else {
-            layerContext.updateInProgress = false;
+            scheduleLayerUpdate(layerContext);
+        }
+        // This is the final update for now: clean up
+        else {
             delete contextPerLayer[layerContext.contextID];
         }
     }
