@@ -71,39 +71,55 @@
     }
 
     function handleImageChanged(message) {
+        console.log("Image changed", JSON.stringify(message, null, "\t"));
         if (message.documentID && message.layerEvents) {
             message.layerEvents.forEach(function (e) {
-                _generator.getPixmap(e.layerID, 100).then(
-                    function (pixmap) {
-                        if (assetGenerationDir) {
-                            var fileName = message.documentID + "-" + e.layerID + ".png",
-                                path     = resolve(assetGenerationDir, fileName),
-                                tmpPath  = temp.path({ suffix: ".png" });
-
-                            // First time this path is used
-                            if (!latestRequestIdPerPath[path]) {
-                                latestRequestIdPerPath[path] = 0;
-                            }
-                            // Increment and store the current request ID
-                            var requestId = ++latestRequestIdPerPath[path];
-
-                            // Save the image in a temporary file
-                            savePixmap(pixmap, tmpPath)
-                                // When ImageMagick is done
-                                .done(function () {
-                                    // If no other conversion has been started in the meantime...
-                                    if (requestId === latestRequestIdPerPath[path]) {
-                                        // ...move the temporary file to the desired location
-                                        fs.rename(tmpPath, path);
-                                    }
-                                });
-                        }
-                    }, function (err) {
-                        _generator.publish("assets.error.getPixmap", "Error: " + err);
-                    });
+                console.log("Layer change", e);
+                handleImageChangedForLayer(message, e.layerID);
             });
         }
     }
+
+    function handleImageChangedForLayer(message, layerID) {
+        console.log("Updating layer " + layerID);
+        _generator.getPixmap(layerID, 100).then(
+            function (pixmap) {
+                if (assetGenerationDir) {
+                    var fileName = message.documentID + "-" + layerID + ".png",
+                        path     = resolve(assetGenerationDir, fileName),
+                        tmpPath  = temp.path({ suffix: ".png" });
+
+                    // First time this path is used
+                    if (!latestRequestIdPerPath[path]) {
+                        latestRequestIdPerPath[path] = 0;
+                    }
+                    // Increment and store the current request ID
+                    var requestId = ++latestRequestIdPerPath[path];
+
+                    // Prevent an error after deleting a layer's contents, resulting in a 0x0 pixmap
+                    if (pixmap.width === 0 || pixmap.height === 0) {
+                        // Delete the image for the empty layer
+                        fs.unlink(path);
+                    }
+                    else {
+                        // Save the image in a temporary file
+                        savePixmap(pixmap, tmpPath)
+                            // When ImageMagick is done
+                            .done(function () {
+                                // If no other conversion has been started in the meantime...
+                                if (requestId === latestRequestIdPerPath[path]) {
+                                    // ...move the temporary file to the desired location
+                                    fs.rename(tmpPath, path);
+                                }
+                            });
+                    }
+
+                }
+            }, function (err) {
+                _generator.publish("assets.error.getPixmap", "Error: " + err);
+            });
+    }
+
 
     function init(generator) {
         _generator = generator;
