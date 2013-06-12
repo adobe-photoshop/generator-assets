@@ -36,7 +36,8 @@
         return process.env[(process.platform === "win32") ? "USERPROFILE" : "HOME"];
     }
 
-    var _generator = null;
+    var _generator = null,
+        _photoshopState = null;
 
     function savePixmap(pixmap, filename) {
         _generator.publish("assets.dump", filename);
@@ -61,11 +62,11 @@
     function handleImageChanged(message) {
         if (message.documentID && message.layerEvents) {
             message.layerEvents.forEach(function (e) {
-                var layerInfo = _generator.getLayerInfo( e.layerID );
-                if (layerInfo && (layerInfo.layerChangedName.search(/[.]svg$/) >= 0)) {
-                    var params = {layerID:e.layerID,
-                                  path:resolve( assetGenerationDir, layerInfo.layerChangedName ) };
-                    _generator.evaluateJSXFile("./jsx/layerSVG.jsx", params);
+//                var layerInfo = _generator._layerState[e.layerID];
+                if (false) {
+//                    var params = {layerID:e.layerID,
+//                                  path:resolve( assetGenerationDir, layerInfo.layerChangedName ) };
+//                    _generator.evaluateJSXFile("./jsx/layerSVG.jsx", params);
                 }
                 else {
                     _generator.getPixmap(e.layerID, 100).then(
@@ -83,10 +84,23 @@
             });
         }
     }
+    
+    function handlePsInfoMessage(message) {
+        if (message.body.hasOwnProperty("sendDocumentInfoToNetworkClient")) {
+            _generator.publish("generator.info.psState", "Receiving PS state info");
+            _photoshopState = message.body;
+            // Add quick reference for layers
+            _photoshopState.layerEvents.forEach(function (layerInfo) {
+                                                        //self._layerState[layerInfo.layerID] = layerInfo;
+                                                        console.log("Layer ['" + layerInfo.layerID + "]: " + layerInfo.name);
+                                                    });
+        }
+    }
 
     function init(generator) {
         _generator = generator;
         _generator.subscribe("photoshop.event.imageChanged", handleImageChanged);
+        _generator.subscribe("photoshop.message", handlePsInfoMessage);
 
         // create a place to save assets
         var homeDir = getUserHomeDirectory();
