@@ -27,10 +27,13 @@
     var fs = require("fs"),
         resolve = require("path").resolve,
         mkdirp = require("mkdirp"),
+        temp = require("temp"),
+        Q = require("q"),
         convert = require("./lib/convert"),
         xpm2png = require("./lib/xpm2png");
 
     var assetGenerationDir = null;
+    var latestRequestIdPerPath = {};
 
     function getUserHomeDirectory() {
         return process.env[(process.platform === "win32") ? "USERPROFILE" : "HOME"];
@@ -39,6 +42,8 @@
     var _generator = null;
 
     function savePixmap(pixmap, filename) {
+        var deferred = Q.defer();
+
         _generator.publish("assets.debug.dump", "dumping " + filename);
 
         var args = ["-", "-size", pixmap.width + "x" + pixmap.height, "png:-"];
@@ -47,15 +52,22 @@
         var stderr = "";
 
         proc.stderr.on("data", function (chunk) { stderr += chunk; });
+        proc.stdout.on("close", function () {
+            deferred.resolve(filename);
+        });
         
         xpm2png(pixmap, proc.stdin.end.bind(proc.stdin));
         proc.stdout.pipe(fileStream);
         
         proc.stderr.on("close", function () {
             if (stderr) {
-                _generator.publish("assets.error.convert", "error from ImageMagick: " + stderr);
+                var error = "error from ImageMagick: " + stderr;
+                _generator.publish("assets.error.convert", error);
+                deferred.reject(error);
             }
         });
+        
+        return deferred.promise;
     }
 
     function handleImageChanged(message) {
@@ -64,10 +76,27 @@
                 _generator.getPixmap(e.layerID, 100).then(
                     function (pixmap) {
                         if (assetGenerationDir) {
-                            savePixmap(
-                                pixmap,
-                                resolve(assetGenerationDir, message.documentID + "-" + e.layerID + ".png")
-                            );
+                            var fileName = message.documentID + "-" + e.layerID + ".png",
+                                path     = resolve(assetGenerationDir, fileName),
+                                tmpPath  = temp.path({ suffix: ".png" });
+
+                            // First time this path is used
+                            if (!latestRequestIdPerPath[path]) {
+                                latestRequestIdPerPath[path] = 0;
+                            }
+                            // Increment and store the current request ID
+                            var requestId = ++latestRequestIdPerPath[path];
+
+                            // Save the image in a temporary file
+                            savePixmap(pixmap, tmpPath)
+                                // When ImageMagick is done
+                                .done(function () {
+                                    // If no other conversion has been started in the meantime...
+                                    if (requestId === latestRequestIdPerPath[path]) {
+                                        // ...move the temporary file to the desired location
+                                        fs.rename(tmpPath, path);
+                                    }
+                                });
                         }
                     }, function (err) {
                         _generator.publish("assets.error.getPixmap", "Error: " + err);
