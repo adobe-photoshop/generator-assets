@@ -59,14 +59,14 @@
     }
 
     function handleImageChanged(message) {
-        if (message.documentID && message.layerEvents) {
-            message.layerEvents.forEach(function (e) {
-                _generator.getPixmap(e.layerID, 100).then(
+        if (message.id && message.layers) {
+            message.layers.forEach(function (layer) {
+                _generator.getPixmap(layer.id, 100).then(
                     function (pixmap) {
                         if (assetGenerationDir) {
                             savePixmap(
                                 pixmap,
-                                resolve(assetGenerationDir, message.documentID + "-" + e.layerID + ".png")
+                                resolve(assetGenerationDir, message.id + "-" + layer.id + ".png")
                             );
                         }
                     }, function (err) {
