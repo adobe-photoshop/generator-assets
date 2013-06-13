@@ -27,10 +27,15 @@
     var fs = require("fs"),
         resolve = require("path").resolve,
         mkdirp = require("mkdirp"),
+        temp = require("temp"),
+        Q = require("q"),
         convert = require("./lib/convert"),
         xpm2png = require("./lib/xpm2png");
 
-    var assetGenerationDir = null;
+    var DELAY_TO_WAIT_TILL_USER_DONE = 300;
+
+    var assetGenerationDir = null,
+        contextPerLayer = {};
 
     function getUserHomeDirectory() {
         return process.env[(process.platform === "win32") ? "USERPROFILE" : "HOME"];
@@ -39,6 +44,8 @@
     var _generator = null;
 
     function savePixmap(pixmap, filename) {
+        var deferred = Q.defer();
+
         _generator.publish("assets.debug.dump", "dumping " + filename);
 
         var args = ["-", "-size", pixmap.width + "x" + pixmap.height, "png:-"];
@@ -47,35 +54,132 @@
         var stderr = "";
 
         proc.stderr.on("data", function (chunk) { stderr += chunk; });
+        proc.stdout.on("close", function () {
+            deferred.resolve(filename);
+        });
         
         xpm2png(pixmap, proc.stdin.end.bind(proc.stdin));
         proc.stdout.pipe(fileStream);
         
         proc.stderr.on("close", function () {
             if (stderr) {
-                _generator.publish("assets.error.convert", "error from ImageMagick: " + stderr);
+                var error = "error from ImageMagick: " + stderr;
+                _generator.publish("assets.error.convert", error);
+                deferred.reject(error);
             }
         });
+        
+        return deferred.promise;
     }
 
     function handleImageChanged(message) {
         if (message.documentID && message.layerEvents) {
-            message.layerEvents.forEach(function (e) {
-                _generator.getPixmap(e.layerID, 100).then(
-                    function (pixmap) {
-                        if (assetGenerationDir) {
-                            savePixmap(
-                                pixmap,
-                                resolve(assetGenerationDir, message.documentID + "-" + e.layerID + ".png")
-                            );
-                        }
-                    }, function (err) {
-                        _generator.publish("assets.error.getPixmap", "Error: " + err);
-                    });
+            // Will eventually not be named layerEvents => use variable name layer instead of e for event
+            message.layerEvents.forEach(function (layer) {
+                handleImageChangedForLayer(message, layer);
             });
         }
     }
 
+    function handleImageChangedForLayer(message, layer) {
+        if (!assetGenerationDir) {
+            return;
+        }
+
+        var contextID = message.documentID + "-" + layer.layerID;
+        
+        if (!contextPerLayer[contextID]) {
+            // Initialize the context object for this layer.
+            // It will be deleted again once an update has finished
+            // without the image changing during the update.
+            contextPerLayer[contextID] = {
+                // Store the context ID here so the context can be deleted by finishLayerUpdate
+                contextID:          contextID,
+                documentID:         message.documentID,
+                layerID:            layer.layerID,
+                updateIsScheduled:  false,
+                updateIsObsolete:   false,
+                updateDelayTimeout: null
+            };
+        }
+
+        scheduleLayerUpdate(contextPerLayer[contextID]);
+    }
+
+    // Run the update now if none is in progress, or wait until the current one is finished
+    function scheduleLayerUpdate(layerContext) {
+        // If no update is scheduled or the scheduled update is still being delayed, start from scratch
+        if (!layerContext.updateIsScheduled || layerContext.updateDelayTimeout) {
+            layerContext.updateIsScheduled = true;
+            clearTimeout(layerContext.updateDelayTimeout);
+
+            layerContext.updateDelayTimeout = setTimeout(function () {
+                layerContext.updateDelayTimeout = null;
+                startLayerUpdate(layerContext);
+            }, DELAY_TO_WAIT_TILL_USER_DONE);
+        }
+        // Otherwise, mark the scheduled update as obsolete so we can start over when it's done
+        else if (!layerContext.updateIsObsolete) {
+            layerContext.updateIsObsolete = true;
+        }
+    }
+
+    // Start a new update
+    function startLayerUpdate(layerContext) {
+        _generator.getPixmap(layerContext.layerID, 100).then(
+            function (pixmap) {
+                var fileName = layerContext.documentID + "-" + layerContext.layerID + ".png",
+                    path     = resolve(assetGenerationDir, fileName),
+                    tmpPath  = temp.path({ suffix: ".png" });
+
+                // Prevent an error after deleting a layer's contents, resulting in a 0x0 pixmap
+                if (pixmap.width === 0 || pixmap.height === 0) {
+                    // Delete the image for the empty layer
+                    fs.unlink(path, function (err) {
+                        // TODO: handle errors?
+                        finishLayerUpdate(layerContext);
+                    });
+                }
+                else {
+                    // Save the image in a temporary file
+                    savePixmap(pixmap, tmpPath)
+                        .fail(function (err) {
+                            console.log("Save pixmap failed:", err);
+                            finishLayerUpdate(layerContext);
+                        })
+                        // When ImageMagick is done
+                        .done(function () {
+                            // ...move the temporary file to the desired location
+                            fs.rename(tmpPath, path, function (err) {
+                                // TODO: handle errors?`
+                                finishLayerUpdate(layerContext);
+                            });
+                        });
+                }
+            },
+            function (err) {
+                console.log("Get pixmap failed:", err);
+                _generator.publish("assets.error.getPixmap", "Error: " + err);
+                finishLayerUpdate(layerContext);
+            }
+        );
+    }
+
+    // Run a pending update if necessary
+    function finishLayerUpdate(layerContext) {
+        layerContext.updateIsScheduled = false;
+        // If the update is obsolete, schedule another one right after
+        // This update will still be delayed to give Photoshop some time to catch its breath
+        if (layerContext.updateIsObsolete) {
+            layerContext.updateIsObsolete = false;
+            scheduleLayerUpdate(layerContext);
+        }
+        // This is the final update for now: clean up
+        else {
+            delete contextPerLayer[layerContext.contextID];
+        }
+    }
+    
     function init(generator) {
         _generator = generator;
         _generator.subscribe("photoshop.event.imageChanged", handleImageChanged);
