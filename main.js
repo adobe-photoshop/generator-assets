@@ -37,7 +37,7 @@
     }
 
     var _generator = null,
-        _photoshopState = null;
+        _photoshopState = {};
 
     function requestStateUpdate() {
         _generator.getDocumentInfo().then(
@@ -47,7 +47,7 @@
             function (err) {
                 _generator.publish("generator.info.psState", "error requestiong state: " + err);
             });
-    }        
+    }
 
     function savePixmap(pixmap, filename) {
         _generator.publish("assets.dump", filename);
@@ -95,17 +95,40 @@
         }
     }
     
+    function updateLayerDict(docID) {
+        var doc = _photoshopState[docID];
+        var layerDict = {};
+        if (doc.layers) {
+            doc.layers.forEach(function (layer) {
+                layerDict[layer.id] = layer;
+            });
+            doc.layerDict = layerDict;
+        }
+    }
+    
+    // http://www.slideshare.net/async_io/javascript-promisesq-library-17206726
+    // https://github.com/kriskowal/q/wiki/API-Reference
+    
     function handlePsInfoMessage(message) {
-        if (message.body.hasOwnProperty("version")) {
+        if (message.body.hasOwnProperty("id")) {
             _generator.publish("generator.info.psState", "Receiving PS state info");
-            _photoshopState = message.body;
-            // Add quick reference for layers
-            if (_photoshopState.layers) {
-                console.log("---layerstate---");
-                _photoshopState.layers.forEach(function (layerInfo) {
-                                                            //self._layerState[layerInfo.layerID] = layerInfo;
-                                                            console.log("Layer [" + layerInfo.id + "]: " + layerInfo.name);
-                                                        });
+            var docID = message.body.id;
+            // This should really key off the type of the message!
+            if (! _photoshopState[docID]) {
+                _photoshopState[docID] = message.body;
+                updateLayerDict(docID);
+            }
+            else if (message.body.layers) {
+                message.body.layers.forEach(function (layerInfo) {
+                    Object.keys(layerInfo).forEach(function (layerItem) {
+                        _photoshopState[docID].layerDict[layerInfo.id][layerItem] = layerInfo[layerItem];
+                    });
+                });
+
+                console.log("---layerstate for doc:"+docID+"---");
+                _photoshopState[docID].layers.forEach(function (layerInfo) {
+                    console.log("Layer [" + layerInfo.id + "]: " + layerInfo.name);
+                });
             }
         }
     }
