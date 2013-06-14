@@ -27,17 +27,22 @@
     var fs = require("fs"),
         resolve = require("path").resolve,
         mkdirp = require("mkdirp"),
+        temp = require("temp"),
+        Q = require("q"),
         convert = require("./lib/convert"),
         xpm2png = require("./lib/xpm2png");
 
-    var assetGenerationDir = null;
+    var DELAY_TO_WAIT_UNTIL_USER_DONE = 300;
+
+    var _generator = null,
+        _assetGenerationDir = null,
+        _contextPerLayer = {};
 
     function getUserHomeDirectory() {
         return process.env[(process.platform === "win32") ? "USERPROFILE" : "HOME"];
     }
 
-    var _generator = null,
-        _photoshopState = {};
+    var _photoshopState = {};
 
     function requestStateUpdate() {
         _generator.getDocumentInfo().then(
@@ -50,6 +55,8 @@
     }
 
     function savePixmap(pixmap, filename) {
+	    var fileCompleteDeferred = Q.defer();
+
         _generator.publish("assets.debug.dump", "dumping " + filename);
 
         var args = ["-", "-size", pixmap.width + "x" + pixmap.height, "png:-"];
@@ -58,33 +65,139 @@
         var stderr = "";
 
         proc.stderr.on("data", function (chunk) { stderr += chunk; });
+        proc.stdout.on("close", function () {
+            fileCompleteDeferred.resolve(filename);
+        });
         
         xpm2png(pixmap, proc.stdin.end.bind(proc.stdin));
         proc.stdout.pipe(fileStream);
         
         proc.stderr.on("close", function () {
             if (stderr) {
-                _generator.publish("assets.error.convert", "error from ImageMagick: " + stderr);
+                var error = "error from ImageMagick: " + stderr;
+                _generator.publish("assets.error.convert", error);
+                fileCompleteDeferred.reject(error);
             }
         });
+        
+        return fileCompleteDeferred.promise;
     }
 
     function handleImageChanged(document) {
         if (document.id && document.layers) {
             processLayers(document);
             document.layers.forEach(function (layer) {
-                _generator.getPixmap(layer.id, 100).then(
-                    function (pixmap) {
-                        if (assetGenerationDir) {
-                            savePixmap(
-                                pixmap,
-                                resolve(assetGenerationDir, document.id + "-" + layer.id + ".png")
-                            );
-                        }
-                    }, function (err) {
-                        _generator.publish("assets.error.getPixmap", "Error: " + err);
-                    });
+                handleImageChangedForLayer(document, layer);
             });
+        }
+    }
+
+    function handleImageChangedForLayer(document, layer) {
+        if (!_assetGenerationDir) {
+            return;
+        }
+
+        var contextID = document.id + "-" + layer.id;
+        
+        if (!_contextPerLayer[contextID]) {
+            // Initialize the context object for this layer.
+            // It will be deleted again once an update has finished
+            // without the image changing during the update.
+            _contextPerLayer[contextID] = {
+                // Store the context ID here so the context can be deleted by finishLayerUpdate
+                contextID:          contextID,
+                documentID:         document.id,
+                layerID:            layer.id,
+                updateIsScheduled:  false,
+                updateIsObsolete:   false,
+                updateDelayTimeout: null
+            };
+        }
+
+        scheduleLayerUpdate(_contextPerLayer[contextID]);
+    }
+
+    // Run the update now if none is in progress, or wait until the current one is finished
+    function scheduleLayerUpdate(layerContext) {
+        // If no update is scheduled or the scheduled update is still being delayed, start from scratch
+        if (!layerContext.updateIsScheduled || layerContext.updateDelayTimeout) {
+            layerContext.updateIsScheduled = true;
+            clearTimeout(layerContext.updateDelayTimeout);
+
+            layerContext.updateDelayTimeout = setTimeout(function () {
+                layerContext.updateDelayTimeout = null;
+                startLayerUpdate(layerContext).fin(function () {
+                    finishLayerUpdate(layerContext);
+                });
+            }, DELAY_TO_WAIT_UNTIL_USER_DONE);
+        }
+        // Otherwise, mark the scheduled update as obsolete so we can start over when it's done
+        else if (!layerContext.updateIsObsolete) {
+            layerContext.updateIsObsolete = true;
+        }
+    }
+
+    // Start a new update
+    function startLayerUpdate(layerContext) {
+        var layerUpdatedDeferred = Q.defer();
+        
+        _generator.getPixmap(layerContext.layerID, 100).then(
+            function (pixmap) {
+                var fileName = layerContext.documentID + "-" + layerContext.layerID + ".png",
+                    path     = resolve(_assetGenerationDir, fileName),
+                    tmpPath  = temp.path({ suffix: ".png" });
+
+                // Prevent an error after deleting a layer's contents, resulting in a 0x0 pixmap
+                if (pixmap.width === 0 || pixmap.height === 0) {
+                    // Delete the image for the empty layer
+                    fs.unlink(path, function (err) {
+                        if (err) {
+                            layerUpdatedDeferred.reject(err);
+                        } else {
+                            layerUpdatedDeferred.resolve();
+                        }
+                    });
+                }
+                else {
+                    // Save the image in a temporary file
+                    savePixmap(pixmap, tmpPath)
+                        .fail(function (err) {
+                            layerUpdatedDeferred.reject(err);
+                        })
+                        // When ImageMagick is done
+                        .done(function () {
+                            // ...move the temporary file to the desired location
+                            fs.rename(tmpPath, path, function (err) {
+                                if (err) {
+                                    layerUpdatedDeferred.reject(err);
+                                } else {
+                                    layerUpdatedDeferred.resolve();
+                                }
+                            });
+                        });
+                }
+            },
+            function (err) {
+                _generator.publish("assets.error.getPixmap", "Error: " + err);
+                layerUpdatedDeferred.reject(err);
+            }
+        );
+
+        return layerUpdatedDeferred.promise;
+    }
+
+    // Run a pending update if necessary
+    function finishLayerUpdate(layerContext) {
+        layerContext.updateIsScheduled = false;
+        // If the update is obsolete, schedule another one right after
+        // This update will still be delayed to give Photoshop some time to catch its breath
+        if (layerContext.updateIsObsolete) {
+            layerContext.updateIsObsolete = false;
+            scheduleLayerUpdate(layerContext);
+        }
+        // This is the final update for now: clean up
+        else {
+            delete _contextPerLayer[layerContext.contextID];
         }
     }
     
@@ -148,7 +261,7 @@
                         "Could not create directory '" + newDir + "', no assets will be dumped"
                     );
                 } else {
-                    assetGenerationDir = newDir;
+                    _assetGenerationDir = newDir;
                 }
             });
         } else {
