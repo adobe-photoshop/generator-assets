@@ -50,7 +50,7 @@
     }
 
     function savePixmap(pixmap, filename) {
-        _generator.publish("assets.dump", filename);
+        _generator.publish("assets.debug.dump", "dumping " + filename);
 
         var args = ["-", "-size", pixmap.width + "x" + pixmap.height, "png:-"];
         var proc = convert(args, _generator._photoshop._applicationPath);
@@ -64,33 +64,17 @@
         
         proc.stderr.on("close", function () {
             if (stderr) {
-                _generator.publish("assets.error", "error from ImageMagick: " + stderr);
+                _generator.publish("assets.error.convert", "error from ImageMagick: " + stderr);
             }
         });
     }
 
-    function handleImageChanged(message) {
-        if (message.documentID && message.layerEvents) {
-            message.layerEvents.forEach(function (e) {
-//                var layerInfo = _generator._layerState[e.layerID];
-                if (false) {
-//                    var params = {layerID:e.layerID,
-//                                  path:resolve( assetGenerationDir, layerInfo.layerChangedName ) };
-//                    _generator.evaluateJSXFile("./jsx/layerSVG.jsx", params);
-                }
-                else {
-                    _generator.getPixmap(e.layerID, 100).then(
-                        function (pixmap) {
-                            if (assetGenerationDir) {
-                                savePixmap(
-                                    pixmap,
-                                    resolve(assetGenerationDir, message.documentID + "-" + e.layerID + ".png")
-                                );
-                            }
-                        }, function (err) {
-                            _generator.publish("assets.getPixmap", "Error: " + err);
-                        });
-                }
+    function handleImageChanged(document) {
+        if (document.id && document.layers) {
+            document.layers.forEach(function (layer) {
+                _generator.getPixmap(layer.id, 100).then(
+                                resolve(assetGenerationDir, document.id + "-" + layer.id + ".png")
+                        _generator.publish("assets.error.getPixmap", "Error: " + err);
             });
         }
     }
@@ -146,7 +130,7 @@
             mkdirp(newDir, function (err) {
                 if (err) {
                     _generator.publish(
-                        "assets.error",
+                        "assets.error.init",
                         "Could not create directory '" + newDir + "', no assets will be dumped"
                     );
                 } else {
@@ -154,7 +138,10 @@
                 }
             });
         } else {
-            _generator.publish("assets.error", "Could not locate home directory in env vars, no assets will be dumped");
+            _generator.publish(
+                "assets.error.init",
+                "Could not locate home directory in env vars, no assets will be dumped"
+            );
         }
     }
 
