@@ -27,7 +27,7 @@
     var fs = require("fs"),
         resolve = require("path").resolve,
         mkdirp = require("mkdirp"),
-        temp = require("temp"),
+        tmp = require("tmp"),
         Q = require("q"),
         convert = require("./lib/convert"),
         xpm2png = require("./lib/xpm2png");
@@ -131,8 +131,7 @@
         _generator.getPixmap(layerContext.layerID, 100).then(
             function (pixmap) {
                 var fileName = layerContext.documentID + "-" + layerContext.layerID + ".png",
-                    path     = resolve(_assetGenerationDir, fileName),
-                    tmpPath  = temp.path({ suffix: ".png" });
+                    path     = resolve(_assetGenerationDir, fileName);
 
                 // Prevent an error after deleting a layer's contents, resulting in a 0x0 pixmap
                 if (pixmap.width === 0 || pixmap.height === 0) {
@@ -146,22 +145,29 @@
                     });
                 }
                 else {
-                    // Save the image in a temporary file
-                    savePixmap(pixmap, tmpPath)
-                        .fail(function (err) {
+                    tmp.tmpName(function (err, tmpPath) {
+                        if (err) {
                             layerUpdatedDeferred.reject(err);
-                        })
-                        // When ImageMagick is done
-                        .done(function () {
-                            // ...move the temporary file to the desired location
-                            fs.rename(tmpPath, path, function (err) {
-                                if (err) {
-                                    layerUpdatedDeferred.reject(err);
-                                } else {
-                                    layerUpdatedDeferred.resolve();
-                                }
+                            return;
+                        }
+                        
+                        // Save the image in a temporary file
+                        savePixmap(pixmap, tmpPath)
+                            .fail(function (err) {
+                                layerUpdatedDeferred.reject(err);
+                            })
+                            // When ImageMagick is done
+                            .done(function () {
+                                // ...move the temporary file to the desired location
+                                fs.rename(tmpPath, path, function (err) {
+                                    if (err) {
+                                        layerUpdatedDeferred.reject(err);
+                                    } else {
+                                        layerUpdatedDeferred.resolve();
+                                    }
+                                });
                             });
-                        });
+                    });
                 }
             },
             function (err) {
