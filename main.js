@@ -36,26 +36,15 @@
 
     var _generator = null,
         _assetGenerationDir = null,
-        _contextPerLayer = {};
+        _contextPerLayer = {},
+        _photoshopState = {};
 
     function getUserHomeDirectory() {
         return process.env[(process.platform === "win32") ? "USERPROFILE" : "HOME"];
     }
 
-    var _photoshopState = {};
-
-    function requestStateUpdate() {
-        _generator.getDocumentInfo().then(
-            function () {
-                _generator.publish("generator.info.psState", "Requested PS State");
-            },
-            function (err) {
-                _generator.publish("generator.info.psState", "error requestiong state: " + err);
-            });
-    }
-
     function savePixmap(pixmap, filename) {
-	    var fileCompleteDeferred = Q.defer();
+        var fileCompleteDeferred = Q.defer();
 
         _generator.publish("assets.debug.dump", "dumping " + filename);
 
@@ -85,7 +74,7 @@
 
     function handleImageChanged(document) {
         if (document.id && document.layers) {
-            processLayers(document);
+            cacheLayerInfo(document);
             document.layers.forEach(function (layer) {
                 handleImageChangedForLayer(document, layer);
             });
@@ -212,7 +201,17 @@
         }
     }
     
-    function processLayers(document) {
+    function requestStateUpdate() {
+        _generator.getDocumentInfo().then(
+            function () {
+                _generator.publish("generator.info.psState", "Requested PS State");
+            },
+            function (err) {
+                _generator.publish("generator.info.psState", "error requestiong state: " + err);
+            });
+    }
+
+    function cacheLayerInfo(document) {
         var docID = document.id;
         // This should really key off the type of the message!
         if (! _photoshopState[docID]) {
@@ -233,14 +232,10 @@
         }
     }
     
-    
-    // http://www.slideshare.net/async_io/javascript-promisesq-library-17206726
-    // https://github.com/kriskowal/q/wiki/API-Reference
-    
     function handlePsInfoMessage(message) {
         if (message.body.hasOwnProperty("id")) {
             _generator.publish("generator.info.psState", "Receiving PS state info");
-            processLayers(message.body);
+            cacheLayerInfo(message.body);
         }
     }
     
