@@ -73,8 +73,16 @@
         if (document.id && document.layers) {
             document.layers.forEach(function (layer) {
                 _generator.getPixmap(layer.id, 100).then(
+                    function (pixmap) {
+                        if (assetGenerationDir) {
+                            savePixmap(
+                                pixmap,
                                 resolve(assetGenerationDir, document.id + "-" + layer.id + ".png")
+                            );
+                        }
+                    }, function (err) {
                         _generator.publish("assets.error.getPixmap", "Error: " + err);
+                    });
             });
         }
     }
@@ -109,7 +117,7 @@
                     });
                 });
 
-                console.log("---layerstate for doc:"+docID+"---");
+                console.log("---layerstate for doc:" + docID + "---");
                 _photoshopState[docID].layers.forEach(function (layerInfo) {
                     console.log("Layer [" + layerInfo.id + "]: " + layerInfo.name);
                 });
