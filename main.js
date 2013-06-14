@@ -58,15 +58,15 @@
         });
     }
 
-    function handleImageChanged(message) {
-        if (message.documentID && message.layerEvents) {
-            message.layerEvents.forEach(function (e) {
-                _generator.getPixmap(e.layerID, 100).then(
+    function handleImageChanged(document) {
+        if (document.id && document.layers) {
+            document.layers.forEach(function (layer) {
+                _generator.getPixmap(layer.id, 100).then(
                     function (pixmap) {
                         if (assetGenerationDir) {
                             savePixmap(
                                 pixmap,
-                                resolve(assetGenerationDir, message.documentID + "-" + e.layerID + ".png")
+                                resolve(assetGenerationDir, document.id + "-" + layer.id + ".png")
                             );
                         }
                     }, function (err) {
