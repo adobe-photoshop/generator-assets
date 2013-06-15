@@ -81,47 +81,14 @@
         }
         // New document is coming by
         if (document.id && document.file && !_photoshopState[document.id]) {
+            // Capture the filename, then ask for the layer data.
             _photoshopState[document.id] = { file: document.file };
             requestStateUpdate();
         }
     }
 
-    function layerNameToCSS(layerName) {
-        var kMaxLayerNameLength = 50;   // "const" in ExtendScript
-    
-        // Remove any user-supplied class/ID delimiter
-        if ((layerName[0] === ".") || (layerName[0] === "#")) {
-            layerName = layerName.slice(1);
-        }
-        
-        // Remove any other creepy punctuation.
-        var badStuff = /[“”";!.?,'`@’#'$%^&*)(+=|}{><\x2F\s-]/g;
-        layerName = layerName.replace(badStuff, "_");
-    
-        // Text layer names may be arbitrarily long; keep it real
-        if (layerName.length > kMaxLayerNameLength) {
-            layerName = layerName.slice(0, kMaxLayerNameLength - 3);
-        }
-    
-        // Layers can't start with digits, force an _ in front in that case.
-        if (layerName.match(/^[\d].*/)) {
-            layerName = "_" + layerName;
-        }
-    
-        return layerName;
-    }
-
     function handleImageChangedForLayer(document, layer) {
         if (!_assetGenerationDir) {
-            return;
-        }
-
-        var layerName = _photoshopState[document.id].layerDict[layer.id].name;
-        if (layerName.search(/[.]svg$/) >= 0) {
-            var params = {path: resolve(_assetGenerationDir, layerNameToCSS(layerName)),
-                          layerID: layer.layerID};
-            _generator.evaluateJSXFile("./jsx/layerSVG.jsx", params);
-            _generator.publish("assets.generate", "Writing SVG file " + params.path);
             return;
         }
 
@@ -247,44 +214,47 @@
         }
         else if (document.layers) {
             document.layers.forEach(function (layerInfo) {
-                if (_photoshopState[docID].layerDict[layerInfo.id]) {
+                if (_photoshopState[docID].layerMap[layerInfo.id]) {
                     Object.keys(layerInfo).forEach(function (layerItem) {
-                        _photoshopState[docID].layerDict[layerInfo.id][layerItem] = layerInfo[layerItem];
+                        _photoshopState[docID].layerMap[layerInfo.id][layerItem] = layerInfo[layerItem];
                     });
                 } else {
                     // New layer
                     _photoshopState[docID].layers.push(layerInfo);
-                    _photoshopState[docID].layerDict[layerInfo.id] = layerInfo;
+                    _photoshopState[docID].layerMap[layerInfo.id] = layerInfo;
                 }
                 // Need to also handle deleting a layer, but that currently crashes PS
             });
         }
     }
-    
+
     // Build a map for the layers so we don't have to search the list.
     function updateLayerDict(docID) {
         var doc = _photoshopState[docID];
-        var layerDict = {};
+        var layerMap = {};
         if (doc.layers) {
             doc.layers.forEach(function (layer) {
-                layerDict[layer.id] = layer;
+                layerMap[layer.id] = layer;
             });
-            doc.layerDict = layerDict;
+            doc.layerMap = layerMap;
         }
     }
-    
-    // Called when the entire layer state is sent.
+
+    // Called when the entire layer state is sent in response to requestStateUpdate()
     function handlePsInfoMessage(message) {
         if (message.body.hasOwnProperty("id")) {
             var docID = message.body.id;
             var saveFilename = null;
             _generator.publish("generator.info.psState", "Receiving PS state info");
+
             // First, preserve the filename if we already have it.
             if (_photoshopState[docID] && _photoshopState[docID].file) {
                 saveFilename = _photoshopState[docID].file;
             }
+
             _photoshopState[docID] = message.body;
             updateLayerDict(docID);
+
             if (saveFilename) {
                 _photoshopState[docID].file = saveFilename;
             }
