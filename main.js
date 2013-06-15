@@ -79,10 +79,49 @@
                 handleImageChangedForLayer(document, layer);
             });
         }
+        // New document is coming by
+        if (document.id && document.file && !_photoshopState[document.id]) {
+            _photoshopState[document.id] = { file: document.file };
+            requestStateUpdate();
+        }
+    }
+
+    function layerNameToCSS(layerName) {
+        var kMaxLayerNameLength = 50;   // "const" in ExtendScript
+    
+        // Remove any user-supplied class/ID delimiter
+        if ((layerName[0] === ".") || (layerName[0] === "#")) {
+            layerName = layerName.slice(1);
+        }
+        
+        // Remove any other creepy punctuation.
+        var badStuff = /[“”";!.?,'`@’#'$%^&*)(+=|}{><\x2F\s-]/g;
+        layerName = layerName.replace(badStuff, "_");
+    
+        // Text layer names may be arbitrarily long; keep it real
+        if (layerName.length > kMaxLayerNameLength) {
+            layerName = layerName.slice(0, kMaxLayerNameLength - 3);
+        }
+    
+        // Layers can't start with digits, force an _ in front in that case.
+        if (layerName.match(/^[\d].*/)) {
+            layerName = "_" + layerName;
+        }
+    
+        return layerName;
     }
 
     function handleImageChangedForLayer(document, layer) {
         if (!_assetGenerationDir) {
+            return;
+        }
+
+        var layerName = _photoshopState[document.id].layerDict[layer.id].name;
+        if (layerName.search(/[.]svg$/) >= 0) {
+            var params = {path: resolve(_assetGenerationDir, layerNameToCSS(layerName)),
+                          layerID: layer.layerID};
+            _generator.evaluateJSXFile("./jsx/layerSVG.jsx", params);
+            _generator.publish("assets.generate", "Writing SVG file " + params.path);
             return;
         }
 
@@ -105,7 +144,7 @@
 
         scheduleLayerUpdate(_contextPerLayer[contextID]);
     }
-
+    
     // Run the update now if none is in progress, or wait until the current one is finished
     function scheduleLayerUpdate(layerContext) {
         // If no update is scheduled or the scheduled update is still being delayed, start from scratch
@@ -190,17 +229,6 @@
         }
     }
     
-    function updateLayerDict(docID) {
-        var doc = _photoshopState[docID];
-        var layerDict = {};
-        if (doc.layers) {
-            doc.layers.forEach(function (layer) {
-                layerDict[layer.id] = layer;
-            });
-            doc.layerDict = layerDict;
-        }
-    }
-    
     function requestStateUpdate() {
         _generator.getDocumentInfo().then(
             function () {
@@ -213,29 +241,53 @@
 
     function cacheLayerInfo(document) {
         var docID = document.id;
-        // This should really key off the type of the message!
         if (! _photoshopState[docID]) {
             _photoshopState[docID] = document;
-            updateLayerDict(docID);
+            console.log("Updating layers for an unknown document #" + docID + "?");
         }
         else if (document.layers) {
             document.layers.forEach(function (layerInfo) {
-                Object.keys(layerInfo).forEach(function (layerItem) {
-                    _photoshopState[docID].layerDict[layerInfo.id][layerItem] = layerInfo[layerItem];
-                });
-            });
-    
-            console.log("---layerstate for doc:" + docID + "---");
-            _photoshopState[docID].layers.forEach(function (layerInfo) {
-                console.log("Layer [" + layerInfo.id + "]: " + layerInfo.name);
+                if (_photoshopState[docID].layerDict[layerInfo.id]) {
+                    Object.keys(layerInfo).forEach(function (layerItem) {
+                        _photoshopState[docID].layerDict[layerInfo.id][layerItem] = layerInfo[layerItem];
+                    });
+                } else {
+                    // New layer
+                    _photoshopState[docID].layers.push(layerInfo);
+                    _photoshopState[docID].layerDict[layerInfo.id] = layerInfo;
+                }
+                // Need to also handle deleting a layer, but that currently crashes PS
             });
         }
     }
     
+    // Build a map for the layers so we don't have to search the list.
+    function updateLayerDict(docID) {
+        var doc = _photoshopState[docID];
+        var layerDict = {};
+        if (doc.layers) {
+            doc.layers.forEach(function (layer) {
+                layerDict[layer.id] = layer;
+            });
+            doc.layerDict = layerDict;
+        }
+    }
+    
+    // Called when the entire layer state is sent.
     function handlePsInfoMessage(message) {
         if (message.body.hasOwnProperty("id")) {
+            var docID = message.body.id;
+            var saveFilename = null;
             _generator.publish("generator.info.psState", "Receiving PS state info");
-            cacheLayerInfo(message.body);
+            // First, preserve the filename if we already have it.
+            if (_photoshopState[docID] && _photoshopState[docID].file) {
+                saveFilename = _photoshopState[docID].file;
+            }
+            _photoshopState[docID] = message.body;
+            updateLayerDict(docID);
+            if (saveFilename) {
+                _photoshopState[docID].file = saveFilename;
+            }
         }
     }
     
