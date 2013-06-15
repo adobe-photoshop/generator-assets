@@ -36,7 +36,7 @@
 
     var _generator = null,
         _assetGenerationDir = null,
-         changeContextPerLayer = {},
+        _changeContextPerLayer = {},
         _photoshopState = {};
 
     function getUserHomeDirectory() {
@@ -224,6 +224,41 @@
         }
     }
     
+    function layerNameToCSS(layerName) {
+        var kMaxLayerNameLength = 50;   // Was "const" in ExtendScript
+    
+        // If there's a file type suffix, don't mangle that.
+        var suffix = "",
+            suffixPos = layerName.search(/[.](\w{3,4})$/);
+        if (suffixPos >= 0) {
+            suffix = layerName.slice(suffixPos);
+            layerName = layerName.slice(0, suffixPos);
+        }
+    
+        // Remove any user-supplied class/ID delimiter
+        if ((layerName[0] === ".") || (layerName[0] === "#")) {
+            layerName = layerName.slice(1);
+        }
+        
+        // Remove any other creepy punctuation.
+        var badStuff = /[“”";!.?,'`@’#'$%^&*)(+=|}{><\x2F\s-]/g;
+        layerName = layerName.replace(badStuff, "_");
+    
+        // Text layer names may be arbitrarily long; keep it real
+        if (layerName.length > kMaxLayerNameLength) {
+            layerName = layerName.slice(0, kMaxLayerNameLength - 3);
+        }
+    
+        // Layers can't start with digits, force an _ in front in that case.
+        if (layerName.match(/^[\d].*/)) {
+            layerName = "_" + layerName;
+        }
+        
+        layerName += suffix;
+    
+        return layerName;
+    }
+
     function requestStateUpdate() {
         _generator.getDocumentInfo().then(
             function () {
