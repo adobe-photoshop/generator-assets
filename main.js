@@ -25,6 +25,8 @@
     "use strict";
 
     var fs = require("fs"),
+        // Name the module paths instead of path to avoid conflicts with variables named path
+        paths = require("path"),
         resolve = require("path").resolve,
         mkdirp = require("mkdirp"),
         tmp = require("tmp"),
@@ -76,7 +78,54 @@
         return fileCompleteDeferred.promise;
     }
 
+    function determineStorageDirectory(documentPath)
+    {
+        // The file extension, including the dot (e.g., ".psd")
+        var extension = paths.extname(documentPath);
+
+        // The file name, possibly with an extension (e.g., "Untitled-1" or "hero-image.psd")
+        var fileName = paths.basename(documentPath);
+        
+        // The file name without its extension (e.g., "Untitled-1" or "hero-image")
+        var documentName = extension.length ? fileName.slice(0, -extension.length) : fileName;
+
+        // For saved files, the directory the file was saved to. Otherwise, ~/Desktop/generator
+        var baseDirectory;
+
+        // If the file is saved (i.e., the path is absolute, thus containing slashes or backslashes)...
+        if (documentPath.match(/[\/\\]/)) {
+            baseDirectory = paths.dirname(documentPath);
+        }
+        // Fallback for unsaved files
+        else {
+            // First, check whether we can retrieve the user's home directory
+            baseDirectory = getUserHomeDirectory();
+            if (baseDirectory) {
+                // Now, append the proper directory names
+                baseDirectory = resolve(baseDirectory, "Desktop", "generator");
+            } else {
+                _generator.publish(
+                    "assets.error.init",
+                    "Could not locate home directory in env vars, no assets will be dumped"
+                );
+            }
+        }
+
+        if (baseDirectory) {
+            _assetGenerationDir = resolve(baseDirectory, documentName + "-assets");
+        } else {
+            _assetGenerationDir = null;
+        }
+
+        console.log("New asset generation dir", _assetGenerationDir);
+    }
+
     function handleImageChanged(document) {
+        console.log(document);
+        // Determine the If there is a file name (e.g., after saving or when switching between files, even unsaved ones)
+        if (document.file) {
+            determineStorageDirectory(document.file);
+        }
         if (document.id && document.layers) {
             document.layers.forEach(function (layer) {
                 handleImageChangedForLayer(document, layer);
@@ -129,12 +178,30 @@
         }
     }
 
+    function ensureDirectory(directory) {
+        var directoryCreatedDeferred = Q.defer();
+
+        mkdirp(directory, function (err) {
+            if (err) {
+                _generator.publish(
+                    "assets.error.init",
+                    "Could not create directory '" + directory + "', no assets will be dumped"
+                );
+                directoryCreatedDeferred.reject(err);
+            } else {
+                directoryCreatedDeferred.resolve(directory);
+            }
+        });
+
+        return directoryCreatedDeferred.promise;
+    }
+
     // Start a new update
     function startLayerUpdate(changeContext) {
         var layerUpdatedDeferred = Q.defer();
 
         var layer    = changeContext.layer,
-            fileName = changeContext.document.id + "-" + changeContext.layer.id + ".png",
+            fileName = "layer-" + changeContext.layer.id + ".png",
             path     = resolve(_assetGenerationDir, fileName);
 
         function deleteLayerImage() {
@@ -168,14 +235,18 @@
                                 })
                                 // When ImageMagick is done
                                 .done(function () {
-                                    // ...move the temporary file to the desired location
-                                    fs.rename(tmpPath, path, function (err) {
-                                        if (err) {
-                                            layerUpdatedDeferred.reject(err);
-                                        } else {
-                                            layerUpdatedDeferred.resolve();
-                                        }
-                                    });
+                                    ensureDirectory(_assetGenerationDir)
+                                        .fail(layerUpdatedDeferred.reject)
+                                        .done(function () {
+                                            // ...move the temporary file to the desired location
+                                            fs.rename(tmpPath, path, function (err) {
+                                                if (err) {
+                                                    layerUpdatedDeferred.reject(err);
+                                                } else {
+                                                    layerUpdatedDeferred.resolve();
+                                                }
+                                            });
+                                        });
                                 });
                         });
                     }
