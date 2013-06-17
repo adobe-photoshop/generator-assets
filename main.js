@@ -35,6 +35,7 @@
     var DELAY_TO_WAIT_UNTIL_USER_DONE = 300;
 
     var _generator = null,
+        _photoshopPath = null,
         _assetGenerationDir = null,
         _contextPerLayer = {};
 
@@ -48,7 +49,7 @@
         _generator.publish("assets.debug.dump", "dumping " + filename);
 
         var args = ["-", "-size", pixmap.width + "x" + pixmap.height, "png:-"];
-        var proc = convert(args, _generator._photoshop._applicationPath);
+        var proc = convert(args, _photoshopPath);
         var fileStream = fs.createWriteStream(filename);
         var stderr = "";
 
@@ -196,7 +197,30 @@
     
     function init(generator) {
         _generator = generator;
-        _generator.subscribe("photoshop.event.imageChanged", handleImageChanged);
+
+        // TODO: Much of this initialization is currently temporary. Once
+        // we have storage of assets in the correct location implemented, we
+        // should rewrite this to be more structured. The steps of init should
+        // be something like:
+        //
+        // 1. Get PS path
+        // 2. Register for PS events we care about
+        // 3. Get document info on current document
+        // 4. Initiate asset generation on current document if enabled
+        //
+
+        _generator.getPhotoshopPath().done(
+            function (path) {
+                _photoshopPath = path;
+                _generator.subscribe("photoshop.event.imageChanged", handleImageChanged);
+            },
+            function (err) {
+                _generator.publish(
+                    "assets.error.init",
+                    "Could not get photoshop path: " + err
+                );
+            }
+        );
 
         // create a place to save assets
         var homeDir = getUserHomeDirectory();
