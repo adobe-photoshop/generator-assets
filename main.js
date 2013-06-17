@@ -129,6 +129,7 @@
 
         if (context.assetGenerationEnabled !== event.settings.generateAssets) {
             context.assetGenerationEnabled = event.settings.generateAssets;
+            generateAllAssets();
         }
     }
 
@@ -138,6 +139,18 @@
             delete _contextPerDocument[document.id];
             // Stop here
             return;
+        }
+
+        var context = _contextPerDocument[document.id];
+        if (!context) {
+            context = _contextPerDocument[document.id] = {
+                document: { id: document.id },
+                // Initially (new/opened file), turn asset generation off
+                assetGenerationEnabled: false
+            };
+
+            // But act as if the user then turns it on
+            fakeUserTurningAssetGenerationOn(document.id);
         }
 
         // If there is a file name (e.g., after saving or when switching between files, even unsaved ones)
@@ -154,19 +167,8 @@
 
     function handlePathChanged(document)
     {
-        var context = _contextPerDocument[document.id];
-        if (!context) {
-            context = _contextPerDocument[document.id] = {
-                document: { id: document.id }
-            };
-
-            // Initially (new/opened file), turn asset generation off
-            context.assetGenerationEnabled = false;
-            // But act as if the user then turns it on
-            fakeUserTurningAssetGenerationOn(document.id);
-        }
-            
-        var wasSaved           = context.isSaved,
+        var context            = _contextPerDocument[document.id],
+            wasSaved           = context.isSaved,
             previousPath       = context.path,
             previousStorageDir = context.assetGenerationDir;
 
@@ -307,6 +309,8 @@
                 } else {
                     // Delete directory foo-assets/ for foo.psd if it is empty now
                     deleteDirectoryIfEmpty(changeContext.documentContext.assetGenerationDir);
+                    // Delete ~/Desktop/generator if it is empty now
+                    deleteDirectoryIfEmpty(_fallbackBaseDirectory);
                     layerUpdatedDeferred.resolve();
                 }
             });
@@ -386,6 +390,17 @@
         else {
             delete _changeContextPerLayer[changeContext.id];
         }
+    }
+
+    function generateAllAssets() {
+        _generator.getDocumentInfo()
+            .fail(function (err) {
+                _generator.publish("assets.error.getDocumentInfo", err);
+            })
+            .done(function (document) {
+                // Act as if all the layers have changed
+                handleImageChanged(document);
+            });
     }
     
     function init(generator) {
