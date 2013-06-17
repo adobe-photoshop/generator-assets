@@ -38,7 +38,9 @@
 
     var _generator = null,
         _photoshopPath = null,
-        _assetGenerationDir = null,
+        // For unsaved files
+        _fallbackBaseDirectory = null,
+        _contextPerDocument = {},
         _changeContextPerLayer = {};
 
     // TODO: Once we get the layer change management/updating right, we should add a
@@ -78,54 +80,71 @@
         return fileCompleteDeferred.promise;
     }
 
-    function determineStorageDirectory(documentPath)
-    {
-        // The file extension, including the dot (e.g., ".psd")
-        var extension = paths.extname(documentPath);
-
-        // The file name, possibly with an extension (e.g., "Untitled-1" or "hero-image.psd")
-        var fileName = paths.basename(documentPath);
+    function deleteDirectoryRecursively(directory) {
+        // Directory doesn't exist? We're done.
+        if (!fs.existsSync(directory)) {
+            return;
+        }
         
-        // The file name without its extension (e.g., "Untitled-1" or "hero-image")
-        var documentName = extension.length ? fileName.slice(0, -extension.length) : fileName;
-
-        // For saved files, the directory the file was saved to. Otherwise, ~/Desktop/generator
-        var baseDirectory;
-
-        // If the file is saved (i.e., the path is absolute, thus containing slashes or backslashes)...
-        if (documentPath.match(/[\/\\]/)) {
-            baseDirectory = paths.dirname(documentPath);
-        }
-        // Fallback for unsaved files
-        else {
-            // First, check whether we can retrieve the user's home directory
-            baseDirectory = getUserHomeDirectory();
-            if (baseDirectory) {
-                // Now, append the proper directory names
-                baseDirectory = resolve(baseDirectory, "Desktop", "generator");
+        // Delete all entries in the directory
+        var files = fs.readdirSync(directory);
+        files.forEach(function (file) {
+            var path = resolve(directory, file);
+            if (fs.statSync(path).isDirectory()) {
+                deleteDirectoryRecursively(path);
             } else {
-                _generator.publish(
-                    "assets.error.init",
-                    "Could not locate home directory in env vars, no assets will be dumped"
-                );
+                fs.unlinkSync(path);
             }
+        });
+
+        // Delete the now empty directory
+        fs.rmdirSync(directory);
+    }
+
+    function deleteDirectoryIfEmpty(directory) {
+        if (fs.existsSync(directory) && fs.readdirSync(directory).length === 0) {
+            fs.rmdirSync(directory);
+        }
+    }
+
+    function fakeUserTurningAssetGenerationOn(documentId) {
+        setTimeout(function () {
+            _generator.publish("photoshop.event.generatorSettingsChange", {
+                id: documentId,
+                settings: {
+                    generateAssets: true
+                }
+            });
+        }, 100);
+    }
+
+    function handleGeneratorSettingsChanged(event) {
+        var context = _contextPerDocument[event.id];
+        
+        if (!context) {
+            // This shouldn't happen due to handleImageChanged creating the context
+            console.warn("No context for document with ID " + event.id);
+            return;
         }
 
-        if (baseDirectory) {
-            _assetGenerationDir = resolve(baseDirectory, documentName + "-assets");
-        } else {
-            _assetGenerationDir = null;
+        if (context.assetGenerationEnabled !== event.settings.generateAssets) {
+            context.assetGenerationEnabled = event.settings.generateAssets;
         }
-
-        console.log("New asset generation dir", _assetGenerationDir);
     }
 
     function handleImageChanged(document) {
-        console.log(document);
-        // Determine the If there is a file name (e.g., after saving or when switching between files, even unsaved ones)
-        if (document.file) {
-            determineStorageDirectory(document.file);
+        // If the document was closed
+        if (document.closed) {
+            delete _contextPerDocument[document.id];
+            // Stop here
+            return;
         }
+
+        // If there is a file name (e.g., after saving or when switching between files, even unsaved ones)
+        if (document.file) {
+            handlePathChanged(document);
+        }
+        // If there are layer changes
         if (document.id && document.layers) {
             document.layers.forEach(function (layer) {
                 handleImageChangedForLayer(document, layer);
@@ -133,13 +152,88 @@
         }
     }
 
+    function handlePathChanged(document)
+    {
+        var context = _contextPerDocument[document.id];
+        if (!context) {
+            context = _contextPerDocument[document.id] = {
+                document: { id: document.id }
+            };
+
+            // Initially (new/opened file), turn asset generation off
+            context.assetGenerationEnabled = false;
+            // But act as if the user then turns it on
+            fakeUserTurningAssetGenerationOn(document.id);
+        }
+            
+        var wasSaved           = context.isSaved,
+            previousPath       = context.path,
+            previousStorageDir = context.assetGenerationDir;
+
+        updatePathInfoForDocument(document);
+
+        // Did the user perform "Save as..."?
+        if (wasSaved && previousPath !== context.path) {
+            // Turn asset generation off
+            context.assetGenerationEnabled = false;
+            // But act as if the user then turns it on
+            fakeUserTurningAssetGenerationOn(document.id);
+        }
+
+        if (!wasSaved && context.isSaved && previousStorageDir) {
+            // Delete the assets of a previous file
+            // Photoshop will have asked the user to confirm overwriting the PSD file at this point,
+            // so "overwriting" its assets is fine, too
+            if (fs.existsSync(context.assetGenerationDir)) {
+                deleteDirectoryRecursively(context.assetGenerationDir);
+            }
+
+            // Move the directory with the assets to the new location
+            // TODO: check whether this works when moving from one drive letter to another on Windows
+            fs.rename(previousStorageDir, context.assetGenerationDir, function (err) {
+                if (err) {
+                    _generator.publish("assets.error.rename", err);
+                }
+            });
+
+            // Delete ~/Desktop/generator if it is empty now
+            deleteDirectoryIfEmpty(_fallbackBaseDirectory);
+        }
+    }
+
+    function updatePathInfoForDocument(document)
+    {
+        var context = _contextPerDocument[document.id],
+            // The path to the document's file, or just its name (e.g., "Untitled-1" or "/foo/bar/hero-image.psd")
+            path = document.file,
+            // Determine whether the file is saved (i.e., it contains slashes or backslashes)...
+            isSaved = path.match(/[\/\\]/),
+            // The file extension, including the dot (e.g., ".psd")
+            extension = paths.extname(path),
+            // The file name, possibly with an extension (e.g., "Untitled-1" or "hero-image.psd")
+            fileName = paths.basename(path),
+            // The file name without its extension (e.g., "Untitled-1" or "hero-image")
+            documentName = extension.length ? fileName.slice(0, -extension.length) : fileName,
+            // For saved files, the directory the file was saved to. Otherwise, ~/Desktop/generator
+            baseDirectory = isSaved ? paths.dirname(path) : _fallbackBaseDirectory;
+
+        // Store the document's path
+        context.path = path;
+        // Determine whether the file is saved (i.e., the path is absolute, thus containing slashes or backslashes)...
+        context.isSaved = isSaved;
+        // Store the directory to store generated assets in
+        context.assetGenerationDir = baseDirectory ? resolve(baseDirectory, documentName + "-assets") : null;
+    }
+
     function handleImageChangedForLayer(document, layer) {
-        if (!_assetGenerationDir) {
+        // Document context
+        var documentContext = _contextPerDocument[document.id];
+        if (!documentContext.assetGenerationEnabled || !documentContext.assetGenerationDir) {
             return;
         }
 
+        // Layer change context
         var contextID = document.id + "-" + layer.id;
-        
         if (!_changeContextPerLayer[contextID]) {
             // Initialize the context object for this layer.
             // It will be deleted again once an update has finished
@@ -148,6 +242,7 @@
                 // Store the context ID here so the context can be deleted by finishLayerUpdate
                 id:                 contextID,
                 document:           document,
+                documentContext:    documentContext,
                 layer:              layer,
                 updateIsScheduled:  false,
                 updateIsObsolete:   false,
@@ -202,7 +297,7 @@
 
         var layer    = changeContext.layer,
             fileName = "layer-" + changeContext.layer.id + ".png",
-            path     = resolve(_assetGenerationDir, fileName);
+            path     = resolve(changeContext.documentContext.assetGenerationDir, fileName);
 
         function deleteLayerImage() {
             // Delete the image for the empty layer
@@ -210,6 +305,8 @@
                 if (err) {
                     layerUpdatedDeferred.reject(err);
                 } else {
+                    // Delete directory foo-assets/ for foo.psd if it is empty now
+                    deleteDirectoryIfEmpty(changeContext.documentContext.assetGenerationDir);
                     layerUpdatedDeferred.resolve();
                 }
             });
@@ -235,10 +332,12 @@
                                 })
                                 // When ImageMagick is done
                                 .done(function () {
-                                    ensureDirectory(_assetGenerationDir)
+                                    ensureDirectory(changeContext.documentContext.assetGenerationDir)
                                         .fail(layerUpdatedDeferred.reject)
                                         .done(function () {
                                             // ...move the temporary file to the desired location
+                                            // TODO: check whether this works when moving from one
+                                            // drive letter to another on Windows
                                             fs.rename(tmpPath, path, function (err) {
                                                 if (err) {
                                                     layerUpdatedDeferred.reject(err);
@@ -306,7 +405,20 @@
         _generator.getPhotoshopPath().done(
             function (path) {
                 _photoshopPath = path;
+                
+                // First, check whether we can retrieve the user's home directory
+                var homeDirectory = getUserHomeDirectory();
+                if (homeDirectory) {
+                    _fallbackBaseDirectory = resolve(homeDirectory, "Desktop", "generator");
+                } else {
+                    _generator.publish(
+                        "assets.error.init",
+                        "Could not locate home directory in env vars, no assets will be dumped for unsaved files"
+                    );
+                }
+
                 _generator.subscribe("photoshop.event.imageChanged", handleImageChanged);
+                _generator.subscribe("photoshop.event.generatorSettingsChange", handleGeneratorSettingsChanged);
             },
             function (err) {
                 _generator.publish(
@@ -315,27 +427,6 @@
                 );
             }
         );
-
-        // create a place to save assets
-        var homeDir = getUserHomeDirectory();
-        if (homeDir) {
-            var newDir = resolve(homeDir, "Desktop", "generator-assets");
-            mkdirp(newDir, function (err) {
-                if (err) {
-                    _generator.publish(
-                        "assets.error.init",
-                        "Could not create directory '" + newDir + "', no assets will be dumped"
-                    );
-                } else {
-                    _assetGenerationDir = newDir;
-                }
-            });
-        } else {
-            _generator.publish(
-                "assets.error.init",
-                "Could not locate home directory in env vars, no assets will be dumped"
-            );
-        }
     }
 
     exports.init = init;
