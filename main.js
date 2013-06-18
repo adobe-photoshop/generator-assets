@@ -75,9 +75,16 @@
 
     function handleImageChanged(document) {
         if (document.id && document.layers) {
+            cacheLayerInfo(document);
             document.layers.forEach(function (layer) {
                 handleImageChangedForLayer(document, layer);
             });
+        }
+        // New document is coming by
+        if (document.id && document.file && !_photoshopState[document.id]) {
+            // Capture the filename, then ask for the layer data.
+            _photoshopState[document.id] = { file: document.file };
+            requestStateUpdate();
         }
     }
 
@@ -233,8 +240,8 @@
 
     function requestStateUpdate() {
         _generator.getDocumentInfo().then(
-            function () {
-                _generator.publish("generator.info.psState", "Requested PS State");
+            function (message) {
+                handlePsInfoMessage(message);
             },
             function (err) {
                 _generator.publish("generator.info.psState", "error requestiong state: " + err);
@@ -243,11 +250,7 @@
 
     function cacheLayerInfo(document) {
         var docID = document.id;
-        if (! _photoshopState[docID]) {
-            _photoshopState[docID] = document;
-            console.log("Updating layers for an unknown document #" + docID + "?");
-        }
-        else if (document.layers) {
+        if (document.layers) {
             document.layers.forEach(function (layerInfo) {
                 if (_photoshopState[docID].layerMap[layerInfo.id]) {
                     Object.keys(layerInfo).forEach(function (layerItem) {
@@ -263,32 +266,31 @@
         }
     }
 
-    // Build a map for the layers so we don't have to search the list.
-    function updateLayerDict(docID) {
-        var doc = _photoshopState[docID];
-        var layerMap = {};
-        if (doc.layers) {
-            doc.layers.forEach(function (layer) {
-                layerMap[layer.id] = layer;
-            });
-            doc.layerMap = layerMap;
-        }
-    }
-
     // Called when the entire layer state is sent in response to requestStateUpdate()
     function handlePsInfoMessage(message) {
-        if (message.body.hasOwnProperty("id")) {
-            var docID = message.body.id;
+        if (message.hasOwnProperty("id")) {
+            var docID = message.id;
             var saveFilename = null;
             _generator.publish("generator.info.psState", "Receiving PS state info");
 
-            // First, preserve the filename if we already have it.
-            if (_photoshopState[docID] && _photoshopState[docID].file) {
+            // First, preserve the filename if we already have it
+            // and the message doesn't re-define it.
+            if (_photoshopState[docID] &&
+                _photoshopState[docID].file &&
+                !message.file) {
                 saveFilename = _photoshopState[docID].file;
             }
 
-            _photoshopState[docID] = message.body;
-            updateLayerDict(docID);
+            _photoshopState[docID] = message;
+
+            // Build a map for the layers so we don't have to search the list.
+            if (_photoshopState[docID].layers) {
+                var layerMap = {};
+                _photoshopState[docID].layers.forEach(function (layer) {
+                    layerMap[layer.id] = layer;
+                });
+                _photoshopState[docID].layerMap = layerMap;
+            }
 
             if (saveFilename) {
                 _photoshopState[docID].file = saveFilename;
@@ -298,7 +300,6 @@
     
     function init(generator) {
         _generator = generator;
-        _generator.subscribe("photoshop.message", handlePsInfoMessage);
         requestStateUpdate();
 
         // TODO: Much of this initialization is currently temporary. Once
