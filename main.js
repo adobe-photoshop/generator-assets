@@ -37,7 +37,7 @@
     var _generator = null,
         _photoshopPath = null,
         _assetGenerationDir = null,
-        _changeContextPerLayer = {},
+        _contextPerLayer = {},
         _photoshopState = {};
 
     function getUserHomeDirectory() {
@@ -75,16 +75,9 @@
 
     function handleImageChanged(document) {
         if (document.id && document.layers) {
-            cacheLayerInfo(document);
             document.layers.forEach(function (layer) {
                 handleImageChangedForLayer(document, layer);
             });
-        }
-        // New document is coming by
-        if (document.id && document.file && !_photoshopState[document.id]) {
-            // Capture the filename, then ask for the layer data.
-            _photoshopState[document.id] = { file: document.file };
-            requestStateUpdate();
         }
     }
 
@@ -95,60 +88,63 @@
 
         var contextID = document.id + "-" + layer.id;
         
-        if (!_changeContextPerLayer[contextID]) {
+        if (!_contextPerLayer[contextID]) {
             // Initialize the context object for this layer.
             // It will be deleted again once an update has finished
             // without the image changing during the update.
-            _changeContextPerLayer[contextID] = {
+            _contextPerLayer[contextID] = {
                 // Store the context ID here so the context can be deleted by finishLayerUpdate
-                id:                 contextID,
-                document:           document,
-                layer:              layer,
+                contextID:          contextID,
+                documentID:         document.id,
+                layerID:            layer.id,
                 updateIsScheduled:  false,
                 updateIsObsolete:   false,
                 updateDelayTimeout: null
             };
         }
 
-        scheduleLayerUpdate(_changeContextPerLayer[contextID]);
+        scheduleLayerUpdate(_contextPerLayer[contextID]);
     }
-    
-    // Run the update now if none is in progress, or wait until the current one is finished
-    function scheduleLayerUpdate(changeContext) {
-        // If no update is scheduled or the scheduled update is still being delayed, start from scratch
-        if (!changeContext.updateIsScheduled || changeContext.updateDelayTimeout) {
-            changeContext.updateIsScheduled = true;
-            clearTimeout(changeContext.updateDelayTimeout);
 
-            changeContext.updateDelayTimeout = setTimeout(function () {
-                changeContext.updateDelayTimeout = null;
-                startLayerUpdate(changeContext).fin(function () {
-                    finishLayerUpdate(changeContext);
+    // Run the update now if none is in progress, or wait until the current one is finished
+    function scheduleLayerUpdate(layerContext) {
+        // If no update is scheduled or the scheduled update is still being delayed, start from scratch
+        if (!layerContext.updateIsScheduled || layerContext.updateDelayTimeout) {
+            layerContext.updateIsScheduled = true;
+            clearTimeout(layerContext.updateDelayTimeout);
+
+            layerContext.updateDelayTimeout = setTimeout(function () {
+                layerContext.updateDelayTimeout = null;
+                startLayerUpdate(layerContext).fin(function () {
+                    finishLayerUpdate(layerContext);
                 });
             }, DELAY_TO_WAIT_UNTIL_USER_DONE);
         }
         // Otherwise, mark the scheduled update as obsolete so we can start over when it's done
-        else if (!changeContext.updateIsObsolete) {
-            changeContext.updateIsObsolete = true;
+        else if (!layerContext.updateIsObsolete) {
+            layerContext.updateIsObsolete = true;
         }
     }
 
     // Start a new update
-    function startLayerUpdate(changeContext) {
+    function startLayerUpdate(layerContext) {
         var layerUpdatedDeferred = Q.defer();
+        
+        _generator.getPixmap(layerContext.layerID, 100).then(
+            function (pixmap) {
+                var fileName = layerContext.documentID + "-" + layerContext.layerID + ".png",
                     path     = resolve(_assetGenerationDir, fileName);
 
-        var layer    = changeContext.layer,
-            fileName = changeContext.document.id + "-" + changeContext.layer.id + ".png",
-            path     = resolve(_assetGenerationDir, fileName);
-
-        function deleteLayerImage() {
-            // Delete the image for the empty layer
-            fs.unlink(path, function (err) {
-                if (err) {
-                    layerUpdatedDeferred.reject(err);
-                } else {
-                    layerUpdatedDeferred.resolve();
+                // Prevent an error after deleting a layer's contents, resulting in a 0x0 pixmap
+                if (pixmap.width === 0 || pixmap.height === 0) {
+                    // Delete the image for the empty layer
+                    fs.unlink(path, function (err) {
+                        if (err) {
+                            layerUpdatedDeferred.reject(err);
+                        } else {
+                            layerUpdatedDeferred.resolve();
+                        }
+                    });
                 }
                 else {
                     tmp.tmpName(function (err, tmpPath) {
@@ -175,41 +171,28 @@
                             });
                     });
                 }
-            );
-        }
-
-        if (layer.added) {
-            // Nothing to do since the layer is empty
-            layerUpdatedDeferred.resolve();
-        }
-        else if (layer.removed) {
-            // Delete the image if the layer was removed
-            deleteLayerImage();
-        }
-        else if (layer.pixels) {
-            // Update the layer image since its pixels were changed
-            createLayerImage();
-        }
-        else {
-            console.warn("Unknown type of layer change", layer);
-            layerUpdatedDeferred.reject();
-        }
+            },
+            function (err) {
+                _generator.publish("assets.error.getPixmap", "Error: " + err);
+                layerUpdatedDeferred.reject(err);
+            }
+        );
 
         return layerUpdatedDeferred.promise;
     }
 
     // Run a pending update if necessary
-    function finishLayerUpdate(changeContext) {
-        changeContext.updateIsScheduled = false;
+    function finishLayerUpdate(layerContext) {
+        layerContext.updateIsScheduled = false;
         // If the update is obsolete, schedule another one right after
         // This update will still be delayed to give Photoshop some time to catch its breath
-        if (changeContext.updateIsObsolete) {
-            changeContext.updateIsObsolete = false;
-            scheduleLayerUpdate(changeContext);
+        if (layerContext.updateIsObsolete) {
+            layerContext.updateIsObsolete = false;
+            scheduleLayerUpdate(layerContext);
         }
         // This is the final update for now: clean up
         else {
-            delete _changeContextPerLayer[changeContext.id];
+            delete _contextPerLayer[layerContext.contextID];
         }
     }
     
