@@ -37,7 +37,8 @@
     var _generator = null,
         _photoshopPath = null,
         _assetGenerationDir = null,
-        _contextPerLayer = {};
+        _contextPerLayer = {},
+        _photoshopState = {};
 
     function getUserHomeDirectory() {
         return process.env[(process.platform === "win32") ? "USERPROFILE" : "HOME"];
@@ -74,9 +75,16 @@
 
     function handleImageChanged(document) {
         if (document.id && document.layers) {
+            cacheLayerInfo(document);
             document.layers.forEach(function (layer) {
                 handleImageChangedForLayer(document, layer);
             });
+        }
+        // New document is coming by
+        if (document.id && document.file && !_photoshopState[document.id]) {
+            // Capture the filename, then ask for the layer data.
+            _photoshopState[document.id] = { file: document.file };
+            requestStateUpdate();
         }
     }
 
@@ -195,8 +203,104 @@
         }
     }
     
+    function layerNameToCSS(layerName) {
+        var kMaxLayerNameLength = 50;   // Was "const" in ExtendScript
+    
+        // If there's a file type suffix, don't mangle that.
+        var suffix = "",
+            suffixPos = layerName.search(/[.](\w{3,4})$/);
+        if (suffixPos >= 0) {
+            suffix = layerName.slice(suffixPos);
+            layerName = layerName.slice(0, suffixPos);
+        }
+    
+        // Remove any user-supplied class/ID delimiter
+        if ((layerName[0] === ".") || (layerName[0] === "#")) {
+            layerName = layerName.slice(1);
+        }
+        
+        // Remove any other creepy punctuation.
+        var badStuff = /[“”";!.?,'`@’#'$%^&*)(+=|}{><\x2F\s-]/g;
+        layerName = layerName.replace(badStuff, "_");
+    
+        // Text layer names may be arbitrarily long; keep it real
+        if (layerName.length > kMaxLayerNameLength) {
+            layerName = layerName.slice(0, kMaxLayerNameLength - 3);
+        }
+    
+        // Layers can't start with digits, force an _ in front in that case.
+        if (layerName.match(/^[\d].*/)) {
+            layerName = "_" + layerName;
+        }
+        
+        layerName += suffix;
+    
+        return layerName;
+    }
+
+    function requestStateUpdate() {
+        _generator.getDocumentInfo().then(
+            function (message) {
+                handlePsInfoMessage(message);
+            },
+            function (err) {
+                _generator.publish("generator.info.psState", "error requestiong state: " + err);
+            });
+    }
+
+    function cacheLayerInfo(document) {
+        var docID = document.id;
+        if (document.layers) {
+            document.layers.forEach(function (layerInfo) {
+                if (_photoshopState[docID].layerMap[layerInfo.id]) {
+                    Object.keys(layerInfo).forEach(function (layerItem) {
+                        _photoshopState[docID].layerMap[layerInfo.id][layerItem] = layerInfo[layerItem];
+                    });
+                } else {
+                    // New layer
+                    _photoshopState[docID].layers.push(layerInfo);
+                    _photoshopState[docID].layerMap[layerInfo.id] = layerInfo;
+                }
+                // Need to also handle deleting a layer, but that currently crashes PS
+            });
+        }
+    }
+
+    // Called when the entire layer state is sent in response to requestStateUpdate()
+    function handlePsInfoMessage(message) {
+        if (message.hasOwnProperty("id")) {
+            var docID = message.id;
+            var saveFilename = null;
+            _generator.publish("generator.info.psState", "Receiving PS state info");
+
+            // First, preserve the filename if we already have it
+            // and the message doesn't re-define it.
+            if (_photoshopState[docID] &&
+                _photoshopState[docID].file &&
+                !message.file) {
+                saveFilename = _photoshopState[docID].file;
+            }
+
+            _photoshopState[docID] = message;
+
+            // Build a map for the layers so we don't have to search the list.
+            if (_photoshopState[docID].layers) {
+                var layerMap = {};
+                _photoshopState[docID].layers.forEach(function (layer) {
+                    layerMap[layer.id] = layer;
+                });
+                _photoshopState[docID].layerMap = layerMap;
+            }
+
+            if (saveFilename) {
+                _photoshopState[docID].file = saveFilename;
+            }
+        }
+    }
+    
     function init(generator) {
         _generator = generator;
+        requestStateUpdate();
 
         // TODO: Much of this initialization is currently temporary. Once
         // we have storage of assets in the correct location implemented, we
