@@ -26,9 +26,9 @@
 
     var fs = require("fs"),
         resolve = require("path").resolve,
-        mkdirp = require("mkdirp"),
         tmp = require("tmp"),
         Q = require("q"),
+        mkdirp = Q.denodeify(require("mkdirp")),
         convert = require("./lib/convert"),
         xpm2png = require("./lib/xpm2png");
 
@@ -53,12 +53,43 @@
         return process.env[(process.platform === "win32") ? "USERPROFILE" : "HOME"];
     }
 
-    function savePixmap(pixmap, filename) {
+    // TODO: PNG-8 right now basically means GIF-like PNGs (binary transparency)
+    //       Ultimately, we want it to mean a palette of RGBA colors (arbitrary transparency)
+    function convertImage(png, filename, format, quality, scale) {
         var fileCompleteDeferred = Q.defer();
 
         _generator.publish("assets.debug.dump", "dumping " + filename);
 
-        var args = ["-", "-size", pixmap.width + "x" + pixmap.height, "png:-"];
+        var backgroundColor = "#fff";
+
+        if (format === "png" && quality) {
+            format = "png" + quality;
+        }
+
+        // var args = ["-", "-size", pixmap.width + "x" + pixmap.height, "png:-"];
+        var args = ["-"];
+
+        if (format === "jpg" || format === "gif" || format === "png8" || format === "png24") {
+            args.push("-background", backgroundColor, "-flatten");
+        }
+        if (format === "gif" || format === "png8") {
+            args.push("-transparent", backgroundColor);
+        }
+        if (scale) {
+            args.push("-resize", (scale * 100) + "%");
+        }
+        if (format === "jpg" && quality) {
+            args.push("-quality", quality);
+        }
+
+        // "png8" as a format produces different colors
+        if (format === "png8") {
+            format = "png";
+        }
+
+        // Write an image of format <format> to STDOUT
+        args.push(format + ":-");
+
         var proc = convert(args, _photoshopPath);
         var fileStream = fs.createWriteStream(filename);
         var stderr = "";
@@ -67,38 +98,20 @@
         proc.stdout.on("close", function () {
             fileCompleteDeferred.resolve(filename);
         });
-        
-        xpm2png(pixmap, proc.stdin.end.bind(proc.stdin));
+
+        proc.stdin.end(png);
         proc.stdout.pipe(fileStream);
         
         proc.stderr.on("close", function () {
             if (stderr) {
                 var error = "error from ImageMagick: " + stderr;
+                console.log(error);
                 _generator.publish("assets.error.convert", error);
                 fileCompleteDeferred.reject(error);
             }
         });
         
         return fileCompleteDeferred.promise;
-    }
-
-    // TODO: simplify this function with Q.denodify
-    function ensureDirectory(directory) {
-        var directoryCreatedDeferred = Q.defer();
-
-        mkdirp(directory, function (err) {
-            if (err) {
-                _generator.publish(
-                    "assets.error.init",
-                    "Could not create directory '" + directory + "', no assets will be dumped"
-                );
-                directoryCreatedDeferred.reject(err);
-            } else {
-                directoryCreatedDeferred.resolve(directory);
-            }
-        });
-
-        return directoryCreatedDeferred.promise;
     }
 
     function deleteDirectoryRecursively(directory) {
@@ -124,8 +137,189 @@
 
     function deleteDirectoryIfEmpty(directory) {
         if (fs.existsSync(directory) && fs.readdirSync(directory).length === 0) {
+            console.log("Deleting " + directory);
             fs.rmdirSync(directory);
         }
+    }
+
+    function parseLayerName(layerName) {
+        var parts = layerName.split(/ *[,\+] */);
+        return parts.map(parseFileSpec);
+    }
+
+    function parseFileSpec(fileSpec) {
+        var result = {
+            name: fileSpec
+        };
+
+        var match = fileSpec.match(/^((\d+)% *)?(.+\.([a-z0-9]*[a-z]))(\-?(\d+%?))?$/i);
+        if (match) {
+            result.file      = match[3];
+            result.extension = match[4].toLowerCase();
+            if (typeof match[5] !== "undefined") {
+                result.quality = match[6];
+            }
+            if (typeof match[1] !== "undefined") {
+                result.scale = parseInt(match[2], 10) / 100;
+            }
+        }
+
+        return result;
+    }
+    
+    function testParseLayerName() {
+        var layer1PNG = { name: "Layer 1.png", file: "Layer 1.png", extension: "png" };
+        var layer2JPG = { name: "Layer 2.jpg", file: "Layer 2.jpg", extension: "jpg" };
+
+        /* jshint maxlen: 160 */
+
+        var spec = {
+            // No extension specified
+            "Layer 1":                    [{ name: "Layer 1" }],
+
+            // Capital letters in the extension
+            "Foo.JpG":                    [{ name: "Foo.JpG",      file: "Foo.JpG",  extension: "jpg" }],
+            "Foo.JpEg":                   [{ name: "Foo.JpEg",     file: "Foo.JpEg", extension: "jpeg" }],
+            "Foo.PnG":                    [{ name: "Foo.PnG",      file: "Foo.PnG",  extension: "png" }],
+            
+            // Good examples for JPGs with a quality parameter
+            "foo.jpg-1":                  [{ name: "foo.jpg-1",    file: "foo.jpg",  extension: "jpg", quality: "1" }],
+            "foo.jpg4":                   [{ name: "foo.jpg4",     file: "foo.jpg",  extension: "jpg", quality: "4" }],
+            "foo.jpg-10":                 [{ name: "foo.jpg-10",   file: "foo.jpg",  extension: "jpg", quality: "10" }],
+            "foo.jpg-1%":                 [{ name: "foo.jpg-1%",   file: "foo.jpg",  extension: "jpg", quality: "1%" }],
+            "foo.jpg42%":                 [{ name: "foo.jpg42%",   file: "foo.jpg",  extension: "jpg", quality: "42%" }],
+            "foo.jpg-100%":               [{ name: "foo.jpg-100%", file: "foo.jpg",  extension: "jpg", quality: "100%" }],
+            
+            // Bad examples for JPGs with a quality parameter
+            "foo.jpg-0":                  [{ name: "foo.jpg-0",    file: "foo.jpg",  extension: "jpg", quality: "0" }],
+            "foo.jpg-11":                 [{ name: "foo.jpg-11",   file: "foo.jpg",  extension: "jpg", quality: "11" }],
+            "foo.jpg-0%":                 [{ name: "foo.jpg-0%",   file: "foo.jpg",  extension: "jpg", quality: "0%" }],
+            "foo.jpg-101%":               [{ name: "foo.jpg-101%", file: "foo.jpg",  extension: "jpg", quality: "101%" }],
+            
+            // Good examples for PNGs with a quality parameter
+            "foo.png-8":                  [{ name: "foo.png-8",    file: "foo.png",  extension: "png", quality: "8" }],
+            "foo.png24":                  [{ name: "foo.png24",    file: "foo.png",  extension: "png", quality: "24" }],
+            "foo.png-32":                 [{ name: "foo.png-32",   file: "foo.png",  extension: "png", quality: "32" }],
+
+            // Bad example for a PNG with a quality parameter
+            "foo.png-42":                 [{ name: "foo.png-42",   file: "foo.png",  extension: "png", quality: "42" }],
+
+            // Good examples for a scale factor
+            "1% foo.png":                 [{ name: "1% foo.png",   file: "foo.png",  extension: "png", scale: 0.01 }],
+            "42% foo.png":                [{ name: "42% foo.png",  file: "foo.png",  extension: "png", scale: 0.42 }],
+            "100% foo.png":               [{ name: "100% foo.png", file: "foo.png",  extension: "png", scale: 1.00 }],
+            "142% foo.png":               [{ name: "142% foo.png", file: "foo.png",  extension: "png", scale: 1.42 }],
+            
+            // Bad examples for a scale factor
+            "0% foo.png":                 [{ name: "0% foo.png",   file: "foo.png",  extension: "png", scale: 0}],
+            "05% foo.png":                [{ name: "05% foo.png",  file: "foo.png",  extension: "png", scale: 0.05}],
+            "1%foo.png":                  [{ name: "1%foo.png",    file: "foo.png",  extension: "png", scale: 0.01 }],
+            
+            // Space in file name
+            "Layer 1.png":                [layer1PNG],
+            
+            // Comma as separator
+            "Layer 1.png,Layer 2.jpg":    [layer1PNG, layer2JPG],
+            "Layer 1.png,   Layer 2.jpg": [layer1PNG, layer2JPG],
+            
+            // Plus as separator
+            "Layer 1.png+Layer 2.jpg":    [layer1PNG, layer2JPG],
+            "Layer 1.png  + Layer 2.jpg": [layer1PNG, layer2JPG],
+
+            // Putting it all together
+            "100% Delicious, 42%Layer 1.png24  + Layer.jpg-90% , 250% Foo Bar Baz.gif": [
+                { name: "100% Delicious" },
+                { name: "42%Layer 1.png24",     file: "Layer 1.png",     extension: "png", quality: "24", scale: 0.42 },
+                { name: "Layer.jpg-90%",         file: "Layer.jpg",       extension: "jpg", quality: "90%" },
+                { name: "250% Foo Bar Baz.gif", file: "Foo Bar Baz.gif", extension: "gif", scale: 2.5 }
+            ],
+        };
+
+        /* jshint maxlen: 120 */
+
+        Object.keys(spec).forEach(function (layerName) {
+            var actual   = JSON.stringify(parseLayerName(layerName)),
+                expected = JSON.stringify(spec[layerName]);
+            
+            if (actual !== expected) {
+                console.log("Error when parsing layer name \"" + layerName + "\"");
+                console.log("    Expected:", expected);
+                console.log("      Actual:", actual);
+            }
+        });
+    }
+
+    function analyzeLayerName(layerName) {
+        var components = parseLayerName(layerName),
+            errors = [],
+            quality;
+        
+        var validFileComponents = components.filter(function (component) {
+            if (!component.file) {
+                return false;
+            }
+
+            var hadErrors = false;
+            function reportError(message) {
+                hadErrors = true;
+                errors.push(component.name + ": " + message);
+            }
+            
+            if (component.scale === 0) {
+                reportError("Cannot scale an image to 0%");
+            }
+            if (component.extension === "jpeg") {
+                component.extension = "jpg";
+            }
+            
+            if ((typeof component.quality) !== "undefined") {
+                if (component.extension === "jpg") {
+                    if (component.quality.slice(-1) === "%") {
+                        quality = parseInt(component.quality.slice(0, -1), 10);
+                        if (quality < 1 || quality > 100) {
+                            reportError(
+                                "JPEG quality must be between 1% and 100% (is " +
+                                JSON.stringify(component.quality) +
+                                ")"
+                            );
+                        } else {
+                            component.quality = quality;
+                        }
+                    }
+                    else {
+                        quality = parseInt(component.quality, 10);
+                        if (component.quality < 1 || component.quality > 10) {
+                            reportError(
+                                "JPEG quality must be between 1 and 10 (is " +
+                                JSON.stringify(component.quality) +
+                                ")"
+                            );
+                        } else {
+                            component.quality = quality * 10;
+                        }
+                    }
+                }
+                else if (component.extension === "png") {
+                    if (["8", "24", "32"].indexOf(component.quality) === -1) {
+                        reportError("PNG quality must be 8, 24 or 32 (is " + JSON.stringify(component.quality) + ")");
+                    }
+                }
+                else {
+                    reportError(
+                        "There should not be a quality setting for files with the extension \"" +
+                        component.extension +
+                        "\""
+                    );
+                }
+            }
+
+            return !hadErrors;
+        });
+
+        return {
+            errors: errors,
+            validFileComponents: validFileComponents
+        };
     }
 
     // TODO: Temporary method. Remove after menus are implemented
@@ -221,6 +415,7 @@
             console.log("Initializing context");
             context = _contextPerDocument[document.id] = {
                 document: { id: document.id },
+                layers: {}
             };
         }
 
@@ -245,14 +440,24 @@
             }
         }
 
+        var pendingPromises = [];
+
         // If there are layer changes
         if (document.layers) {
             document.layers.forEach(function (layer) {
-                processLayerChange(document, layer);
+                pendingPromises.push(processLayerChange(document, layer));
             });
         }
-    }
 
+        Q.allSettled(pendingPromises).then(function () {
+            // Delete directory foo-assets/ for foo.psd if it is empty now
+            deleteDirectoryIfEmpty(context.assetGenerationDir);
+            // Delete ~/Desktop/generator if it is empty now
+            // Could fail if the user adjusts the thumbnail size in Finder on Mac OS X
+            // The size is stored as .DS_Store, making the directory seem not empty
+            deleteDirectoryIfEmpty(_fallbackBaseDirectory);
+        });
+    }
 
     function processPathChange(document) {
         console.log("Processing changes to the document path");
@@ -287,46 +492,47 @@
                     _generator.publish("assets.error.rename", err);
                 }
             });
-
-            // Delete ~/Desktop/generator if it is empty now
-            deleteDirectoryIfEmpty(_fallbackBaseDirectory);
         }
     }
 
     function processLayerChange(document, layer) {
-        
-        // Document context
-        var documentContext = _contextPerDocument[document.id];
-        if (!documentContext.assetGenerationEnabled) {
-            console.log("Ignoring changes to layer " + layer.id + " because asset generation is disabled");
-            return;
-        }
-        if (!documentContext.assetGenerationDir) {
-            console.log("Ignoring changes to layer " + layer.id + " because the asset generation directory is unknown");
-            return;
-        }
-
         console.log("Processing changes to layer " + layer.id);
 
-        // Layer change context
-        var contextID = document.id + "-" + layer.id;
-        if (!_changeContextPerLayer[contextID]) {
-            // Initialize the context object for this layer.
-            // It will be deleted again once an update has finished
-            // without the image changing during the update.
-            _changeContextPerLayer[contextID] = {
-                // Store the context ID here so the context can be deleted by finishLayerUpdate
-                id:                 contextID,
-                document:           document,
-                documentContext:    documentContext,
-                layer:              layer,
-                updateIsScheduled:  false,
-                updateIsObsolete:   false,
-                updateDelayTimeout: null
+        var documentContext = _contextPerDocument[document.id],
+            layerContext    = documentContext.layers[layer.id];
+
+        if (!layerContext) {
+            layerContext = documentContext.layers[layer.id] = {
+                generatedFiles: {}
             };
         }
 
-        scheduleLayerUpdate(_changeContextPerLayer[contextID]);
+        // Layer change context
+        var contextID = document.id + "-" + layer.id,
+            context = _changeContextPerLayer[contextID];
+        if (!context) {
+            // Initialize the context object for this layer.
+            // It will be deleted again once an update has finished
+            // without the image changing during the update.
+            context = _changeContextPerLayer[contextID] = {
+                // Store the context ID here so the context can be deleted by finishLayerUpdate
+                id:                     contextID,
+                document:               document,
+                documentContext:        documentContext,
+                layer:                  layer,
+                layerContext:           layerContext,
+                updateIsScheduled:      false,
+                updateIsObsolete:       false,
+                updateDelayTimeout:     null,
+                updateCompleteDeferred: Q.defer()
+            };
+        }
+
+        // Regardless of the nature of the change, we want to make sure that
+        // all changes to a layer are processed in sequence
+        scheduleLayerUpdate(context);
+
+        return context.updateCompleteDeferred.promise;
     }
 
     function updatePathInfoForDocument(document) {
@@ -365,13 +571,16 @@
 
             changeContext.updateDelayTimeout = setTimeout(function () {
                 changeContext.updateDelayTimeout = null;
+                console.log("<update>");
                 startLayerUpdate(changeContext).fin(function () {
                     finishLayerUpdate(changeContext);
-                });
+                    console.log("</update>");
+                }).done();
             }, DELAY_TO_WAIT_UNTIL_USER_DONE);
         }
         // Otherwise, mark the scheduled update as obsolete so we can start over when it's done
         else if (!changeContext.updateIsObsolete) {
+            console.log("Deferring update until the current one is done");
             changeContext.updateIsObsolete = true;
         }
     }
@@ -380,62 +589,131 @@
     function startLayerUpdate(changeContext) {
         var layerUpdatedDeferred = Q.defer();
 
-        console.log("Updating layer " + changeContext.layer.id);
+        console.log("Updating layer " + changeContext.layer.id +
+            " (" + JSON.stringify(changeContext.layerContext.name) + ")"
+        );
 
-        var layer    = changeContext.layer,
-            fileName = "layer-" + changeContext.layer.id + ".png",
-            path     = resolve(changeContext.documentContext.assetGenerationDir, fileName);
+        var documentContext = changeContext.documentContext,
+            layerContext    = changeContext.layerContext,
+            layer           = changeContext.layer;
 
-        function deleteLayerImage() {
-            // Delete the image for the empty layer
-            fs.unlink(path, function (err) {
-                if (err) {
-                    layerUpdatedDeferred.reject(err);
-                } else {
-                    // Delete directory foo-assets/ for foo.psd if it is empty now
-                    deleteDirectoryIfEmpty(changeContext.documentContext.assetGenerationDir);
-                    // Delete ~/Desktop/generator if it is empty now
-                    deleteDirectoryIfEmpty(_fallbackBaseDirectory);
-                    layerUpdatedDeferred.resolve();
+        function deleteLayerImages() {
+            Object.keys(layerContext.generatedFiles).forEach(function (path) {
+                if (fs.existsSync(path)) {
+                    fs.unlinkSync(path);
                 }
             });
         }
 
-        function createLayerImage() {
+        function updateLayerName() {
+            if (layer.name === layerContext.name) {
+                return;
+            }
+            
+            console.log("Layer " + layer.id + " is now named " + JSON.stringify(layer.name));
+            
+            // The name changed => delete all generated files 
+            // The files will be generated from scratch based on the new name
+            // For simple changes, like "foo.jpg" => "bar.jpg", this is an unfortunate overhead
+            // as renaming the file would have sufficed. But renaming is not valid for complex changes,
+            // like "Layer 1" => "foo.jpg, bar.png" or "foo.jpg" => "foo.png"
+            deleteLayerImages();
+
+            layerContext.name = layer.name;
+            
+            var analysis = analyzeLayerName(layerContext.name);
+            layerContext.validFileComponents = analysis.validFileComponents;
+            
+            if (layerContext.validFileComponents.length === 0) {
+                console.log("No valid components found");
+            }
+            if (analysis.errors.length) {
+                console.log("Errors", analysis.errors);
+                if (documentContext.assetGenerationEnabled && documentContext.assetGenerationDir) {
+                    var errors = "[" + new Date() + "]\n" + analysis.errors.join("\n") + "\n\n";
+                    fs.appendFileSync(resolve(documentContext.assetGenerationDir, "errors.txt"), errors);
+                }
+            }
+        }
+
+        function createLayerImages() {
+            // Otherwise, get the pixmap - but only once
             _generator.getPixmap(changeContext.layer.id, 100).then(
                 function (pixmap) {
                     // Prevent an error after deleting a layer's contents, resulting in a 0x0 pixmap
                     if (pixmap.width === 0 || pixmap.height === 0) {
-                        deleteLayerImage();
+                        deleteLayerImages();
+                        layerUpdatedDeferred.resolve();
                     }
                     else {
-                        tmp.tmpName(function (err, tmpPath) {
-                            if (err) {
-                                layerUpdatedDeferred.reject(err);
-                                return;
-                            }
-                            // Save the image in a temporary file
-                            savePixmap(pixmap, tmpPath)
-                                .fail(function (err) {
-                                    layerUpdatedDeferred.reject(err);
-                                })
-                                // When ImageMagick is done
-                                .done(function () {
-                                    ensureDirectory(changeContext.documentContext.assetGenerationDir)
-                                        .fail(layerUpdatedDeferred.reject)
+                        // Convert the image to PNG
+                        xpm2png(pixmap, function (png) {
+                            var components = layerContext.validFileComponents;
+                            var componentPromises = components.map(function (component) {
+                                var componentUpdatedDeferred = Q.defer(),
+                                    path = resolve(documentContext.assetGenerationDir, component.file);
+                                
+                                console.log("Generating " + path);
+
+                                // Create a temporary file name
+                                tmp.tmpName(function (err, tmpPath) {
+                                    if (err) {
+                                        componentUpdatedDeferred.reject(err);
+                                        return;
+                                    }
+                                    // Save the image in a temporary file
+                                    convertImage(png, tmpPath, component.extension, component.quality, component.scale)
+                                        .fail(function (err) {
+                                            componentUpdatedDeferred.reject(err);
+                                        })
+                                        // When ImageMagick is done
                                         .done(function () {
-                                            // ...move the temporary file to the desired location
-                                            // TODO: check whether this works when moving from one
-                                            // drive letter to another on Windows
-                                            fs.rename(tmpPath, path, function (err) {
-                                                if (err) {
-                                                    layerUpdatedDeferred.reject(err);
-                                                } else {
-                                                    layerUpdatedDeferred.resolve();
-                                                }
-                                            });
+                                            var directory = changeContext.documentContext.assetGenerationDir;
+                                            mkdirp(directory)
+                                                .fail(function () {
+                                                    _generator.publish(
+                                                        "assets.error.init",
+                                                        "Could not create directory '" + directory + "'"
+                                                    );
+                                                    layerUpdatedDeferred.reject();
+                                                })
+                                                .done(function () {
+                                                    // ...move the temporary file to the desired location
+                                                    // TODO: check whether this works when moving from one
+                                                    // drive letter to another on Windows
+                                                    fs.rename(tmpPath, path, function (err) {
+                                                        if (err) {
+                                                            componentUpdatedDeferred.reject(err);
+                                                        } else {
+                                                            layerContext.generatedFiles[path] = true;
+                                                            componentUpdatedDeferred.resolve();
+                                                        }
+                                                    });
+                                                });
                                         });
                                 });
+                                
+                                return componentUpdatedDeferred.promise;
+                            });
+
+                            Q.allSettled(componentPromises).then(function (results) {
+                                console.log("Done with all files");
+                                var errors = [];
+                                results.forEach(function (result, i) {
+                                    if (result.state !== "fulfilled") {
+                                        errors.push(components[i].name + ": " + result.value);
+                                    }
+                                });
+
+                                if (errors.length) {
+                                    console.log("Errors", errors);
+                                    layerUpdatedDeferred.reject("Failed to update the following layers:\n" +
+                                        errors.join("\n")
+                                    );
+                                } else {
+                                    layerUpdatedDeferred.resolve();
+                                }
+                            });
                         });
                     }
                 },
@@ -447,16 +725,36 @@
         }
 
         if (layer.removed) {
-            // Delete the image if the layer was removed
-            deleteLayerImage();
+            // If the layer was removed delete all generated files 
+            deleteLayerImages();
+        }
+        else if (layer.name) {
+            // If the layer name was changed, the generated files may get deleted
+            updateLayerName();
+        }
+
+        if (layer.removed || !layerContext.validFileComponents || layerContext.validFileComponents.length === 0) {
+            // If the layer was removed, we're done since we delete the images above
+            // If there are no valid file components anymore, there's nothing to generate
+            console.log("Done (removed or no valid components)");
+            layerUpdatedDeferred.resolve();
+        }
+        else if (!documentContext.assetGenerationEnabled) {
+            console.log("Ignoring changes to layer " + layer.id + " because asset generation is disabled");
+            layerUpdatedDeferred.resolve();
+        }
+        else if (!documentContext.assetGenerationDir) {
+            console.log("Ignoring changes to layer " + layer.id + " because the asset generation directory is unknown");
+            layerUpdatedDeferred.resolve();
         }
         else {
+            console.log("Creating layer images");
             // Update the layer image
-            // The change could be layer.pixels, layer.added, layer.path, ...
+            // The change could be layer.pixels, layer.added, layer.path, layer.name, ...
             // Always update if it has been added because it could
             // have been dragged & dropped or copied & pasted,
             // and therefore might not be empty like new layers
-            createLayerImage();
+            createLayerImages();
         }
 
         return layerUpdatedDeferred.promise;
@@ -473,7 +771,9 @@
         }
         // This is the final update for now: clean up
         else {
+            var deferred = changeContext.updateCompleteDeferred;
             delete _changeContextPerLayer[changeContext.id];
+            deferred.resolve();
         }
     }
 
@@ -507,6 +807,8 @@
 
     function init(generator) {
         _generator = generator;
+
+        testParseLayerName();
 
         // TODO: Much of this initialization is currently temporary. Once
         // we have storage of assets in the correct location implemented, we
