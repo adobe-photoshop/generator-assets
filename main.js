@@ -38,6 +38,10 @@
         _assetGenerationDir = null,
         _changeContextPerLayer = {};
 
+    // TODO: Once we get the layer change management/updating right, we should add a
+    // big comment at the top of this file explaining how this all works. In particular
+    // we should explain what contexts are, and how we manage scheduling updates.
+
     function getUserHomeDirectory() {
         return process.env[(process.platform === "win32") ? "USERPROFILE" : "HOME"];
     }
