@@ -25,8 +25,6 @@
     "use strict";
 
     var fs = require("fs"),
-        // Name the module paths instead of path to avoid conflicts with variables named path
-        paths = require("path"),
         resolve = require("path").resolve,
         mkdirp = require("mkdirp"),
         tmp = require("tmp"),
@@ -36,16 +34,16 @@
 
     var DELAY_TO_WAIT_UNTIL_USER_DONE = 300;
 
-    var _generator = null,
-        _photoshopPath = null,
-        // For unsaved files
-        _fallbackBaseDirectory = null,
-        _contextPerDocument = {},
-        _changeContextPerLayer = {};
-
     // TODO: Once we get the layer change management/updating right, we should add a
     // big comment at the top of this file explaining how this all works. In particular
     // we should explain what contexts are, and how we manage scheduling updates.
+    
+    var _generator = null,
+        // For unsaved files
+        _fallbackBaseDirectory = null,
+        _contextPerDocument = {},
+        _changeContextPerLayer = {},
+        _photoshopPath = null;
 
     function getUserHomeDirectory() {
         return process.env[(process.platform === "win32") ? "USERPROFILE" : "HOME"];
@@ -80,6 +78,25 @@
         return fileCompleteDeferred.promise;
     }
 
+    // TODO: simplify this function with Q.denodify
+    function ensureDirectory(directory) {
+        var directoryCreatedDeferred = Q.defer();
+
+        mkdirp(directory, function (err) {
+            if (err) {
+                _generator.publish(
+                    "assets.error.init",
+                    "Could not create directory '" + directory + "', no assets will be dumped"
+                );
+                directoryCreatedDeferred.reject(err);
+            } else {
+                directoryCreatedDeferred.resolve(directory);
+            }
+        });
+
+        return directoryCreatedDeferred.promise;
+    }
+
     function deleteDirectoryRecursively(directory) {
         // Directory doesn't exist? We're done.
         if (!fs.existsSync(directory)) {
@@ -107,6 +124,7 @@
         }
     }
 
+    // TODO: Temporary method. Remove after menus are implemented
     function fakeUserTurningAssetGenerationOn(documentId) {
         setTimeout(function () {
             _generator.publish("photoshop.event.generatorSettingsChange", {
@@ -115,25 +133,12 @@
                     generateAssets: true
                 }
             });
-        }, 100);
-    }
-
-    function handleGeneratorSettingsChanged(event) {
-        var context = _contextPerDocument[event.id];
-        
-        if (!context) {
-            // This shouldn't happen due to handleImageChanged creating the context
-            console.warn("No context for document with ID " + event.id);
-            return;
-        }
-
-        if (context.assetGenerationEnabled !== event.settings.generateAssets) {
-            context.assetGenerationEnabled = event.settings.generateAssets;
-            generateAllAssets();
-        }
+        }, 500);
     }
 
     function handleImageChanged(document) {
+        console.log("Image was changed:", document);
+
         // If the document was closed
         if (document.closed) {
             delete _contextPerDocument[document.id];
@@ -141,32 +146,103 @@
             return;
         }
 
-        var context = _contextPerDocument[document.id];
+        // Possible reasons for an undefined context:
+        // - User created a new image
+        // - User opened an image
+        // - User switched to an image that was created/opened before Generator started
+        if (!_contextPerDocument[document.id]) {
+            // Make sure we have all information
+            processEntireDocument();
+        } else {
+            // We have seen this document before: information about the changes are enough
+            processChangesToDocument(document);
+        }
+    }
+
+    function handleGeneratorSettingsChanged(event) {
+        var context = _contextPerDocument[event.id];
+        
         if (!context) {
+            // This shouldn't happen due to handleImageChanged creating the context
+            console.error("ERROR: No context for document with ID " + event.id);
+            return;
+        }
+
+        if (context.assetGenerationEnabled !== event.settings.generateAssets) {
+            context.assetGenerationEnabled = event.settings.generateAssets;
+            console.log("Asset generation is now " + (context.assetGenerationEnabled ? "enabled" : "disabled"));
+            if (context.assetGenerationEnabled) {
+                processEntireDocument();
+            }
+        }
+    }
+
+    function processEntireDocument() {
+        console.log("Processing entire document");
+        _generator.getDocumentInfo()
+            .fail(function (err) {
+                _generator.publish("assets.error.getDocumentInfo", err);
+            })
+            .done(function (document) {
+                if (document.id && !document.file) {
+                    console.warn("WARNING: file information is missing from document.");
+                }
+                // Act as if everything has changed
+                processChangesToDocument(document);
+            });
+    }
+
+    function processChangesToDocument(document) {
+        // Stop if the document isn't an object describing a menu (could be "[ActionDescriptor]")
+        if (!document.id) {
+            console.log("Document object had no ID");
+            return;
+        }
+        
+        console.log("Processing changes to document");
+        var context        = _contextPerDocument[document.id],
+            wasInitialized = Boolean(context);
+        
+        if (!wasInitialized) {
+            console.log("Initializing context");
             context = _contextPerDocument[document.id] = {
                 document: { id: document.id },
-                // Initially (new/opened file), turn asset generation off
-                assetGenerationEnabled: false
             };
-
-            // But act as if the user then turns it on
-            fakeUserTurningAssetGenerationOn(document.id);
         }
 
         // If there is a file name (e.g., after saving or when switching between files, even unsaved ones)
         if (document.file) {
-            handlePathChanged(document);
+            processPathChange(document);
         }
+        
+        // First time this instance of Generator sees the file
+        if (!wasInitialized) {
+            if (context.isSaved) {
+                console.log("Document is saved -> Assuming asset generation is already enabled");
+                // File is saved: assume the user opened a saved file
+                // (Generator might also have started after the user saved a file)
+                // Act as if the file has generator enabled
+                context.assetGenerationEnabled = true;
+            } else {
+                console.log("Document is not saved -> Act as if user is enabling asset generation in 300ms");
+                // File is not saved: assume the user opened a new file
+                // Act as if the user enables the asset generator after 300ms
+                fakeUserTurningAssetGenerationOn(document.id);
+            }
+        }
+
         // If there are layer changes
-        if (document.id && document.layers) {
+        if (document.layers) {
             document.layers.forEach(function (layer) {
-                handleImageChangedForLayer(document, layer);
+                processLayerChange(document, layer);
             });
         }
     }
 
-    function handlePathChanged(document)
-    {
+
+    function processPathChange(document) {
+        console.log("Processing changes to the document path");
+        
         var context            = _contextPerDocument[document.id],
             wasSaved           = context.isSaved,
             previousPath       = context.path,
@@ -203,36 +279,20 @@
         }
     }
 
-    function updatePathInfoForDocument(document)
-    {
-        var context = _contextPerDocument[document.id],
-            // The path to the document's file, or just its name (e.g., "Untitled-1" or "/foo/bar/hero-image.psd")
-            path = document.file,
-            // Determine whether the file is saved (i.e., it contains slashes or backslashes)...
-            isSaved = path.match(/[\/\\]/),
-            // The file extension, including the dot (e.g., ".psd")
-            extension = paths.extname(path),
-            // The file name, possibly with an extension (e.g., "Untitled-1" or "hero-image.psd")
-            fileName = paths.basename(path),
-            // The file name without its extension (e.g., "Untitled-1" or "hero-image")
-            documentName = extension.length ? fileName.slice(0, -extension.length) : fileName,
-            // For saved files, the directory the file was saved to. Otherwise, ~/Desktop/generator
-            baseDirectory = isSaved ? paths.dirname(path) : _fallbackBaseDirectory;
-
-        // Store the document's path
-        context.path = path;
-        // Determine whether the file is saved (i.e., the path is absolute, thus containing slashes or backslashes)...
-        context.isSaved = isSaved;
-        // Store the directory to store generated assets in
-        context.assetGenerationDir = baseDirectory ? resolve(baseDirectory, documentName + "-assets") : null;
-    }
-
-    function handleImageChangedForLayer(document, layer) {
+    function processLayerChange(document, layer) {
+        
         // Document context
         var documentContext = _contextPerDocument[document.id];
-        if (!documentContext.assetGenerationEnabled || !documentContext.assetGenerationDir) {
+        if (!documentContext.assetGenerationEnabled) {
+            console.log("Ignoring changes to layer " + layer.id + " because asset generation is disabled");
             return;
         }
+        if (!documentContext.assetGenerationDir) {
+            console.log("Ignoring changes to layer " + layer.id + " because the asset generation directory is unknown");
+            return;
+        }
+
+        console.log("Processing changes to layer " + layer.id);
 
         // Layer change context
         var contextID = document.id + "-" + layer.id;
@@ -255,6 +315,33 @@
         scheduleLayerUpdate(_changeContextPerLayer[contextID]);
     }
 
+    function updatePathInfoForDocument(document) {
+        var extname = require("path").extname,
+            basename = require("path").basename,
+            dirname = require("path").dirname;
+
+        var context = _contextPerDocument[document.id],
+            // The path to the document's file, or just its name (e.g., "Untitled-1" or "/foo/bar/hero-image.psd")
+            path = document.file,
+            // Determine whether the file is saved (i.e., it contains slashes or backslashes)...
+            isSaved = path.match(/[\/\\]/),
+            // The file extension, including the dot (e.g., ".psd")
+            extension = extname(path),
+            // The file name, possibly with an extension (e.g., "Untitled-1" or "hero-image.psd")
+            fileName = basename(path),
+            // The file name without its extension (e.g., "Untitled-1" or "hero-image")
+            documentName = extension.length ? fileName.slice(0, -extension.length) : fileName,
+            // For saved files, the directory the file was saved to. Otherwise, ~/Desktop/generator
+            baseDirectory = isSaved ? dirname(path) : _fallbackBaseDirectory;
+
+        // Store the document's path
+        context.path = path;
+        // Determine whether the file is saved (i.e., the path is absolute, thus containing slashes or backslashes)...
+        context.isSaved = isSaved;
+        // Store the directory to store generated assets in
+        context.assetGenerationDir = baseDirectory ? resolve(baseDirectory, documentName + "-assets") : null;
+    }
+
     // Run the update now if none is in progress, or wait until the current one is finished
     function scheduleLayerUpdate(changeContext) {
         // If no update is scheduled or the scheduled update is still being delayed, start from scratch
@@ -275,27 +362,11 @@
         }
     }
 
-    function ensureDirectory(directory) {
-        var directoryCreatedDeferred = Q.defer();
-
-        mkdirp(directory, function (err) {
-            if (err) {
-                _generator.publish(
-                    "assets.error.init",
-                    "Could not create directory '" + directory + "', no assets will be dumped"
-                );
-                directoryCreatedDeferred.reject(err);
-            } else {
-                directoryCreatedDeferred.resolve(directory);
-            }
-        });
-
-        return directoryCreatedDeferred.promise;
-    }
-
     // Start a new update
     function startLayerUpdate(changeContext) {
         var layerUpdatedDeferred = Q.defer();
+
+        console.log("Updating layer " + changeContext.layer.id);
 
         var layer    = changeContext.layer,
             fileName = "layer-" + changeContext.layer.id + ".png",
@@ -392,17 +463,34 @@
         }
     }
 
-    function generateAllAssets() {
-        _generator.getDocumentInfo()
-            .fail(function (err) {
-                _generator.publish("assets.error.getDocumentInfo", err);
-            })
-            .done(function (document) {
-                // Act as if all the layers have changed
-                handleImageChanged(document);
-            });
+    function initPhotoshopPath() {
+        return _generator.getPhotoshopPath().then(
+            function (path) {
+                console.log("Photoshop is installed in " + path);
+                _photoshopPath = path;
+            },
+            function (err) {
+                _generator.publish(
+                    "assets.error.init",
+                    "Could not get photoshop path: " + err
+                );
+            }
+        );
     }
-    
+
+    function initFallbackBaseDirectory() {
+        // First, check whether we can retrieve the user's home directory
+        var homeDirectory = getUserHomeDirectory();
+        if (homeDirectory) {
+            _fallbackBaseDirectory = resolve(homeDirectory, "Desktop", "generator");
+        } else {
+            _generator.publish(
+                "assets.error.init",
+                "Could not locate home directory in env vars, no assets will be dumped for unsaved files"
+            );
+        }
+    }
+
     function init(generator) {
         _generator = generator;
 
@@ -417,31 +505,14 @@
         // 4. Initiate asset generation on current document if enabled
         //
 
-        _generator.getPhotoshopPath().done(
-            function (path) {
-                _photoshopPath = path;
-                
-                // First, check whether we can retrieve the user's home directory
-                var homeDirectory = getUserHomeDirectory();
-                if (homeDirectory) {
-                    _fallbackBaseDirectory = resolve(homeDirectory, "Desktop", "generator");
-                } else {
-                    _generator.publish(
-                        "assets.error.init",
-                        "Could not locate home directory in env vars, no assets will be dumped for unsaved files"
-                    );
-                }
+        initFallbackBaseDirectory();
+        initPhotoshopPath().done(function () {
+            console.log("Registering for events");
+            _generator.subscribe("photoshop.event.imageChanged", handleImageChanged);
+            _generator.subscribe("photoshop.event.generatorSettingsChange", handleGeneratorSettingsChanged);
 
-                _generator.subscribe("photoshop.event.imageChanged", handleImageChanged);
-                _generator.subscribe("photoshop.event.generatorSettingsChange", handleGeneratorSettingsChanged);
-            },
-            function (err) {
-                _generator.publish(
-                    "assets.error.init",
-                    "Could not get photoshop path: " + err
-                );
-            }
-        );
+            processEntireDocument();
+        });
     }
 
     exports.init = init;
