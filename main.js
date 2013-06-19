@@ -187,21 +187,17 @@
             );
         }
 
-        if (layer.added) {
-            // Nothing to do since the layer is empty
-            layerUpdatedDeferred.resolve();
-        }
-        else if (layer.removed) {
+        if (layer.removed) {
             // Delete the image if the layer was removed
             deleteLayerImage();
         }
-        else if (layer.pixels) {
-            // Update the layer image since its pixels were changed
-            createLayerImage();
-        }
         else {
-            console.warn("Unknown type of layer change", layer);
-            layerUpdatedDeferred.reject();
+            // Update the layer image
+            // The change could be layer.pixels, layer.added, layer.path, ...
+            // Always update if it has been added because it could
+            // have been dragged & dropped or copied & pasted,
+            // and therefore might not be empty like new layers
+            createLayerImage();
         }
 
         return layerUpdatedDeferred.promise;
