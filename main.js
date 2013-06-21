@@ -32,7 +32,11 @@
         convert = require("./lib/convert"),
         xpm2png = require("./lib/xpm2png");
 
-    var DELAY_TO_WAIT_UNTIL_USER_DONE = 300;
+    var DELAY_TO_WAIT_UNTIL_USER_DONE = 300,
+        MENU_ID = "assets";
+
+    // TODO: once menu is actually wired up to per-document data, remove this.
+    var _tempMenuChecked = false;
 
     // TODO: Once we get the layer change management/updating right, we should add a
     // big comment at the top of this file explaining how this all works. In particular
@@ -156,6 +160,16 @@
         } else {
             // We have seen this document before: information about the changes are enough
             processChangesToDocument(document);
+        }
+    }
+
+    function handleGeneratorMenuChanged(event) {
+        if (event.generatorMenuChanged &&
+            event.generatorMenuChanged.name &&
+            event.generatorMenuChanged.name === MENU_ID) {
+            _tempMenuChecked = !_tempMenuChecked;
+            _generator.toggleMenu(MENU_ID, true, _tempMenuChecked);
+            // TODO: Actually enable/disable for current document
         }
     }
 
@@ -499,11 +513,21 @@
         // should rewrite this to be more structured. The steps of init should
         // be something like:
         //
+        // 0. Add menu item
         // 1. Get PS path
         // 2. Register for PS events we care about
-        // 3. Get document info on current document
+        // 3. Get document info on current document, set menu state
         // 4. Initiate asset generation on current document if enabled
         //
+
+        _generator.addMenuItem(MENU_ID, "Web Assets", true, false).then(
+            function () {
+                _generator.publish("assets.info.menuCreated", MENU_ID);
+            }, function () {
+                _generator.publish("assets.error.menuCreationFailed", MENU_ID);
+            }
+        );
+        _generator.subscribe("photoshop.event.generatorMenuChanged", handleGeneratorMenuChanged);
 
         initFallbackBaseDirectory();
         initPhotoshopPath().done(function () {

@@ -1,0 +1,18 @@
+{
+    "de_de": {
+        "ANOTHER_MENU_ID": "Another menu item",
+        "GENERATE_ASSETS": "Web Assets"
+    },
+    "ja_jp": {
+        "ANOTHER_MENU_ID": "購_Another menu item",
+        "GENERATE_ASSETS": "購_Web Assets"
+    },
+    "en_us": {
+        "ANOTHER_MENU_ID": "Another menu item",
+        "GENERATE_ASSETS": "Web Assets"
+    },
+    "fr_fr": {
+        "ANOTHER_MENU_ID": "Another menu item",
+        "GENERATE_ASSETS": "Web Assets"
+    }
+}
