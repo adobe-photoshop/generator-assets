@@ -35,9 +35,6 @@
     var DELAY_TO_WAIT_UNTIL_USER_DONE = 300,
         MENU_ID = "assets";
 
-    // TODO: once menu is actually wired up to per-document data, remove this.
-    var _tempMenuChecked = false;
-
     // TODO: Once we get the layer change management/updating right, we should add a
     // big comment at the top of this file explaining how this all works. In particular
     // we should explain what contexts are, and how we manage scheduling updates.
@@ -47,7 +44,8 @@
         _fallbackBaseDirectory = null,
         _contextPerDocument = {},
         _changeContextPerLayer = {},
-        _photoshopPath = null;
+        _photoshopPath = null,
+        _currentDocumentId;
 
     function getUserHomeDirectory() {
         return process.env[(process.platform === "win32") ? "USERPROFILE" : "HOME"];
@@ -322,18 +320,6 @@
         };
     }
 
-    // TODO: Temporary method. Remove after menus are implemented
-    function fakeUserTurningAssetGenerationOn(documentId) {
-        setTimeout(function () {
-            _generator.publish("photoshop.event.generatorSettingsChange", {
-                id: documentId,
-                settings: {
-                    generateAssets: true
-                }
-            });
-        }, 500);
-    }
-
     function handleImageChanged(document) {
         console.log("Image was changed:", document);
 
@@ -343,6 +329,8 @@
             // Stop here
             return;
         }
+
+        processDocumentId(document.id);
 
         // Possible reasons for an undefined context:
         // - User created a new image
@@ -357,27 +345,25 @@
         }
     }
 
-    function handleGeneratorMenuChanged(event) {
-        if (event.generatorMenuChanged &&
-            event.generatorMenuChanged.name &&
-            event.generatorMenuChanged.name === MENU_ID) {
-            _tempMenuChecked = !_tempMenuChecked;
-            _generator.toggleMenu(MENU_ID, true, _tempMenuChecked);
-            // TODO: Actually enable/disable for current document
-        }
+    function handleCurrentDocumentChanged(id) {
+        processDocumentId(id);
     }
 
-    function handleGeneratorSettingsChanged(event) {
-        var context = _contextPerDocument[event.id];
-        
+    function handleGeneratorMenuClicked(event) {
+        var context = _contextPerDocument[_currentDocumentId];
         if (!context) {
-            // This shouldn't happen due to handleImageChanged creating the context
-            console.error("ERROR: No context for document with ID " + event.id);
             return;
         }
 
-        if (context.assetGenerationEnabled !== event.settings.generateAssets) {
-            context.assetGenerationEnabled = event.settings.generateAssets;
+        var menu = event.generatorMenuChanged;
+        if (!menu || menu.name !== MENU_ID) {
+            return;
+        }
+
+        var enable = !menu.checked;
+        _generator.toggleMenu(MENU_ID, true, enable);
+        if (context.assetGenerationEnabled !== enable) {
+            context.assetGenerationEnabled = enable;
             console.log("Asset generation is now " + (context.assetGenerationEnabled ? "enabled" : "disabled"));
             if (context.assetGenerationEnabled) {
                 processEntireDocument();
@@ -400,6 +386,22 @@
             });
     }
 
+    function processDocumentId(id) {
+        if (_currentDocumentId === id) {
+            return;
+        }
+        _currentDocumentId = id;
+        updateMenuState();
+    }
+
+    function updateMenuState() {
+        var context = _contextPerDocument[_currentDocumentId],
+            enabled = context ? Boolean(context.assetGenerationEnabled) : false;
+
+        console.log("Setting menu state to " + enabled);
+        _generator.toggleMenu(MENU_ID, true, enabled);
+    }
+
     function processChangesToDocument(document) {
         // Stop if the document isn't an object describing a menu (could be "[ActionDescriptor]")
         if (!document.id) {
@@ -419,27 +421,13 @@
             };
         }
 
+        processDocumentId(document.id);
+
         // If there is a file name (e.g., after saving or when switching between files, even unsaved ones)
         if (document.file) {
             processPathChange(document);
         }
         
-        // First time this instance of Generator sees the file
-        if (!wasInitialized) {
-            if (context.isSaved) {
-                console.log("Document is saved -> Assuming asset generation is already enabled");
-                // File is saved: assume the user opened a saved file
-                // (Generator might also have started after the user saved a file)
-                // Act as if the file has generator enabled
-                context.assetGenerationEnabled = true;
-            } else {
-                console.log("Document is not saved -> Act as if user is enabling asset generation in 300ms");
-                // File is not saved: assume the user opened a new file
-                // Act as if the user enables the asset generator after 300ms
-                fakeUserTurningAssetGenerationOn(document.id);
-            }
-        }
-
         var pendingPromises = [];
 
         // If there are layer changes
@@ -473,8 +461,7 @@
         if (wasSaved && previousPath !== context.path) {
             // Turn asset generation off
             context.assetGenerationEnabled = false;
-            // But act as if the user then turns it on
-            fakeUserTurningAssetGenerationOn(document.id);
+            updateMenuState();
         }
 
         if (!wasSaved && context.isSaved && previousStorageDir) {
@@ -829,13 +816,13 @@
                 _generator.publish("assets.error.menuCreationFailed", MENU_ID);
             }
         );
-        _generator.subscribe("photoshop.event.generatorMenuChanged", handleGeneratorMenuChanged);
+        _generator.subscribe("photoshop.event.generatorMenuChanged", handleGeneratorMenuClicked);
+        _generator.subscribe("photoshop.event.currentDocumentChanged", handleCurrentDocumentChanged);
 
         initFallbackBaseDirectory();
         initPhotoshopPath().done(function () {
             console.log("Registering for events");
             _generator.subscribe("photoshop.event.imageChanged", handleImageChanged);
-            _generator.subscribe("photoshop.event.generatorSettingsChange", handleGeneratorSettingsChanged);
 
             processEntireDocument();
         });
