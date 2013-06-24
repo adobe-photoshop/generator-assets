@@ -53,7 +53,7 @@
 
     // TODO: PNG-8 right now basically means GIF-like PNGs (binary transparency)
     //       Ultimately, we want it to mean a palette of RGBA colors (arbitrary transparency)
-    function convertImage(png, filename, format, quality, scale) {
+    function convertImage(pixmap, filename, format, quality, scale) {
         var fileCompleteDeferred = Q.defer();
 
         _generator.publish("assets.debug.dump", "dumping " + filename);
@@ -64,8 +64,11 @@
             format = "png" + quality;
         }
 
-        // var args = ["-", "-size", pixmap.width + "x" + pixmap.height, "png:-"];
-        var args = ["-"];
+        // In order to know the pixel boundaries, ImageMagick needs to know the resolution and pixel depth
+        // pixmap.pixels contains the pixels in ARGB format, but ImageMagick only understands RGBA
+        // The color-matrix parameter allows us to compensate for that
+        // rgba:- then tells ImageMagick to read the pixels from STDIN
+        var args = ["-size", pixmap.width + "x" + pixmap.height, "-depth", 8, "-color-matrix", "0 1 0 0, 0 0 1 0, 0 0 0 1, 1 0 0 0", "rgba:-"];
 
         if (format === "jpg" || format === "gif" || format === "png8" || format === "png24") {
             args.push("-background", backgroundColor, "-flatten");
@@ -93,13 +96,13 @@
         var stderr = "";
 
         proc.stderr.on("data", function (chunk) { stderr += chunk; });
+
+        proc.stdout.pipe(fileStream);
+        proc.stdin.end(pixmap.pixels);
+
         proc.stdout.on("close", function () {
             fileCompleteDeferred.resolve(filename);
         });
-
-        proc.stdin.end(png);
-        proc.stdout.pipe(fileStream);
-        
         proc.stderr.on("close", function () {
             if (stderr) {
                 var error = "error from ImageMagick: " + stderr;
@@ -410,10 +413,9 @@
         }
         
         console.log("Processing changes to document");
-        var context        = _contextPerDocument[document.id],
-            wasInitialized = Boolean(context);
+        var context = _contextPerDocument[document.id];
         
-        if (!wasInitialized) {
+        if (!context) {
             console.log("Initializing context");
             context = _contextPerDocument[document.id] = {
                 document: { id: document.id },
@@ -633,8 +635,6 @@
                         layerUpdatedDeferred.resolve();
                     }
                     else {
-                        // Convert the image to PNG
-                        xpm2png(pixmap, function (png) {
                             var components = layerContext.validFileComponents;
                             var componentPromises = components.map(function (component) {
                                 var componentUpdatedDeferred = Q.defer(),
@@ -649,7 +649,7 @@
                                         return;
                                     }
                                     // Save the image in a temporary file
-                                    convertImage(png, tmpPath, component.extension, component.quality, component.scale)
+                                convertImage(pixmap, tmpPath, component.extension, component.quality, component.scale)
                                         .fail(function (err) {
                                             componentUpdatedDeferred.reject(err);
                                         })
@@ -701,7 +701,6 @@
                                     layerUpdatedDeferred.resolve();
                                 }
                             });
-                        });
                     }
                 },
                 function (err) {
