@@ -29,8 +29,7 @@
         tmp = require("tmp"),
         Q = require("q"),
         mkdirp = Q.denodeify(require("mkdirp")),
-        convert = require("./lib/convert"),
-        xpm2png = require("./lib/xpm2png");
+        convert = require("./lib/convert");
 
     var DELAY_TO_WAIT_UNTIL_USER_DONE = 300,
         MENU_ID = "assets";
@@ -53,7 +52,7 @@
 
     // TODO: PNG-8 right now basically means GIF-like PNGs (binary transparency)
     //       Ultimately, we want it to mean a palette of RGBA colors (arbitrary transparency)
-    function convertImage(png, filename, format, quality, scale) {
+    function convertImage(pixmap, filename, format, quality, scale) {
         var fileCompleteDeferred = Q.defer();
 
         _generator.publish("assets.debug.dump", "dumping " + filename);
@@ -64,8 +63,16 @@
             format = "png" + quality;
         }
 
-        // var args = ["-", "-size", pixmap.width + "x" + pixmap.height, "png:-"];
-        var args = ["-"];
+        var args = [
+            // In order to know the pixel boundaries, ImageMagick needs to know the resolution and pixel depth
+            "-size", pixmap.width + "x" + pixmap.height,
+            "-depth", 8,
+            // pixmap.pixels contains the pixels in ARGB format, but ImageMagick only understands RGBA
+            // The color-matrix parameter allows us to compensate for that
+            "-color-matrix", "0 1 0 0, 0 0 1 0, 0 0 0 1, 1 0 0 0",
+            // Read the pixels in RGBA form from STDIN
+            "rgba:-"
+        ];
 
         if (format === "jpg" || format === "gif" || format === "png8" || format === "png24") {
             args.push("-background", backgroundColor, "-flatten");
@@ -92,20 +99,20 @@
         var fileStream = fs.createWriteStream(filename);
         var stderr = "";
 
-        proc.stderr.on("data", function (chunk) { stderr += chunk; });
-        proc.stdout.on("close", function () {
-            fileCompleteDeferred.resolve(filename);
+        proc.stderr.on("data", function (chunk) {
+            stderr += chunk;
         });
 
-        proc.stdin.end(png);
         proc.stdout.pipe(fileStream);
-        
-        proc.stderr.on("close", function () {
+        proc.stdin.end(pixmap.pixels);
+
+        proc.stdout.on("close", function () {
             if (stderr) {
                 var error = "error from ImageMagick: " + stderr;
-                console.log(error);
                 _generator.publish("assets.error.convert", error);
-                fileCompleteDeferred.reject(error);
+                fileCompleteDeferred.reject(stderr);
+            } else {
+                fileCompleteDeferred.resolve(filename);
             }
         });
         
@@ -135,7 +142,6 @@
 
     function deleteDirectoryIfEmpty(directory) {
         if (fs.existsSync(directory) && fs.readdirSync(directory).length === 0) {
-            console.log("Deleting " + directory);
             fs.rmdirSync(directory);
         }
     }
@@ -320,6 +326,16 @@
         };
     }
 
+    function reportErrorsToUser(documentContext, errors) {
+        if (!errors.length) {
+            return;
+        }
+        if (documentContext.assetGenerationEnabled && documentContext.assetGenerationDir) {
+            var text = "[" + new Date() + "]\n" + errors.join("\n") + "\n\n";
+            fs.appendFileSync(resolve(documentContext.assetGenerationDir, "errors.txt"), text);
+        }
+    }
+
     function handleImageChanged(document) {
         console.log("Image was changed:", document);
 
@@ -372,18 +388,18 @@
     }
 
     function processEntireDocument() {
-        console.log("Processing entire document");
-        _generator.getDocumentInfo()
-            .fail(function (err) {
-                _generator.publish("assets.error.getDocumentInfo", err);
-            })
-            .done(function (document) {
+        _generator.getDocumentInfo().then(
+            function (document) {
                 if (document.id && !document.file) {
                     console.warn("WARNING: file information is missing from document.");
                 }
                 // Act as if everything has changed
                 processChangesToDocument(document);
-            });
+            },
+            function (err) {
+                _generator.publish("assets.error.getDocumentInfo", err);
+            }
+        ).done();
     }
 
     function processDocumentId(id) {
@@ -404,20 +420,18 @@
 
     function processChangesToDocument(document) {
         // Stop if the document isn't an object describing a menu (could be "[ActionDescriptor]")
+        // Happens if no document is open, but maybe also at other times
         if (!document.id) {
-            console.log("Document object had no ID");
             return;
         }
         
-        console.log("Processing changes to document");
-        var context        = _contextPerDocument[document.id],
-            wasInitialized = Boolean(context);
+        var context = _contextPerDocument[document.id];
         
-        if (!wasInitialized) {
-            console.log("Initializing context");
+        if (!context) {
             context = _contextPerDocument[document.id] = {
                 document: { id: document.id },
-                layers: {}
+                layers: {},
+                assetGenerationEnabled: false
             };
         }
 
@@ -448,8 +462,6 @@
     }
 
     function processPathChange(document) {
-        console.log("Processing changes to the document path");
-        
         var context            = _contextPerDocument[document.id],
             wasSaved           = context.isSaved,
             previousPath       = context.path,
@@ -483,8 +495,6 @@
     }
 
     function processLayerChange(document, layer) {
-        console.log("Processing changes to layer " + layer.id);
-
         var documentContext = _contextPerDocument[document.id],
             layerContext    = documentContext.layers[layer.id];
 
@@ -558,11 +568,10 @@
 
             changeContext.updateDelayTimeout = setTimeout(function () {
                 changeContext.updateDelayTimeout = null;
-                console.log("<update>");
-                startLayerUpdate(changeContext).fin(function () {
+                var finish = function () {
                     finishLayerUpdate(changeContext);
-                    console.log("</update>");
-                }).done();
+                };
+                startLayerUpdate(changeContext).then(finish, finish).done();
             }, DELAY_TO_WAIT_UNTIL_USER_DONE);
         }
         // Otherwise, mark the scheduled update as obsolete so we can start over when it's done
@@ -577,7 +586,7 @@
         var layerUpdatedDeferred = Q.defer();
 
         console.log("Updating layer " + changeContext.layer.id +
-            " (" + JSON.stringify(changeContext.layerContext.name) + ")"
+            " (" + JSON.stringify(changeContext.layer.name || changeContext.layerContext.name) + ")"
         );
 
         var documentContext = changeContext.documentContext,
@@ -597,8 +606,6 @@
                 return;
             }
             
-            console.log("Layer " + layer.id + " is now named " + JSON.stringify(layer.name));
-            
             // The name changed => delete all generated files 
             // The files will be generated from scratch based on the new name
             // For simple changes, like "foo.jpg" => "bar.jpg", this is an unfortunate overhead
@@ -611,100 +618,94 @@
             var analysis = analyzeLayerName(layerContext.name);
             layerContext.validFileComponents = analysis.validFileComponents;
             
-            if (layerContext.validFileComponents.length === 0) {
-                console.log("No valid components found");
-            }
-            if (analysis.errors.length) {
-                console.log("Errors", analysis.errors);
-                if (documentContext.assetGenerationEnabled && documentContext.assetGenerationDir) {
-                    var errors = "[" + new Date() + "]\n" + analysis.errors.join("\n") + "\n\n";
-                    fs.appendFileSync(resolve(documentContext.assetGenerationDir, "errors.txt"), errors);
+            reportErrorsToUser(documentContext, analysis.errors);
+        }
+
+        // TODO: Make sure this function is refactored so that it doesn't have so much
+        // callback nesting. This function will change substantially when we move image
+        // creation to core, so avoiding the refactor right now.
+        function createLayerImage(pixmap, component) {
+            var imageCreatedDeferred = Q.defer(),
+                path = resolve(documentContext.assetGenerationDir, component.file);
+            
+            console.log("Generating " + path);
+
+            // Create a temporary file name
+            tmp.tmpName(function (err, tmpPath) {
+                if (err) {
+                    imageCreatedDeferred.reject(err);
+                    return;
                 }
-            }
+                // Save the image in a temporary file
+                convertImage(pixmap, tmpPath, component.extension, component.quality, component.scale).then(
+                    // When ImageMagick is done
+                    function () {
+                        var directory = changeContext.documentContext.assetGenerationDir;
+                        mkdirp(directory)
+                            .fail(function () {
+                                _generator.publish(
+                                    "assets.error.init",
+                                    "Could not create directory '" + directory + "'"
+                                );
+                                imageCreatedDeferred.reject();
+                            })
+                            .done(function () {
+                                // ...move the temporary file to the desired location
+                                // TODO: check whether this works when moving from one
+                                // drive letter to another on Windows
+                                fs.rename(tmpPath, path, function (err) {
+                                    if (err) {
+                                        imageCreatedDeferred.reject(err);
+                                    } else {
+                                        layerContext.generatedFiles[path] = true;
+                                        imageCreatedDeferred.resolve();
+                                    }
+                                });
+                            });
+                    },
+                    function (err) {
+                        imageCreatedDeferred.reject(err);
+                    }
+                );
+            });
+            
+            return imageCreatedDeferred.promise;
         }
 
         function createLayerImages() {
-            // Otherwise, get the pixmap - but only once
+            // Get the pixmap - but only once
             _generator.getPixmap(changeContext.layer.id, 100).then(
                 function (pixmap) {
                     // Prevent an error after deleting a layer's contents, resulting in a 0x0 pixmap
                     if (pixmap.width === 0 || pixmap.height === 0) {
                         deleteLayerImages();
                         layerUpdatedDeferred.resolve();
+                        return;
                     }
-                    else {
-                        // Convert the image to PNG
-                        xpm2png(pixmap, function (png) {
-                            var components = layerContext.validFileComponents;
-                            var componentPromises = components.map(function (component) {
-                                var componentUpdatedDeferred = Q.defer(),
-                                    path = resolve(documentContext.assetGenerationDir, component.file);
-                                
-                                console.log("Generating " + path);
+                    
+                    var components = layerContext.validFileComponents;
+                    var componentPromises = components.map(function (component) {
+                        return createLayerImage(pixmap, component);
+                    });
 
-                                // Create a temporary file name
-                                tmp.tmpName(function (err, tmpPath) {
-                                    if (err) {
-                                        componentUpdatedDeferred.reject(err);
-                                        return;
-                                    }
-                                    // Save the image in a temporary file
-                                    convertImage(png, tmpPath, component.extension, component.quality, component.scale)
-                                        .fail(function (err) {
-                                            componentUpdatedDeferred.reject(err);
-                                        })
-                                        // When ImageMagick is done
-                                        .done(function () {
-                                            var directory = changeContext.documentContext.assetGenerationDir;
-                                            mkdirp(directory)
-                                                .fail(function () {
-                                                    _generator.publish(
-                                                        "assets.error.init",
-                                                        "Could not create directory '" + directory + "'"
-                                                    );
-                                                    layerUpdatedDeferred.reject();
-                                                })
-                                                .done(function () {
-                                                    // ...move the temporary file to the desired location
-                                                    // TODO: check whether this works when moving from one
-                                                    // drive letter to another on Windows
-                                                    fs.rename(tmpPath, path, function (err) {
-                                                        if (err) {
-                                                            componentUpdatedDeferred.reject(err);
-                                                        } else {
-                                                            layerContext.generatedFiles[path] = true;
-                                                            componentUpdatedDeferred.resolve();
-                                                        }
-                                                    });
-                                                });
-                                        });
-                                });
-                                
-                                return componentUpdatedDeferred.promise;
-                            });
-
-                            Q.allSettled(componentPromises).then(function (results) {
-                                console.log("Done with all files");
-                                var errors = [];
-                                results.forEach(function (result, i) {
-                                    if (result.state !== "fulfilled") {
-                                        errors.push(components[i].name + ": " + result.value);
-                                    }
-                                });
-
-                                if (errors.length) {
-                                    console.log("Errors", errors);
-                                    layerUpdatedDeferred.reject("Failed to update the following layers:\n" +
-                                        errors.join("\n")
-                                    );
-                                } else {
-                                    layerUpdatedDeferred.resolve();
-                                }
-                            });
+                    Q.allSettled(componentPromises).then(function (results) {
+                        var errors = [];
+                        results.forEach(function (result, i) {
+                            if (result.state === "rejected") {
+                                errors.push(components[i].name + ": " + result.reason);
+                            }
                         });
-                    }
+
+                        if (errors.length) {
+                            reportErrorsToUser(documentContext, errors);
+                            layerUpdatedDeferred.reject(errors);
+                        } else {
+                            layerUpdatedDeferred.resolve();
+                        }
+                    }).done();
                 },
                 function (err) {
+                    reportErrorsToUser(["Failed to get pixmap: " + err]);
                     _generator.publish("assets.error.getPixmap", "Error: " + err);
                     layerUpdatedDeferred.reject(err);
                 }
@@ -723,19 +724,15 @@
         if (layer.removed || !layerContext.validFileComponents || layerContext.validFileComponents.length === 0) {
             // If the layer was removed, we're done since we delete the images above
             // If there are no valid file components anymore, there's nothing to generate
-            console.log("Done (removed or no valid components)");
             layerUpdatedDeferred.resolve();
         }
         else if (!documentContext.assetGenerationEnabled) {
-            console.log("Ignoring changes to layer " + layer.id + " because asset generation is disabled");
             layerUpdatedDeferred.resolve();
         }
         else if (!documentContext.assetGenerationDir) {
-            console.log("Ignoring changes to layer " + layer.id + " because the asset generation directory is unknown");
             layerUpdatedDeferred.resolve();
         }
         else {
-            console.log("Creating layer images");
             // Update the layer image
             // The change could be layer.pixels, layer.added, layer.path, layer.name, ...
             // Always update if it has been added because it could
@@ -767,7 +764,6 @@
     function initPhotoshopPath() {
         return _generator.getPhotoshopPath().then(
             function (path) {
-                console.log("Photoshop is installed in " + path);
                 _photoshopPath = path;
             },
             function (err) {
@@ -820,12 +816,11 @@
         _generator.subscribe("photoshop.event.currentDocumentChanged", handleCurrentDocumentChanged);
 
         initFallbackBaseDirectory();
-        initPhotoshopPath().done(function () {
-            console.log("Registering for events");
+        initPhotoshopPath().then(function () {
             _generator.subscribe("photoshop.event.imageChanged", handleImageChanged);
 
             processEntireDocument();
-        });
+        }).done();
     }
 
     exports.init = init;
