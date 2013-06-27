@@ -5,7 +5,7 @@
   "main": "main.js",
   "repository": {
     "type": "git",
-    "url": "git@git.corp.adobe.com:photoshop/assets.generate.git"
+    "url": "https://github.com/adobe-photoshop/generator-assets"
   },
   "license": "MIT",
   "readmeFilename": "README.md",
