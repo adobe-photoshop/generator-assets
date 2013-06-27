@@ -342,6 +342,18 @@
         // If the document was closed
         if (document.closed) {
             delete _contextPerDocument[document.id];
+            // When two or more files are open, closing the current file first
+            // results in an imageChanged event for the file that is going to
+            // get focused (document.active === true), and is then followed by an
+            // imageChanged event for the closed file (document.closed === true).
+            // Therefore, if a document has been closed, _currentDocumentId
+            // will have changed before the imageChanged event arrives that
+            // informs us about the closed file. Consequently, if the ID is the
+            // same, closed file must have been the last open one
+            // => set _currentDocumentId to null
+            if (document.id === _currentDocumentId) {
+                processDocumentId(null);
+            }
             // Stop here
             return;
         }
