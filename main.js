@@ -44,7 +44,9 @@
         _contextPerDocument = {},
         _changeContextPerLayer = {},
         _photoshopPath = null,
-        _currentDocumentId;
+        _currentDocumentId,
+        _setupDone = false,
+        _menuClicked = false;
 
     function getUserHomeDirectory() {
         return process.env[(process.platform === "win32") ? "USERPROFILE" : "HOME"];
@@ -378,25 +380,48 @@
     }
 
     function handleGeneratorMenuClicked(event) {
-        var context = _contextPerDocument[_currentDocumentId];
-        if (!context) {
-            return;
-        }
-
+        // Ignore changes to other menus
         var menu = event.generatorMenuChanged;
         if (!menu || menu.name !== MENU_ID) {
             return;
         }
+        
+        console.log(event);
 
-        var enable = !menu.checked;
-        _generator.toggleMenu(MENU_ID, true, enable);
-        if (context.assetGenerationEnabled !== enable) {
-            context.assetGenerationEnabled = enable;
-            console.log("Asset generation is now " + (context.assetGenerationEnabled ? "enabled" : "disabled"));
-            if (context.assetGenerationEnabled) {
-                processEntireDocument();
-            }
+        // Before we know about the current document, we cannot reasonably process the events
+        _menuClicked = true;
+        if (!_setupDone) {
+            return;
         }
+        
+        processMenuEvents();
+        
+        var context = _contextPerDocument[_currentDocumentId];
+        if (context && context.assetGenerationEnabled) {
+            processEntireDocument();
+        }
+    }
+
+    function processMenuEvents() {
+        if (!_menuClicked) {
+            return;
+        }
+
+        // Without a current document, we cannot actually process any menu events
+        // But there also shouldn't be such an event then
+        var context = _contextPerDocument[_currentDocumentId];
+        if (!context) {
+            console.warn("Trying to process menu events for an unknown document with ID:", _currentDocumentId);
+            return;
+        }
+
+        // Reset
+        _menuClicked = false;
+
+        // Toggle the state
+        context.assetGenerationEnabled = !context.assetGenerationEnabled;
+        updateMenuState();
+        console.log("Asset generation is now " + (context.assetGenerationEnabled ? "enabled" : "disabled"));
     }
 
     function processEntireDocument() {
@@ -448,6 +473,12 @@
         }
 
         processDocumentId(document.id);
+
+        // Now that we know the current document, we can actually process any menu clicks
+        if (! _setupDone) {
+            _setupDone = true;
+            processMenuEvents();
+        }
 
         // If there is a file name (e.g., after saving or when switching between files, even unsaved ones)
         if (document.file) {
