@@ -489,9 +489,14 @@
 
         // If there are layer changes
         if (document.layers) {
-            document.layers.forEach(function (layer) {
+            var layers = document.layers.concat();
+            while (layers.length) {
+                var layer = layers.shift();
                 pendingPromises.push(processLayerChange(document, layer));
-            });
+                if (layer.layers) {
+                    layers.push.apply(layers, layer.layers);
+                }
+            }
         }
 
         Q.allSettled(pendingPromises).then(function () {
