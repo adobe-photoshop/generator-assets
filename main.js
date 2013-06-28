@@ -369,8 +369,15 @@
         if (!_contextPerDocument[document.id]) {
             // Make sure we have all information
             processEntireDocument();
+            return;
+        }
+            
+        // We have seen this document before: information about the changes are enough
+        
+        // Resize event: regenerate everything
+        if (!document.layers && document.bounds) {
+            processEntireDocument();
         } else {
-            // We have seen this document before: information about the changes are enough
             processChangesToDocument(document);
         }
     }
