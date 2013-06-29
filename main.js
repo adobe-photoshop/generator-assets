@@ -715,13 +715,35 @@
                                 // ...move the temporary file to the desired location
                                 // TODO: check whether this works when moving from one
                                 // drive letter to another on Windows
+
+                                function onMoveCompleted() {
+                                    layerContext.generatedFiles[path] = true;
+                                    imageCreatedDeferred.resolve();
+                                }
+
                                 fs.rename(tmpPath, path, function (err) {
-                                    if (err) {
-                                        imageCreatedDeferred.reject(err);
-                                    } else {
-                                        layerContext.generatedFiles[path] = true;
-                                        imageCreatedDeferred.resolve();
+                                    // Renaming the file worked: we're done
+                                    if (!err) {
+                                        return onMoveCompleted();
                                     }
+
+                                    // There was an error when renaming, so let's try copy + delete instead
+                                    try {
+                                        // Yes, the notion of copying a file is too high level for Node.js
+                                        fs.createReadStream(tmpPath).pipe(fs.createWriteStream(path));
+                                    } catch (e) {
+                                        // If copying doesn't work, we're out of options
+                                        imageCreatedDeferred.reject(e);
+                                        return;
+                                    }
+                                    // Copy was successful, now delete the temporary file
+                                    fs.unlink(tmpPath, function (err) {
+                                        // If we fail to delete the temporary file, report the error and continue
+                                        if (err) {
+                                            console.error("Could not delete the temporary file", tmpPath);
+                                        }
+                                        onMoveCompleted();
+                                    });
                                 });
                             });
                     },
