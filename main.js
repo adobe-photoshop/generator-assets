@@ -504,11 +504,59 @@
         // If there are layer changes
         if (document.layers) {
             var layers = document.layers.concat();
+
+            // Mark the layers as directly mentioned by the change event
+            // Assume there's layer group P and layer L.
+            // However, moving layer L to the root level (out of P), gives us this:
+            // { id: <L>, index: ... }
+            // Moving layer L into P results in an event like this:
+            // { id: <P>, index: ..., layers: [{ id: <L>, index: ... }]}
+            // This allows us to store P as L's parent.
+            // But when we iterate over the the sublayers, it will look as if L has lost
+            // its parent because by itself this would again look like this:
+            // { id: <L>, index: ... }
+            // By marking the layers mentioned at the root of a change, we get this:
+            // { id: <L>, index: ..., atRootOfChange: true }
+            // when moving L out of P and this:
+            // { id: <L>, index: ... }
+            // when moving L into P, allowing us to track child-parent relationships
+            layers.forEach(function (layer) {
+                layer.atRootOfChange = true;
+            });
+            
+            // Flatten the layer hierarchy mentioned in the change
+            // [{ id: 1, layers: [{ id: 2, layers: [{ id: 3 }] }] }]
+            // will be treated as
+            // [{ id: 1, ... }, { id: 2, ... }, { id: 3 }]
+            var changedLayers = {};
             while (layers.length) {
+                // Remove the first entry of layers and store it in layers
                 var layer = layers.shift();
+                // Keep track of the layers that were mentioned as changed
+                changedLayers[layer.id] = true;
+                // Process the layer change
                 pendingPromises.push(processLayerChange(document, layer));
+                // Add the children to the layers queue
                 if (layer.layers) {
                     layers.push.apply(layers, layer.layers);
+                }
+            }
+
+            // Iterate over all the IDs of changed layers
+            var changedLayerIds = Object.keys(changedLayers);
+            // Using while instead of forEach allows adding new IDs
+            while (changedLayerIds.length) {
+                // Remove the first entry of changedLayerIds and store it in layerId
+                var layerId = changedLayerIds.shift();
+                // Check if that layer has a parent layer
+                var parentLayerId = context.layers[layerId].parentLayerId;
+                // If it does, and the parent layer hasn't been mentioned in the change...
+                if (parentLayerId && !changedLayers[parentLayerId]) {
+                    // Act as if it had been mentioned
+                    changedLayers[parentLayerId] = true;
+                    changedLayerIds.push(parentLayerId);
+                    // I.e., update this layer, too
+                    pendingPromises.push(processLayerChange(document, { id: parentLayerId }));
                 }
             }
         }
@@ -803,6 +851,23 @@
         else if (layer.name) {
             // If the layer name was changed, the generated files may get deleted
             updateLayerName();
+        }
+
+        // Layer movement occured
+        // For more details, see processChangesToDocument
+        if (layer.index) {
+            // Child layers have been inserted or moved into this layer
+            if (layer.layers) {
+                layer.layers.forEach(function (subLayer) {
+                    var subLayerContext = documentContext.layers[subLayer.id];
+                    var name = subLayer.name || subLayerContext.name;
+                    subLayerContext.parentLayerId = layer.id;
+                });
+            }
+            // This layer doesn't have a parent (otherwise the event would have been for the parent)
+            else if (layer.atRootOfChange) {
+                delete layerContext.parentLayerId;
+            }
         }
 
         if (layer.removed || !layerContext.validFileComponents || layerContext.validFileComponents.length === 0) {
