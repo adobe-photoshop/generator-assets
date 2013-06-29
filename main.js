@@ -278,7 +278,7 @@
                 component.extension = "jpg";
             }
 
-            if (["jpg", "png", "gif"].indexOf(component.extension) === -1) {
+            if (["jpg", "png", "gif", "svg"].indexOf(component.extension) === -1) {
                 reportError("Unsupported file extension " + JSON.stringify(component.extension));
             }
             
@@ -822,7 +822,19 @@
             // Always update if it has been added because it could
             // have been dragged & dropped or copied & pasted,
             // and therefore might not be empty like new layers
-            createLayerImages();
+            
+            // Note .svg uses a different code path from the pixel-based formats
+            if (layerContext.validFileComponents[0].extension === "svg") {
+                console.log("Create SVG for layer[" + changeContext.layer.id + "]: " +
+                            layerContext.validFileComponents[0].name);
+                var params = { layerID: changeContext.layer.id };
+                _generator.evaluateJSXFile("./jsx/layerSVG.jsx", params);
+                // TODO: We should verify results here.
+                layerUpdatedDeferred.resolve();
+            }
+            else {
+                createLayerImages();
+            }
         }
 
         return layerUpdatedDeferred.promise;
