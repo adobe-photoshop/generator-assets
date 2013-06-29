@@ -277,6 +277,10 @@
             if (component.extension === "jpeg") {
                 component.extension = "jpg";
             }
+
+            if (["jpg", "png", "gif"].indexOf(component.extension) === -1) {
+                reportError("Unsupported file extension " + JSON.stringify(component.extension));
+            }
             
             if ((typeof component.quality) !== "undefined") {
                 if (component.extension === "jpg") {
@@ -333,8 +337,11 @@
             return;
         }
         if (documentContext.assetGenerationEnabled && documentContext.assetGenerationDir) {
-            var text = "[" + new Date() + "]\n" + errors.join("\n") + "\n\n";
-            fs.appendFileSync(resolve(documentContext.assetGenerationDir, "errors.txt"), text);
+            var text = "[" + new Date() + "]\n" + errors.join("\n") + "\n\n",
+                directory = documentContext.assetGenerationDir;
+            mkdirp(directory).then(function () {
+                fs.appendFileSync(resolve(directory, "errors.txt"), text);
+            }).done();
         }
     }
 
