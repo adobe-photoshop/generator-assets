@@ -54,7 +54,7 @@
 
     // TODO: PNG-8 right now basically means GIF-like PNGs (binary transparency)
     //       Ultimately, we want it to mean a palette of RGBA colors (arbitrary transparency)
-    function convertImage(pixmap, filename, format, quality, scale) {
+    function convertImage(pixmap, filename, format, quality, scale, width, height) {
         var fileCompleteDeferred = Q.defer();
 
         _generator.publish("assets.debug.dump", "dumping " + filename);
@@ -76,6 +76,17 @@
             "rgba:-"
         ];
 
+        if (width || height) {
+            if (width && height) {
+                args.push("-resize", width + "x" + height + "!"); // ! ignores ratio
+            } else if (width) {
+                args.push("-resize", width);
+            } else {
+                args.push("-resize", "x" + height);
+            }
+        }
+
+        
         if (format === "jpg" || format === "gif" || format === "png8" || format === "png24") {
             args.push("-background", backgroundColor, "-flatten");
         }
@@ -158,15 +169,39 @@
             name: fileSpec
         };
 
-        var match = fileSpec.match(/^((\d+)% *)?(.+\.([a-z0-9]*[a-z]))(\-?(\d+%?))?$/i);
+        var exp = /^((((\d+)|\?)x((\d+)|\?) *)|((\d+)% *))*(.+\.([a-z0-9]*[a-z]))(\-?(\d+%?))?$/i;
+        var match = fileSpec.match(exp);
+        // match items
+        // 0 - matching string
+        // 1 - matching part of the scaling (if both abs and rel, second one)
+        // 2 - absolute scaling match string
+        // 3 - absolute scaling width string (may be ?)
+        // 4 - absolute scaling width number (undefined for ?)
+        // 5 - absolute scaling height string (may be ?)
+        // 6 - absolute scaling height number (undefined for ?)
+        // 7 - relative scaling match string
+        // 8 - relative scaling match number
+        // 9 - file name
+        // 10 - file extension
+        // 11 - quality match string
+        // 12 - quality number
+
         if (match) {
-            result.file      = match[3];
-            result.extension = match[4].toLowerCase();
-            if (typeof match[5] !== "undefined") {
-                result.quality = match[6];
+            result.file      = match[9];
+            result.extension = match[10].toLowerCase();
+            if (typeof match[11] !== "undefined") {
+                result.quality = match[12];
             }
-            if (typeof match[1] !== "undefined") {
-                result.scale = parseInt(match[2], 10) / 100;
+            if (typeof match[7] !== "undefined") {
+                result.scale = parseInt(match[8], 10) / 100;
+            }
+            if (typeof match[2] !== "undefined") {
+                if (match[3] !== "?") {
+                    result.width = parseInt(match[4], 10);
+                }
+                if (match[5] !== "?") {
+                    result.height = parseInt(match[6], 10);
+                }
             }
         }
 
@@ -192,6 +227,15 @@
             if (component.scale === 0) {
                 reportError("Cannot scale an image to 0%");
             }
+
+            if (component.width === 0) {
+                reportError("Cannot set an image width to 0");
+            }
+
+            if (component.height === 0) {
+                reportError("Cannot set an image height to 0");
+            }
+
             if (component.extension === "jpeg") {
                 component.extension = "jpg";
             }
@@ -665,7 +709,8 @@
                     return;
                 }
                 // Save the image in a temporary file
-                convertImage(pixmap, tmpPath, component.extension, component.quality, component.scale).then(
+                convertImage(pixmap, tmpPath, component.extension, component.quality,
+                            component.scale, component.width, component.height).then(
                     // When ImageMagick is done
                     function () {
                         var directory = changeContext.documentContext.assetGenerationDir;
@@ -778,7 +823,7 @@
             if (layer.layers) {
                 layer.layers.forEach(function (subLayer) {
                     var subLayerContext = documentContext.layers[subLayer.id];
-                    var name = subLayer.name || subLayerContext.name;
+                    //var name = subLayer.name || subLayerContext.name;
                     subLayerContext.parentLayerId = layer.id;
                 });
             }
