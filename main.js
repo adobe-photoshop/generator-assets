@@ -778,7 +778,6 @@
             if (layer.layers) {
                 layer.layers.forEach(function (subLayer) {
                     var subLayerContext = documentContext.layers[subLayer.id];
-                    var name = subLayer.name || subLayerContext.name;
                     subLayerContext.parentLayerId = layer.id;
                 });
             }
