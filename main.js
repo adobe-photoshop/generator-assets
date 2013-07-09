@@ -229,11 +229,11 @@
             }
 
             if (component.width === 0) {
-                reportError("Cannot set an image width to 0");
+                reportError("Cannot set the image width to 0");
             }
 
             if (component.height === 0) {
-                reportError("Cannot set an image height to 0");
+                reportError("Cannot set the image height to 0");
             }
 
             if (component.extension === "jpeg") {

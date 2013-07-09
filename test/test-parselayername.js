@@ -25,6 +25,16 @@
     "use strict";
 
     var main = require("../main.js");
+    var assert = require("nodeunit").assert;
+    
+    assert.parseMatches = function (spec, parsetype) {
+        Object.keys(spec).forEach(function (layerName) {
+            var actual   = JSON.stringify(main.parseLayerName(layerName)),
+                expected = JSON.stringify(spec[layerName]);
+            
+            assert.equal(actual, expected, parsetype);
+        });
+    };
 
     exports.testExtensions = function (test) {
         var spec = {
@@ -36,13 +46,7 @@
             "Foo.JpEg":                   [{ name: "Foo.JpEg",     file: "Foo.JpEg", extension: "jpeg" }],
             "Foo.PnG":                    [{ name: "Foo.PnG",      file: "Foo.PnG",  extension: "png" }],
         };
-        test.expect(Object.keys(spec).length);
-        Object.keys(spec).forEach(function (layerName) {
-            var actual   = JSON.stringify(main.parseLayerName(layerName)),
-                expected = JSON.stringify(spec[layerName]);
-            
-            test.equal(actual, expected, "Extension parsing");
-        });
+        test.parseMatches(spec, "Extension parsing");
         test.done();
     };
 
@@ -62,13 +66,7 @@
             "foo.jpg-0%":         [{ name: "foo.jpg-0%",   file: "foo.jpg",  extension: "jpg", quality: "0%" }],
             "foo.jpg-101%":       [{ name: "foo.jpg-101%", file: "foo.jpg",  extension: "jpg", quality: "101%" }],
         };
-        test.expect(Object.keys(spec).length);
-        Object.keys(spec).forEach(function (layerName) {
-            var actual   = JSON.stringify(main.parseLayerName(layerName)),
-                expected = JSON.stringify(spec[layerName]);
-            
-            test.equal(actual, expected, "JPG quality parsing");
-        });
+        test.parseMatches(spec, "JPG quality parsing");
         test.done();
     };
 
@@ -82,13 +80,7 @@
             // Bad example for a PNG with a quality parameter
             "foo.png-42":                 [{ name: "foo.png-42",   file: "foo.png",  extension: "png", quality: "42" }],
         };
-        test.expect(Object.keys(spec).length);
-        Object.keys(spec).forEach(function (layerName) {
-            var actual   = JSON.stringify(main.parseLayerName(layerName)),
-                expected = JSON.stringify(spec[layerName]);
-            
-            test.equal(actual, expected, "PNG quality parsing");
-        });
+        test.parseMatches(spec, "PNG quality parsing");
         test.done();
     };
 
@@ -105,13 +97,7 @@
             "05% foo.png":                [{ name: "05% foo.png",  file: "foo.png",  extension: "png", scale: 0.05}],
             "1%foo.png":                  [{ name: "1%foo.png",    file: "foo.png",  extension: "png", scale: 0.01 }],
         };
-        test.expect(Object.keys(spec).length);
-        Object.keys(spec).forEach(function (layerName) {
-            var actual   = JSON.stringify(main.parseLayerName(layerName)),
-                expected = JSON.stringify(spec[layerName]);
-            
-            test.equal(actual, expected, "Relative scaling parsing");
-        });
+        test.parseMatches(spec, "Relative scaling parsing");
         test.done();
     };
 
@@ -136,17 +122,11 @@
                 [{ name: "50% 80x100 foo.png", file: "80x100 foo.png", extension: "png", scale: 0.50 }],
                 
         };
-        test.expect(Object.keys(spec).length);
-        Object.keys(spec).forEach(function (layerName) {
-            var actual   = JSON.stringify(main.parseLayerName(layerName)),
-                expected = JSON.stringify(spec[layerName]);
-            
-            test.equal(actual, expected, "Absolute scaling parsing");
-        });
+        test.parseMatches(spec, "Absolute scaling parsing");
         test.done();
     };
 
-    exports.testLayerGroups = function (test) {
+    exports.testMultipleLayers = function (test) {
         var layer1PNG = { name: "Layer 1.png", file: "Layer 1.png", extension: "png" };
         var layer2JPG = { name: "Layer 2.jpg", file: "Layer 2.jpg", extension: "jpg" };
 
@@ -162,13 +142,7 @@
             "Layer 1.png+Layer 2.jpg":    [layer1PNG, layer2JPG],
             "Layer 1.png  + Layer 2.jpg": [layer1PNG, layer2JPG],
         };
-        test.expect(Object.keys(spec).length);
-        Object.keys(spec).forEach(function (layerName) {
-            var actual   = JSON.stringify(main.parseLayerName(layerName)),
-                expected = JSON.stringify(spec[layerName]);
-            
-            test.equal(actual, expected, "Layer grouping");
-        });
+        test.parseMatches(spec, "Multiple layer names");
         test.done();
     };
 
@@ -178,17 +152,12 @@
             "100% Delicious, 42%Layer 1.png24  + 100x100 Layer.jpg-90% , 250% Foo Bar Baz.gif": [
                 { name: "100% Delicious" },
                 { name: "42%Layer 1.png24", file: "Layer 1.png", extension: "png", quality: "24", scale: 0.42 },
-                { name: "100x100 Layer.jpg-90%", file: "Layer.jpg", extension: "jpg", quality: "90%", width: 100, height: 100 },
+                { name: "100x100 Layer.jpg-90%",
+                    file: "Layer.jpg", extension: "jpg", quality: "90%", width: 100, height: 100 },
                 { name: "250% Foo Bar Baz.gif", file: "Foo Bar Baz.gif", extension: "gif", scale: 2.5 },
             ],
         };
-        test.expect(Object.keys(spec).length);
-        Object.keys(spec).forEach(function (layerName) {
-            var actual   = JSON.stringify(main.parseLayerName(layerName)),
-                expected = JSON.stringify(spec[layerName]);
-            
-            test.equal(actual, expected, "Mixed testing");
-        });
+        test.parseMatches(spec, "Ultimate mixed testing");
         test.done();
     };
 

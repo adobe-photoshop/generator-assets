@@ -41,6 +41,7 @@ module.exports = function (grunt) {
                 ".jshintrc",
                 "lib/**/*.js",
                 "lib/jsx/**/*.jsx",
+                "test/*.js",
             ]
         },
  
