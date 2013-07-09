@@ -169,7 +169,7 @@
             name: fileSpec
         };
 
-        var exp = /^((((\d+)|\?)x((\d+)|\?) *)|((\d+)% *))*(.+\.([a-z0-9]*[a-z]))(\-?(\d+%?))?$/i;
+        var exp = /^((((\d+)|\?)x((\d+)|\?) *)|((\d+)% *))?(.+\.([a-z0-9]*[a-z]))(\-?(\d+%?))?$/i;
         var match = fileSpec.match(exp);
         // match items
         // 0 - matching string
