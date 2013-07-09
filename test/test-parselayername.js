@@ -38,7 +38,7 @@
 
     exports.testExtensions = function (test) {
         var spec = {
-             // No extension specified
+            // No extension specified
             "Layer 1":                    [{ name: "Layer 1" }],
 
             // Capital letters in the extension
