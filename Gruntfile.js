@@ -41,14 +41,20 @@ module.exports = function (grunt) {
                 ".jshintrc",
                 "lib/**/*.js",
                 "lib/jsx/**/*.jsx",
+                "test/*.js",
             ]
+        },
+ 
+        nodeunit : {
+            all : ["test/test-*.js"]
         }
-        
+       
     });
 
     grunt.loadNpmTasks("grunt-contrib-jshint");
+    grunt.loadNpmTasks("grunt-contrib-nodeunit");
 
-    grunt.registerTask("default", ["jshint"]);
+    grunt.registerTask("default", ["jshint", "nodeunit"]);
         
     grunt.registerTask(
         "package",
