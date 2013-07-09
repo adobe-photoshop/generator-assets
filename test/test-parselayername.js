@@ -115,7 +115,7 @@
 
             // Bad examples of absolute scaling
             "100x100foo.png":
-                [{ name: "100x100foo.png", file: "foo.png", extension: "png", width: 100, height: 100}],
+                [{ name: "100x100foo.png", file: "100x100foo.png", extension: "png"}],
             "80x100 60% foo.png":
                 [{ name: "80x100 60% foo.png", file: "60% foo.png", extension: "png", width: 80, height: 100 }],
             "50% 80x100 foo.png":
