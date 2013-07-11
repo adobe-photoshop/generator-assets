@@ -168,8 +168,10 @@
         var result = {
             name: fileSpec
         };
-
-        var exp = /^((((\d+)|\?)x((\d+)|\?) +)|((\d+)% *))?(.+\.([a-z0-9]*[a-z]))(\-?(\d+%?))?$/i;
+        
+        /* jshint maxlen: 160 */
+        var exp = /^((((\d+)(in |cm |mm |px )*|\?)x((\d+)(in|cm|mm|px)*|\?) +)|((\d+)% *))?(.+\.([a-z0-9]*[a-z]))(\-?(\d+%?))?$/i;
+        
         var match = fileSpec.match(exp);
         // match items
         // 0 - matching string
@@ -177,30 +179,42 @@
         // 2 - absolute scaling match string
         // 3 - absolute scaling width string (may be ?)
         // 4 - absolute scaling width number (undefined for ?)
-        // 5 - absolute scaling height string (may be ?)
-        // 6 - absolute scaling height number (undefined for ?)
-        // 7 - relative scaling match string
-        // 8 - relative scaling match number
-        // 9 - file name
-        // 10 - file extension
-        // 11 - quality match string
-        // 12 - quality number
+        // 5 - absolute scaling width unit (if undefined - pixels)
+        // 6 - absolute scaling height string (may be ?)
+        // 7 - absolute scaling height number (undefined for ?)
+        // 8 - absolute scaling height unit (if undefined - pixels)
+        // 9 - relative scaling match string
+        // 10 - relative scaling match number
+        // 11 - file name
+        // 12 - file extension
+        // 13 - quality match string
+        // 14 - quality number
 
         if (match) {
-            result.file      = match[9];
-            result.extension = match[10].toLowerCase();
-            if (typeof match[11] !== "undefined") {
-                result.quality = match[12];
+            result.file      = match[11];
+            result.extension = match[12].toLowerCase();
+            if (typeof match[13] !== "undefined") {
+                result.quality = match[14];
             }
-            if (typeof match[7] !== "undefined") {
-                result.scale = parseInt(match[8], 10) / 100;
+            if (typeof match[9] !== "undefined") {
+                result.scale = parseInt(match[10], 10) / 100;
             }
             if (typeof match[2] !== "undefined") {
                 if (match[3] !== "?") {
                     result.width = parseInt(match[4], 10);
+                    if (typeof match[5] !== "undefined") {
+                        result.widthunit = match[5].trim();
+                    } else {
+                        result.widthunit = "px";
+                    }
                 }
-                if (match[5] !== "?") {
-                    result.height = parseInt(match[6], 10);
+                if (match[6] !== "?") {
+                    result.height = parseInt(match[7], 10);
+                    if (typeof match[8] !== "undefined") {
+                        result.heightunit = match[8].trim();
+                    } else {
+                        result.heightunit = "px";
+                    }
                 }
             }
         }
@@ -229,6 +243,12 @@
             }
 
             if (component.width === 0) {
+                if (["in", "cm", "px", "mm"].indexOf(component.widthunit) === -1) {
+                    reportError("Unsupported image width unit " + JSON.stringify(component.widthunit));
+                }
+                if (["in", "cm", "px", "mm"].indexOf(component.heightunit) === -1) {
+                    reportError("Unsupported image height unit " + JSON.stringify(component.heightunit));
+                }
                 reportError("Cannot set an image width to 0");
             }
 
@@ -693,6 +713,23 @@
             reportErrorsToUser(documentContext, analysis.errors);
         }
 
+        function convertToPixels(value, units) {
+            if (typeof(value) === "undefined") {
+                return value;
+            }
+            if (units === "px" || typeof(units) === "undefined") {
+                return value;
+            } else if (units === "in") {
+                return value * changeContext.document.resolution;
+            } else if (units === "mm") {
+                return (value / 25.4) * changeContext.document.resolution;
+            } else if (units === "cm") {
+                return (value / 2.54) * changeContext.document.resolution;
+            } else {
+                console.error("An invalid length unit was specified: " + units);
+            }
+        }
+
         // TODO: Make sure this function is refactored so that it doesn't have so much
         // callback nesting. This function will change substantially when we move image
         // creation to core, so avoiding the refactor right now.
@@ -708,9 +745,13 @@
                     imageCreatedDeferred.reject(err);
                     return;
                 }
+                // Calculate the pixel lengths of the image (undefined persists)
+                var pixelWidth = convertToPixels(component.width, component.widthunit);
+                var pixelHeight = convertToPixels(component.height, component.heightunit);
+
                 // Save the image in a temporary file
                 convertImage(pixmap, tmpPath, component.extension, component.quality,
-                            component.scale, component.width, component.height).then(
+                            component.scale, pixelWidth, pixelHeight).then(
                     // When ImageMagick is done
                     function () {
                         var directory = changeContext.documentContext.assetGenerationDir;

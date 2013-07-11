@@ -119,19 +119,28 @@
         var spec = {
             // Good examples of absolute scaling
             "100x80 foo.png":
-                [{ name: "100x80 foo.png", file: "foo.png", extension: "png", width: 100, height: 80}],
+                [{ name: "100x80 foo.png", file: "foo.png", extension: "png",
+                        width: 100, widthunit: "px", height: 80, heightunit: "px"}],
             "80x100 foo.png":
-                [{ name: "80x100 foo.png", file: "foo.png", extension: "png", width: 80, height: 100}],
+                [{ name: "80x100 foo.png", file: "foo.png", extension: "png",
+                        width: 80, widthunit: "px", height: 100, heightunit: "px"}],
+            "4in x100 foo.png":
+                [{ name: "4in x100 foo.png", file: "foo.png", extension: "png",
+                        width: 4, widthunit: "in", height: 100, heightunit: "px"}],
+            "90mm x120cm foo.png":
+                [{ name: "90mm x120cm foo.png", file: "foo.png", extension: "png",
+                        width: 90, widthunit: "mm", height: 120, heightunit: "cm"}],
             "100x? foo.png":
-                [{ name: "100x? foo.png", file: "foo.png", extension: "png", width: 100}],
+                [{ name: "100x? foo.png", file: "foo.png", extension: "png", width: 100, widthunit: "px"}],
             "?x60 foo.png":
-                [{ name: "?x60 foo.png", file: "foo.png", extension: "png", height: 60}],
+                [{ name: "?x60 foo.png", file: "foo.png", extension: "png", height: 60, heightunit: "px"}],
 
             // Bad examples of absolute scaling
             "100x100foo.png":
                 [{ name: "100x100foo.png", file: "100x100foo.png", extension: "png"}],
             "80x100 60% foo.png":
-                [{ name: "80x100 60% foo.png", file: "60% foo.png", extension: "png", width: 80, height: 100 }],
+                [{ name: "80x100 60% foo.png", file: "60% foo.png", extension: "png",
+                        width: 80, widthunit: "px", height: 100, heightunit: "px"}],
             "50% 80x100 foo.png":
                 [{ name: "50% 80x100 foo.png", file: "80x100 foo.png", extension: "png", scale: 0.50 }],
                 
@@ -178,7 +187,8 @@
             "100% Delicious, 42%Layer 1.png24  + 100x100 Layer.jpg-90% , 250% Foo Bar Baz.gif": [
                 { name: "100% Delicious" },
                 { name: "42%Layer 1.png24", file: "Layer 1.png", extension: "png", quality: "24", scale: 0.42 },
-                { name: "100x100 Layer.jpg-90%", file: "Layer.jpg", extension: "jpg", quality: "90%", width: 100, height: 100 },
+                { name: "100x100 Layer.jpg-90%", file: "Layer.jpg", extension: "jpg", quality: "90%",
+                        width: 100, widthunit: "px", height: 100, heightunit: "px" },
                 { name: "250% Foo Bar Baz.gif", file: "Foo Bar Baz.gif", extension: "gif", scale: 2.5 },
             ],
         };
