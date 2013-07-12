@@ -34,6 +34,8 @@
     var DELAY_TO_WAIT_UNTIL_USER_DONE = 300,
         MENU_ID = "assets";
 
+    var DEFAULT_JPG_AND_WEBP_QUALITY = 90;
+
     // TODO: Once we get the layer change management/updating right, we should add a
     // big comment at the top of this file explaining how this all works. In particular
     // we should explain what contexts are, and how we manage scheduling updates.
@@ -97,7 +99,7 @@
             args.push("-resize", (scale * 100) + "%");
         }
         if (format === "jpg" || format === "webp") {
-            quality = quality || 90;
+            quality = quality || DEFAULT_JPG_AND_WEBP_QUALITY;
             args.push("-quality", quality);
         }
 
@@ -948,6 +950,6 @@
     exports.init = init;
 
     // Unit test function exports
-    exports.parseLayerName = parseLayerName;
+    exports._parseLayerName = parseLayerName;
 
 }());
