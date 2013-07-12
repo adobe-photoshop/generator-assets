@@ -120,29 +120,44 @@
             // Good examples of absolute scaling
             "100x80 foo.png":
                 [{ name: "100x80 foo.png", file: "foo.png", extension: "png",
-                        width: 100, widthunit: "px", height: 80, heightunit: "px"}],
-            "80x100 foo.png":
-                [{ name: "80x100 foo.png", file: "foo.png", extension: "png",
-                        width: 80, widthunit: "px", height: 100, heightunit: "px"}],
-            "4in x100 foo.png":
-                [{ name: "4in x100 foo.png", file: "foo.png", extension: "png",
-                        width: 4, widthunit: "in", height: 100, heightunit: "px"}],
+                        width: 100, widthUnits: "px", height: 80, heightUnits: "px"}],
+            // spaces between lengths
+            "80 x 100 foo.png":
+                [{ name: "80 x 100 foo.png", file: "foo.png", extension: "png",
+                        width: 80, widthUnits: "px", height: 100, heightUnits: "px"}],
+            // mix of units and no units
+            "4in x100  foo.png":
+                [{ name: "4in x100  foo.png", file: "foo.png", extension: "png",
+                        width: 4, widthUnits: "in", height: 100, heightUnits: "px"}],
+            // mix of units
             "90mm x120cm foo.png":
                 [{ name: "90mm x120cm foo.png", file: "foo.png", extension: "png",
-                        width: 90, widthunit: "mm", height: 120, heightunit: "cm"}],
+                        width: 90, widthUnits: "mm", height: 120, heightUnits: "cm"}],
+            // wild card
             "100x? foo.png":
-                [{ name: "100x? foo.png", file: "foo.png", extension: "png", width: 100, widthunit: "px"}],
-            "?x60 foo.png":
-                [{ name: "?x60 foo.png", file: "foo.png", extension: "png", height: 60, heightunit: "px"}],
+                [{ name: "100x? foo.png", file: "foo.png", extension: "png", width: 100, widthUnits: "px"}],
+            // wild card mixed with units
+            "?x60in foo.png":
+                [{ name: "?x60in foo.png", file: "foo.png", extension: "png", height: 60, heightUnits: "in"}],
 
             // Bad examples of absolute scaling
+            // no space before file name
             "100x100foo.png":
                 [{ name: "100x100foo.png", file: "100x100foo.png", extension: "png"}],
+            // mix of scaling
             "80x100 60% foo.png":
                 [{ name: "80x100 60% foo.png", file: "60% foo.png", extension: "png",
-                        width: 80, widthunit: "px", height: 100, heightunit: "px"}],
+                        width: 80, widthUnits: "px", height: 100, heightUnits: "px"}],
+            // mix of scaling with relative first
             "50% 80x100 foo.png":
                 [{ name: "50% 80x100 foo.png", file: "80x100 foo.png", extension: "png", scale: 0.50 }],
+            // multiple units
+            "20in cm x50cm foo.png":
+                [{ name: "20in cm x50cm foo.png", file: "20in cm x50cm foo.png", extension: "png"}],
+            // invalid unit, will not fail, but analyze will throw errors
+            "30nm x20 nano.png":
+                [{ name: "30nm x20 nano.png", file: "nano.png", extension: "png",
+                        width: 30, widthUnits: "nm", height: 20, heightUnits: "px"}],
                 
         };
         test.expect(Object.keys(spec).length);
@@ -188,7 +203,7 @@
                 { name: "100% Delicious" },
                 { name: "42%Layer 1.png24", file: "Layer 1.png", extension: "png", quality: "24", scale: 0.42 },
                 { name: "100x100 Layer.jpg-90%", file: "Layer.jpg", extension: "jpg", quality: "90%",
-                        width: 100, widthunit: "px", height: 100, heightunit: "px" },
+                        width: 100, widthUnits: "px", height: 100, heightUnits: "px" },
                 { name: "250% Foo Bar Baz.gif", file: "Foo Bar Baz.gif", extension: "gif", scale: 2.5 },
             ],
         };

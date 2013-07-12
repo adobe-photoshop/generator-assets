@@ -170,7 +170,9 @@
         };
         
         /* jshint maxlen: 160 */
-        var exp = /^((((\d+)(in |cm |mm |px )*|\?)x((\d+)(in|cm|mm|px)*|\?) +)|((\d+)% *))?(.+\.([a-z0-9]*[a-z]))(\-?(\d+%?))?$/i;
+        var exp = /^((((\d+)(?:([a-z]{2}) )?|\?) *x *((\d+)(?:([a-z]{2}) *)?|\?) +)|((\d+)% *))?(.+\.([a-z0-9]*[a-z]))(\-?(\d+%?))?$/i;
+        
+        /* jshint maxlen: 120 */
         
         var match = fileSpec.match(exp);
         // match items
@@ -203,17 +205,17 @@
                 if (match[3] !== "?") {
                     result.width = parseInt(match[4], 10);
                     if (typeof match[5] !== "undefined") {
-                        result.widthunit = match[5].trim();
+                        result.widthUnits = match[5];
                     } else {
-                        result.widthunit = "px";
+                        result.widthUnits = "px";
                     }
                 }
                 if (match[6] !== "?") {
                     result.height = parseInt(match[7], 10);
                     if (typeof match[8] !== "undefined") {
-                        result.heightunit = match[8].trim();
+                        result.heightUnits = match[8];
                     } else {
-                        result.heightunit = "px";
+                        result.heightUnits = "px";
                     }
                 }
             }
@@ -243,11 +245,11 @@
             }
 
             if (component.width === 0) {
-                if (["in", "cm", "px", "mm"].indexOf(component.widthunit) === -1) {
-                    reportError("Unsupported image width unit " + JSON.stringify(component.widthunit));
+                if (["in", "cm", "px", "mm"].indexOf(component.widthUnits) === -1) {
+                    reportError("Unsupported image width unit " + JSON.stringify(component.widthUnits));
                 }
-                if (["in", "cm", "px", "mm"].indexOf(component.heightunit) === -1) {
-                    reportError("Unsupported image height unit " + JSON.stringify(component.heightunit));
+                if (["in", "cm", "px", "mm"].indexOf(component.heightUnits) === -1) {
+                    reportError("Unsupported image height unit " + JSON.stringify(component.heightUnits));
                 }
                 reportError("Cannot set an image width to 0");
             }
@@ -714,12 +716,10 @@
         }
 
         function convertToPixels(value, units) {
-            if (typeof(value) === "undefined") {
+            if (!value || !units || units === "px") {
                 return value;
             }
-            if (units === "px" || typeof(units) === "undefined") {
-                return value;
-            } else if (units === "in") {
+            if (units === "in") {
                 return value * changeContext.document.resolution;
             } else if (units === "mm") {
                 return (value / 25.4) * changeContext.document.resolution;
@@ -746,8 +746,8 @@
                     return;
                 }
                 // Calculate the pixel lengths of the image (undefined persists)
-                var pixelWidth = convertToPixels(component.width, component.widthunit);
-                var pixelHeight = convertToPixels(component.height, component.heightunit);
+                var pixelWidth = convertToPixels(component.width, component.widthUnits);
+                var pixelHeight = convertToPixels(component.height, component.heightUnits);
 
                 // Save the image in a temporary file
                 convertImage(pixmap, tmpPath, component.extension, component.quality,
