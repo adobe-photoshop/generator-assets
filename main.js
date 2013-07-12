@@ -102,7 +102,8 @@
             // Create a copy of the original image, making it truly RGBA, and delete the ARGB original
             // Copy the image and flatten it, then apply the binary transparency of another copy
             // Afterwards, remove the RGBA image as well, leaving just one image
-            args = args.concat(("( -clone 0 ) -delete 0 ( -clone 0 -background " + backgroundColor + " -flatten -clone 0 -channel A -threshold 99% -compose dst-in -composite ) -delete 0").split(/ /));
+            args = args.concat(("( -clone 0 ) -delete 0 ( -clone 0 -background " + backgroundColor +
+                " -flatten -clone 0 -channel A -threshold 99% -compose dst-in -composite ) -delete 0").split(/ /));
         }
         if (format === "png8") {
             // Just make sure to use a palette
