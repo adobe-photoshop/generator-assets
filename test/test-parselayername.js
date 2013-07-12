@@ -35,10 +35,11 @@
             "Foo.JpG":                    [{ name: "Foo.JpG",      file: "Foo.JpG",  extension: "jpg" }],
             "Foo.JpEg":                   [{ name: "Foo.JpEg",     file: "Foo.JpEg", extension: "jpeg" }],
             "Foo.PnG":                    [{ name: "Foo.PnG",      file: "Foo.PnG",  extension: "png" }],
+            "Foo.WeBp":                   [{ name: "Foo.WeBp",     file: "Foo.WeBp", extension: "webp" }],
         };
         test.expect(Object.keys(spec).length);
         Object.keys(spec).forEach(function (layerName) {
-            var actual   = JSON.stringify(main.parseLayerName(layerName)),
+            var actual   = JSON.stringify(main._parseLayerName(layerName)),
                 expected = JSON.stringify(spec[layerName]);
             
             test.equal(actual, expected, "Extension parsing");
@@ -64,7 +65,7 @@
         };
         test.expect(Object.keys(spec).length);
         Object.keys(spec).forEach(function (layerName) {
-            var actual   = JSON.stringify(main.parseLayerName(layerName)),
+            var actual   = JSON.stringify(main._parseLayerName(layerName)),
                 expected = JSON.stringify(spec[layerName]);
             
             test.equal(actual, expected, "JPG quality parsing");
@@ -84,10 +85,36 @@
         };
         test.expect(Object.keys(spec).length);
         Object.keys(spec).forEach(function (layerName) {
-            var actual   = JSON.stringify(main.parseLayerName(layerName)),
+            var actual   = JSON.stringify(main._parseLayerName(layerName)),
                 expected = JSON.stringify(spec[layerName]);
             
             test.equal(actual, expected, "PNG quality parsing");
+        });
+        test.done();
+    };
+
+    exports.testWEBPQuality = function (test) {
+        var spec = {
+            // Good examples for WEBPs with a quality parameter
+            "foo.webp-1":          [{ name: "foo.webp-1",    file: "foo.webp",  extension: "webp", quality: "1" }],
+            "foo.webp4":           [{ name: "foo.webp4",     file: "foo.webp",  extension: "webp", quality: "4" }],
+            "foo.webp-10":         [{ name: "foo.webp-10",   file: "foo.webp",  extension: "webp", quality: "10" }],
+            "foo.webp-1%":         [{ name: "foo.webp-1%",   file: "foo.webp",  extension: "webp", quality: "1%" }],
+            "foo.webp42%":         [{ name: "foo.webp42%",   file: "foo.webp",  extension: "webp", quality: "42%" }],
+            "foo.webp-100%":       [{ name: "foo.webp-100%", file: "foo.webp",  extension: "webp", quality: "100%" }],
+            
+            // Bad examples for WEBPs with a quality parameter
+            "foo.webp-0":          [{ name: "foo.webp-0",    file: "foo.webp",  extension: "webp", quality: "0" }],
+            "foo.webp-11":         [{ name: "foo.webp-11",   file: "foo.webp",  extension: "webp", quality: "11" }],
+            "foo.webp-0%":         [{ name: "foo.webp-0%",   file: "foo.webp",  extension: "webp", quality: "0%" }],
+            "foo.webp-101%":       [{ name: "foo.webp-101%", file: "foo.webp",  extension: "webp", quality: "101%" }],
+        };
+        test.expect(Object.keys(spec).length);
+        Object.keys(spec).forEach(function (layerName) {
+            var actual   = JSON.stringify(main._parseLayerName(layerName)),
+                expected = JSON.stringify(spec[layerName]);
+            
+            test.equal(actual, expected, "WEBP quality parsing");
         });
         test.done();
     };
@@ -107,7 +134,7 @@
         };
         test.expect(Object.keys(spec).length);
         Object.keys(spec).forEach(function (layerName) {
-            var actual   = JSON.stringify(main.parseLayerName(layerName)),
+            var actual   = JSON.stringify(main._parseLayerName(layerName)),
                 expected = JSON.stringify(spec[layerName]);
             
             test.equal(actual, expected, "Relative scaling parsing");
@@ -138,7 +165,7 @@
         };
         test.expect(Object.keys(spec).length);
         Object.keys(spec).forEach(function (layerName) {
-            var actual   = JSON.stringify(main.parseLayerName(layerName)),
+            var actual   = JSON.stringify(main._parseLayerName(layerName)),
                 expected = JSON.stringify(spec[layerName]);
             
             test.equal(actual, expected, "Absolute scaling parsing");
@@ -164,7 +191,7 @@
         };
         test.expect(Object.keys(spec).length);
         Object.keys(spec).forEach(function (layerName) {
-            var actual   = JSON.stringify(main.parseLayerName(layerName)),
+            var actual   = JSON.stringify(main._parseLayerName(layerName)),
                 expected = JSON.stringify(spec[layerName]);
             
             test.equal(actual, expected, "Layer grouping");
@@ -178,13 +205,14 @@
             "100% Delicious, 42%Layer 1.png24  + 100x100 Layer.jpg-90% , 250% Foo Bar Baz.gif": [
                 { name: "100% Delicious" },
                 { name: "42%Layer 1.png24", file: "Layer 1.png", extension: "png", quality: "24", scale: 0.42 },
-                { name: "100x100 Layer.jpg-90%", file: "Layer.jpg", extension: "jpg", quality: "90%", width: 100, height: 100 },
+                { name: "100x100 Layer.jpg-90%", file: "Layer.jpg",
+                    extension: "jpg", quality: "90%", width: 100, height: 100 },
                 { name: "250% Foo Bar Baz.gif", file: "Foo Bar Baz.gif", extension: "gif", scale: 2.5 },
             ],
         };
         test.expect(Object.keys(spec).length);
         Object.keys(spec).forEach(function (layerName) {
-            var actual   = JSON.stringify(main.parseLayerName(layerName)),
+            var actual   = JSON.stringify(main._parseLayerName(layerName)),
                 expected = JSON.stringify(spec[layerName]);
             
             test.equal(actual, expected, "Mixed testing");
