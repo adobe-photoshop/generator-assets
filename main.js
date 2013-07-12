@@ -68,7 +68,7 @@
         var args = [
             // In order to know the pixel boundaries, ImageMagick needs to know the resolution and pixel depth
             "-size", pixmap.width + "x" + pixmap.height,
-            "-depth", 8,
+            "-depth", pixmap.bitsPerChannel,
             // pixmap.pixels contains the pixels in ARGB format, but ImageMagick only understands RGBA
             // The color-matrix parameter allows us to compensate for that
             "-color-matrix", "0 1 0 0, 0 0 1 0, 0 0 0 1, 1 0 0 0",
@@ -96,7 +96,8 @@
         if (scale) {
             args.push("-resize", (scale * 100) + "%");
         }
-        if (format === "jpg" && quality) {
+        if (format === "jpg" || format === "webp") {
+            quality = quality || 90;
             args.push("-quality", quality);
         }
 
@@ -240,17 +241,17 @@
                 component.extension = "jpg";
             }
 
-            if (["jpg", "png", "gif", "svg"].indexOf(component.extension) === -1) {
+            if (["jpg", "png", "gif", "svg", "webp"].indexOf(component.extension) === -1) {
                 reportError("Unsupported file extension " + JSON.stringify(component.extension));
             }
             
             if ((typeof component.quality) !== "undefined") {
-                if (component.extension === "jpg") {
+                if (component.extension === "jpg" || component.extension === "webp") {
                     if (component.quality.slice(-1) === "%") {
                         quality = parseInt(component.quality.slice(0, -1), 10);
                         if (quality < 1 || quality > 100) {
                             reportError(
-                                "JPEG quality must be between 1% and 100% (is " +
+                                "Quality must be between 1% and 100% (is " +
                                 JSON.stringify(component.quality) +
                                 ")"
                             );
@@ -262,7 +263,7 @@
                         quality = parseInt(component.quality, 10);
                         if (component.quality < 1 || component.quality > 10) {
                             reportError(
-                                "JPEG quality must be between 1 and 10 (is " +
+                                "Quality must be between 1 and 10 (is " +
                                 JSON.stringify(component.quality) +
                                 ")"
                             );
