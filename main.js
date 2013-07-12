@@ -205,17 +205,17 @@
                 if (match[3] !== "?") {
                     result.width = parseInt(match[4], 10);
                     if (typeof match[5] !== "undefined") {
-                        result.widthUnits = match[5];
+                        result.widthUnit = match[5];
                     } else {
-                        result.widthUnits = "px";
+                        result.widthUnit = "px";
                     }
                 }
                 if (match[6] !== "?") {
                     result.height = parseInt(match[7], 10);
                     if (typeof match[8] !== "undefined") {
-                        result.heightUnits = match[8];
+                        result.heightUnit = match[8];
                     } else {
-                        result.heightUnits = "px";
+                        result.heightUnit = "px";
                     }
                 }
             }
@@ -245,11 +245,11 @@
             }
 
             if (component.width === 0) {
-                if (["in", "cm", "px", "mm"].indexOf(component.widthUnits) === -1) {
-                    reportError("Unsupported image width unit " + JSON.stringify(component.widthUnits));
+                if (["in", "cm", "px", "mm"].indexOf(component.widthUnit) === -1) {
+                    reportError("Unsupported image width unit " + JSON.stringify(component.widthUnit));
                 }
-                if (["in", "cm", "px", "mm"].indexOf(component.heightUnits) === -1) {
-                    reportError("Unsupported image height unit " + JSON.stringify(component.heightUnits));
+                if (["in", "cm", "px", "mm"].indexOf(component.heightUnit) === -1) {
+                    reportError("Unsupported image height unit " + JSON.stringify(component.heightUnit));
                 }
                 reportError("Cannot set an image width to 0");
             }
@@ -715,18 +715,18 @@
             reportErrorsToUser(documentContext, analysis.errors);
         }
 
-        function convertToPixels(value, units) {
-            if (!value || !units || units === "px") {
+        function convertToPixels(value, unit) {
+            if (!value || !unit || unit === "px") {
                 return value;
             }
-            if (units === "in") {
+            if (unit === "in") {
                 return value * changeContext.document.resolution;
-            } else if (units === "mm") {
+            } else if (unit === "mm") {
                 return (value / 25.4) * changeContext.document.resolution;
-            } else if (units === "cm") {
+            } else if (unit === "cm") {
                 return (value / 2.54) * changeContext.document.resolution;
             } else {
-                console.error("An invalid length unit was specified: " + units);
+                console.error("An invalid length unit was specified: " + unit);
             }
         }
 
@@ -746,8 +746,8 @@
                     return;
                 }
                 // Calculate the pixel lengths of the image (undefined persists)
-                var pixelWidth = convertToPixels(component.width, component.widthUnits);
-                var pixelHeight = convertToPixels(component.height, component.heightUnits);
+                var pixelWidth = convertToPixels(component.width, component.widthUnit);
+                var pixelHeight = convertToPixels(component.height, component.heightUnit);
 
                 // Save the image in a temporary file
                 convertImage(pixmap, tmpPath, component.extension, component.quality,
