@@ -78,6 +78,10 @@
             "rgba:-"
         ];
 
+        // For best results, first resize
+        if (scale) {
+            args.push("-resize", (scale * 100) + "%");
+        }
         if (width || height) {
             if (width && height) {
                 args.push("-resize", width + "x" + height + "!"); // ! ignores ratio
@@ -88,24 +92,30 @@
             }
         }
 
-        
-        if (format === "jpg" || format === "gif" || format === "png8" || format === "png24") {
+        // Now perform color conversions
+        if (format === "jpg" || format === "png24") {
+            // Blend against a white background. Otherwise, semi-transparent pixels would just
+            // lose their transparency, making the colors too intense
             args.push("-background", backgroundColor, "-flatten");
         }
-        if (format === "gif" || format === "png8") {
-            args.push("-transparent", backgroundColor);
+        if (format === "gif") {
+            // Make it so that pixels that were <1% transparent before become fully transparent
+            // while the other pixels have the same color as if seen against a white background
+            // Create a copy of the original image, making it truly RGBA, and delete the ARGB original
+            // Copy the image and flatten it, then apply the binary transparency of another copy
+            // Afterwards, remove the RGBA image as well, leaving just one image
+            args = args.concat(("( -clone 0 ) -delete 0 ( -clone 0 -background " + backgroundColor +
+                " -flatten -clone 0 -channel A -threshold 99% -compose dst-in -composite ) -delete 0").split(/ /));
         }
-        if (scale) {
-            args.push("-resize", (scale * 100) + "%");
+        if (format === "png8") {
+            // Just make sure to use a palette
+            args.push("-colors", 256);
+            // "png8" as the ImageMagick format produces GIF-like PNGs (binary transparency)
+            format = "png";
         }
         if (format === "jpg" || format === "webp") {
             quality = quality || DEFAULT_JPG_AND_WEBP_QUALITY;
             args.push("-quality", quality);
-        }
-
-        // "png8" as a format produces different colors
-        if (format === "png8") {
-            format = "png";
         }
 
         // Write an image of format <format> to STDOUT
