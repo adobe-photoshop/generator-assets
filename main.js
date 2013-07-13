@@ -83,6 +83,12 @@
             args.push("-resize", (scale * 100) + "%");
         }
         if (width || height) {
+            if (width) {
+                width = Math.max(1, Math.round(width));
+            }
+            if (height) {
+                height = Math.max(1, Math.round(height));
+            }
             if (width && height) {
                 args.push("-resize", width + "x" + height + "!"); // ! ignores ratio
             } else if (width) {
@@ -219,16 +225,12 @@
                     result.width = parseInt(match[4], 10);
                     if (typeof match[5] !== "undefined") {
                         result.widthUnit = match[5];
-                    } else {
-                        result.widthUnit = "px";
                     }
                 }
                 if (match[6] !== "?") {
                     result.height = parseInt(match[7], 10);
                     if (typeof match[8] !== "undefined") {
                         result.heightUnit = match[8];
-                    } else {
-                        result.heightUnit = "px";
                     }
                 }
             }
@@ -237,11 +239,84 @@
         return result;
     }
     
+    function analyzeComponent(component, reportError) {
+        var supportedUnits      = ["in", "cm", "px", "mm"];
+        var supportedExtensions = ["jpg", "jpeg", "png", "gif", "svg", "webp"];
+
+        // Scaling checks
+        if (component.scale === 0) {
+            reportError("Cannot scale an image to 0%");
+        }
+
+        if (component.width === 0) {
+            reportError("Cannot set an image width to 0");
+        }
+
+        if (component.height === 0) {
+            reportError("Cannot set an image height to 0");
+        }
+
+        if (component.widthUnit && supportedUnits.indexOf(component.widthUnit) === -1) {
+            reportError("Unsupported image width unit " + JSON.stringify(component.widthUnit));
+        }
+        if (component.heightUnit && supportedUnits.indexOf(component.heightUnit) === -1) {
+            reportError("Unsupported image height unit " + JSON.stringify(component.heightUnit));
+        }
+
+        if (component.extension === "jpeg") {
+            component.extension = "jpg";
+        }
+        if (component.extension && supportedExtensions.indexOf(component.extension) === -1) {
+            reportError("Unsupported file extension " + JSON.stringify(component.extension));
+        }
+
+        var quality;
+        if ((typeof component.quality) !== "undefined") {
+            if (["jpg", "jpeg", "webp"].indexOf(component.extension) !== -1) {
+                if (component.quality.slice(-1) === "%") {
+                    quality = parseInt(component.quality.slice(0, -1), 10);
+                    if (quality < 1 || quality > 100) {
+                        reportError(
+                            "Quality must be between 1% and 100% (is " +
+                            JSON.stringify(component.quality) +
+                            ")"
+                        );
+                    } else {
+                        component.quality = quality;
+                    }
+                }
+                else {
+                    quality = parseInt(component.quality, 10);
+                    if (component.quality < 1 || component.quality > 10) {
+                        reportError(
+                            "Quality must be between 1 and 10 (is " +
+                            JSON.stringify(component.quality) +
+                            ")"
+                        );
+                    } else {
+                        component.quality = quality * 10;
+                    }
+                }
+            }
+            else if (component.extension === "png") {
+                if (["8", "24", "32"].indexOf(component.quality) === -1) {
+                    reportError("PNG quality must be 8, 24 or 32 (is " + JSON.stringify(component.quality) + ")");
+                }
+            }
+            else {
+                reportError(
+                    "There should not be a quality setting for files with the extension \"" +
+                    component.extension +
+                    "\""
+                );
+            }
+        }
+    }
+    
     function analyzeLayerName(layerName) {
         var components = parseLayerName(layerName),
-            errors = [],
-            quality;
-        
+            errors = [];
+
         var validFileComponents = components.filter(function (component) {
             if (!component.file) {
                 return false;
@@ -252,73 +327,8 @@
                 hadErrors = true;
                 errors.push(component.name + ": " + message);
             }
-            
-            if (component.scale === 0) {
-                reportError("Cannot scale an image to 0%");
-            }
 
-            if (component.width === 0) {
-                if (["in", "cm", "px", "mm"].indexOf(component.widthUnit) === -1) {
-                    reportError("Unsupported image width unit " + JSON.stringify(component.widthUnit));
-                }
-                if (["in", "cm", "px", "mm"].indexOf(component.heightUnit) === -1) {
-                    reportError("Unsupported image height unit " + JSON.stringify(component.heightUnit));
-                }
-                reportError("Cannot set an image width to 0");
-            }
-
-            if (component.height === 0) {
-                reportError("Cannot set an image height to 0");
-            }
-
-            if (component.extension === "jpeg") {
-                component.extension = "jpg";
-            }
-
-            if (["jpg", "png", "gif", "svg", "webp"].indexOf(component.extension) === -1) {
-                reportError("Unsupported file extension " + JSON.stringify(component.extension));
-            }
-            
-            if ((typeof component.quality) !== "undefined") {
-                if (component.extension === "jpg" || component.extension === "webp") {
-                    if (component.quality.slice(-1) === "%") {
-                        quality = parseInt(component.quality.slice(0, -1), 10);
-                        if (quality < 1 || quality > 100) {
-                            reportError(
-                                "Quality must be between 1% and 100% (is " +
-                                JSON.stringify(component.quality) +
-                                ")"
-                            );
-                        } else {
-                            component.quality = quality;
-                        }
-                    }
-                    else {
-                        quality = parseInt(component.quality, 10);
-                        if (component.quality < 1 || component.quality > 10) {
-                            reportError(
-                                "Quality must be between 1 and 10 (is " +
-                                JSON.stringify(component.quality) +
-                                ")"
-                            );
-                        } else {
-                            component.quality = quality * 10;
-                        }
-                    }
-                }
-                else if (component.extension === "png") {
-                    if (["8", "24", "32"].indexOf(component.quality) === -1) {
-                        reportError("PNG quality must be 8, 24 or 32 (is " + JSON.stringify(component.quality) + ")");
-                    }
-                }
-                else {
-                    reportError(
-                        "There should not be a quality setting for files with the extension \"" +
-                        component.extension +
-                        "\""
-                    );
-                }
-            }
+            analyzeComponent(component, reportError);
 
             return !hadErrors;
         });
@@ -494,6 +504,10 @@
         // If there is a file name (e.g., after saving or when switching between files, even unsaved ones)
         if (document.file) {
             processPathChange(document);
+        }
+
+        if (document.resolution) {
+            context.resolution = document.resolution;
         }
         
         var pendingPromises = [];
@@ -732,12 +746,14 @@
             if (!value || !unit || unit === "px") {
                 return value;
             }
+            
+            var resolution = changeContext.documentContext.resolution;
             if (unit === "in") {
-                return value * changeContext.document.resolution;
+                return value * resolution;
             } else if (unit === "mm") {
-                return (value / 25.4) * changeContext.document.resolution;
+                return (value / 25.4) * resolution;
             } else if (unit === "cm") {
-                return (value / 2.54) * changeContext.document.resolution;
+                return (value / 2.54) * resolution;
             } else {
                 console.error("An invalid length unit was specified: " + unit);
             }
@@ -1001,6 +1017,7 @@
     exports.init = init;
 
     // Unit test function exports
-    exports._parseLayerName = parseLayerName;
+    exports._parseLayerName   = parseLayerName;
+    exports._analyzeComponent = analyzeComponent;
 
 }());

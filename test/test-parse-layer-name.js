@@ -24,6 +24,8 @@
 (function () {
     "use strict";
 
+    require("./assertions");
+    
     var main = require("../main.js");
 
     exports.testExtensions = function (test) {
@@ -37,13 +39,9 @@
             "Foo.PnG":                    [{ name: "Foo.PnG",      file: "Foo.PnG",  extension: "png" }],
             "Foo.WeBp":                   [{ name: "Foo.WeBp",     file: "Foo.WeBp", extension: "webp" }],
         };
-        test.expect(Object.keys(spec).length);
-        Object.keys(spec).forEach(function (layerName) {
-            var actual   = JSON.stringify(main._parseLayerName(layerName)),
-                expected = JSON.stringify(spec[layerName]);
-            
-            test.equal(actual, expected, "Extension parsing");
-        });
+
+        test.expect(Object.keys(spec).length + 1);
+        test.callsMatchSpecification(test, main._parseLayerName, spec);
         test.done();
     };
 
@@ -63,13 +61,9 @@
             "foo.jpg-0%":         [{ name: "foo.jpg-0%",   file: "foo.jpg",  extension: "jpg", quality: "0%" }],
             "foo.jpg-101%":       [{ name: "foo.jpg-101%", file: "foo.jpg",  extension: "jpg", quality: "101%" }],
         };
-        test.expect(Object.keys(spec).length);
-        Object.keys(spec).forEach(function (layerName) {
-            var actual   = JSON.stringify(main._parseLayerName(layerName)),
-                expected = JSON.stringify(spec[layerName]);
-            
-            test.equal(actual, expected, "JPG quality parsing");
-        });
+        
+        test.expect(Object.keys(spec).length + 1);
+        test.callsMatchSpecification(test, main._parseLayerName, spec);
         test.done();
     };
 
@@ -83,13 +77,9 @@
             // Bad example for a PNG with a quality parameter
             "foo.png-42":                 [{ name: "foo.png-42",   file: "foo.png",  extension: "png", quality: "42" }],
         };
-        test.expect(Object.keys(spec).length);
-        Object.keys(spec).forEach(function (layerName) {
-            var actual   = JSON.stringify(main._parseLayerName(layerName)),
-                expected = JSON.stringify(spec[layerName]);
-            
-            test.equal(actual, expected, "PNG quality parsing");
-        });
+        
+        test.expect(Object.keys(spec).length + 1);
+        test.callsMatchSpecification(test, main._parseLayerName, spec);
         test.done();
     };
 
@@ -109,13 +99,9 @@
             "foo.webp-0%":         [{ name: "foo.webp-0%",   file: "foo.webp",  extension: "webp", quality: "0%" }],
             "foo.webp-101%":       [{ name: "foo.webp-101%", file: "foo.webp",  extension: "webp", quality: "101%" }],
         };
-        test.expect(Object.keys(spec).length);
-        Object.keys(spec).forEach(function (layerName) {
-            var actual   = JSON.stringify(main._parseLayerName(layerName)),
-                expected = JSON.stringify(spec[layerName]);
-            
-            test.equal(actual, expected, "WEBP quality parsing");
-        });
+        
+        test.expect(Object.keys(spec).length + 1);
+        test.callsMatchSpecification(test, main._parseLayerName, spec);
         test.done();
     };
 
@@ -132,13 +118,9 @@
             "05% foo.png":                [{ name: "05% foo.png",  file: "foo.png",  extension: "png", scale: 0.05}],
             "1%foo.png":                  [{ name: "1%foo.png",    file: "foo.png",  extension: "png", scale: 0.01 }],
         };
-        test.expect(Object.keys(spec).length);
-        Object.keys(spec).forEach(function (layerName) {
-            var actual   = JSON.stringify(main._parseLayerName(layerName)),
-                expected = JSON.stringify(spec[layerName]);
-            
-            test.equal(actual, expected, "Relative scaling parsing");
-        });
+        
+        test.expect(Object.keys(spec).length + 1);
+        test.callsMatchSpecification(test, main._parseLayerName, spec);
         test.done();
     };
 
@@ -147,22 +129,22 @@
             // Good examples of absolute scaling
             "100x80 foo.png":
                 [{ name: "100x80 foo.png", file: "foo.png", extension: "png",
-                        width: 100, widthUnit: "px", height: 80, heightUnit: "px"}],
+                        width: 100, height: 80 }],
             // spaces between lengths
-            "80 x 100 foo.png":
-                [{ name: "80 x 100 foo.png", file: "foo.png", extension: "png",
-                        width: 80, widthUnit: "px", height: 100, heightUnit: "px"}],
+            "80 x 100px foo.png":
+                [{ name: "80 x 100px foo.png", file: "foo.png", extension: "png",
+                        width: 80, height: 100, heightUnit: "px" }],
             // mix of units and no units
             "4in x100  foo.png":
                 [{ name: "4in x100  foo.png", file: "foo.png", extension: "png",
-                        width: 4, widthUnit: "in", height: 100, heightUnit: "px"}],
+                        width: 4, widthUnit: "in", height: 100 }],
             // mix of units
             "90mm x120cm foo.png":
                 [{ name: "90mm x120cm foo.png", file: "foo.png", extension: "png",
                         width: 90, widthUnit: "mm", height: 120, heightUnit: "cm"}],
             // wild card
             "100x? foo.png":
-                [{ name: "100x? foo.png", file: "foo.png", extension: "png", width: 100, widthUnit: "px"}],
+                [{ name: "100x? foo.png", file: "foo.png", extension: "png", width: 100 }],
             // wild card mixed with units
             "?x60in foo.png":
                 [{ name: "?x60in foo.png", file: "foo.png", extension: "png", height: 60, heightUnit: "in"}],
@@ -174,7 +156,7 @@
             // mix of scaling
             "80x100 60% foo.png":
                 [{ name: "80x100 60% foo.png", file: "60% foo.png", extension: "png",
-                        width: 80, widthUnit: "px", height: 100, heightUnit: "px"}],
+                        width: 80, height: 100 }],
             // mix of scaling with relative first
             "50% 80x100 foo.png":
                 [{ name: "50% 80x100 foo.png", file: "80x100 foo.png", extension: "png", scale: 0.50 }],
@@ -184,16 +166,11 @@
             // invalid unit, will not fail, but analyze will throw errors
             "30nm x20 nano.png":
                 [{ name: "30nm x20 nano.png", file: "nano.png", extension: "png",
-                        width: 30, widthUnit: "nm", height: 20, heightUnit: "px"}],
-                
+                        width: 30, widthUnit: "nm", height: 20 }],
         };
-        test.expect(Object.keys(spec).length);
-        Object.keys(spec).forEach(function (layerName) {
-            var actual   = JSON.stringify(main._parseLayerName(layerName)),
-                expected = JSON.stringify(spec[layerName]);
-            
-            test.equal(actual, expected, "Absolute scaling parsing");
-        });
+
+        test.expect(Object.keys(spec).length + 1);
+        test.callsMatchSpecification(test, main._parseLayerName, spec);
         test.done();
     };
 
@@ -213,13 +190,9 @@
             "Layer 1.png+Layer 2.jpg":    [layer1PNG, layer2JPG],
             "Layer 1.png  + Layer 2.jpg": [layer1PNG, layer2JPG],
         };
-        test.expect(Object.keys(spec).length);
-        Object.keys(spec).forEach(function (layerName) {
-            var actual   = JSON.stringify(main._parseLayerName(layerName)),
-                expected = JSON.stringify(spec[layerName]);
-            
-            test.equal(actual, expected, "Layer grouping");
-        });
+        
+        test.expect(Object.keys(spec).length + 1);
+        test.callsMatchSpecification(test, main._parseLayerName, spec);
         test.done();
     };
 
@@ -230,19 +203,13 @@
                 { name: "100% Delicious" },
                 { name: "42%Layer 1.png24", file: "Layer 1.png", extension: "png", quality: "24", scale: 0.42 },
                 { name: "100x100 Layer.jpg-90%", file: "Layer.jpg", extension: "jpg", quality: "90%",
-                        width: 100, widthUnit: "px", height: 100, heightUnit: "px" },
+                        width: 100, height: 100 },
                 { name: "250% Foo Bar Baz.gif", file: "Foo Bar Baz.gif", extension: "gif", scale: 2.5 },
             ],
         };
-        test.expect(Object.keys(spec).length);
-        Object.keys(spec).forEach(function (layerName) {
-            var actual   = JSON.stringify(main._parseLayerName(layerName)),
-                expected = JSON.stringify(spec[layerName]);
-            
-            test.equal(actual, expected, "Mixed testing");
-        });
+        
+        test.expect(Object.keys(spec).length + 1);
+        test.callsMatchSpecification(test, main._parseLayerName, spec);
         test.done();
     };
-
- 
 }());
