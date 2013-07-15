@@ -83,6 +83,12 @@
             args.push("-resize", (scale * 100) + "%");
         }
         if (width || height) {
+            if (width) {
+                width = Math.max(1, Math.round(width));
+            }
+            if (height) {
+                height = Math.max(1, Math.round(height));
+            }
             if (width && height) {
                 args.push("-resize", width + "x" + height + "!"); // ! ignores ratio
             } else if (width) {
@@ -181,8 +187,12 @@
         var result = {
             name: fileSpec
         };
-
-        var exp = /^((((\d+)|\?)x((\d+)|\?) +)|((\d+)% *))?(.+\.([a-z0-9]*[a-z]))(\-?(\d+%?))?$/i;
+        
+        /* jshint maxlen: 160 */
+        var exp = /^((((\d+)(?:([a-z]{2}) )?|\?) *x *((\d+)(?:([a-z]{2}) *)?|\?) +)|((\d+)% *))?(.+\.([a-z0-9]*[a-z]))(\-?(\d+%?))?$/i;
+        
+        /* jshint maxlen: 120 */
+        
         var match = fileSpec.match(exp);
         // match items
         // 0 - matching string
@@ -190,30 +200,38 @@
         // 2 - absolute scaling match string
         // 3 - absolute scaling width string (may be ?)
         // 4 - absolute scaling width number (undefined for ?)
-        // 5 - absolute scaling height string (may be ?)
-        // 6 - absolute scaling height number (undefined for ?)
-        // 7 - relative scaling match string
-        // 8 - relative scaling match number
-        // 9 - file name
-        // 10 - file extension
-        // 11 - quality match string
-        // 12 - quality number
+        // 5 - absolute scaling width unit (if undefined - pixels)
+        // 6 - absolute scaling height string (may be ?)
+        // 7 - absolute scaling height number (undefined for ?)
+        // 8 - absolute scaling height unit (if undefined - pixels)
+        // 9 - relative scaling match string
+        // 10 - relative scaling match number
+        // 11 - file name
+        // 12 - file extension
+        // 13 - quality match string
+        // 14 - quality number
 
         if (match) {
-            result.file      = match[9];
-            result.extension = match[10].toLowerCase();
-            if (typeof match[11] !== "undefined") {
-                result.quality = match[12];
+            result.file      = match[11];
+            result.extension = match[12].toLowerCase();
+            if (typeof match[13] !== "undefined") {
+                result.quality = match[14];
             }
-            if (typeof match[7] !== "undefined") {
-                result.scale = parseInt(match[8], 10) / 100;
+            if (typeof match[9] !== "undefined") {
+                result.scale = parseInt(match[10], 10) / 100;
             }
             if (typeof match[2] !== "undefined") {
                 if (match[3] !== "?") {
                     result.width = parseInt(match[4], 10);
+                    if (typeof match[5] !== "undefined") {
+                        result.widthUnit = match[5];
+                    }
                 }
-                if (match[5] !== "?") {
-                    result.height = parseInt(match[6], 10);
+                if (match[6] !== "?") {
+                    result.height = parseInt(match[7], 10);
+                    if (typeof match[8] !== "undefined") {
+                        result.heightUnit = match[8];
+                    }
                 }
             }
         }
@@ -221,11 +239,84 @@
         return result;
     }
     
+    function analyzeComponent(component, reportError) {
+        var supportedUnits      = ["in", "cm", "px", "mm"];
+        var supportedExtensions = ["jpg", "jpeg", "png", "gif", "svg", "webp"];
+
+        // Scaling checks
+        if (component.scale === 0) {
+            reportError("Cannot scale an image to 0%");
+        }
+
+        if (component.width === 0) {
+            reportError("Cannot set an image width to 0");
+        }
+
+        if (component.height === 0) {
+            reportError("Cannot set an image height to 0");
+        }
+
+        if (component.widthUnit && supportedUnits.indexOf(component.widthUnit) === -1) {
+            reportError("Unsupported image width unit " + JSON.stringify(component.widthUnit));
+        }
+        if (component.heightUnit && supportedUnits.indexOf(component.heightUnit) === -1) {
+            reportError("Unsupported image height unit " + JSON.stringify(component.heightUnit));
+        }
+
+        if (component.extension === "jpeg") {
+            component.extension = "jpg";
+        }
+        if (component.extension && supportedExtensions.indexOf(component.extension) === -1) {
+            reportError("Unsupported file extension " + JSON.stringify(component.extension));
+        }
+
+        var quality;
+        if ((typeof component.quality) !== "undefined") {
+            if (["jpg", "jpeg", "webp"].indexOf(component.extension) !== -1) {
+                if (component.quality.slice(-1) === "%") {
+                    quality = parseInt(component.quality.slice(0, -1), 10);
+                    if (quality < 1 || quality > 100) {
+                        reportError(
+                            "Quality must be between 1% and 100% (is " +
+                            JSON.stringify(component.quality) +
+                            ")"
+                        );
+                    } else {
+                        component.quality = quality;
+                    }
+                }
+                else {
+                    quality = parseInt(component.quality, 10);
+                    if (component.quality < 1 || component.quality > 10) {
+                        reportError(
+                            "Quality must be between 1 and 10 (is " +
+                            JSON.stringify(component.quality) +
+                            ")"
+                        );
+                    } else {
+                        component.quality = quality * 10;
+                    }
+                }
+            }
+            else if (component.extension === "png") {
+                if (["8", "24", "32"].indexOf(component.quality) === -1) {
+                    reportError("PNG quality must be 8, 24 or 32 (is " + JSON.stringify(component.quality) + ")");
+                }
+            }
+            else {
+                reportError(
+                    "There should not be a quality setting for files with the extension \"" +
+                    component.extension +
+                    "\""
+                );
+            }
+        }
+    }
+    
     function analyzeLayerName(layerName) {
         var components = parseLayerName(layerName),
-            errors = [],
-            quality;
-        
+            errors = [];
+
         var validFileComponents = components.filter(function (component) {
             if (!component.file) {
                 return false;
@@ -236,67 +327,8 @@
                 hadErrors = true;
                 errors.push(component.name + ": " + message);
             }
-            
-            if (component.scale === 0) {
-                reportError("Cannot scale an image to 0%");
-            }
 
-            if (component.width === 0) {
-                reportError("Cannot set an image width to 0");
-            }
-
-            if (component.height === 0) {
-                reportError("Cannot set an image height to 0");
-            }
-
-            if (component.extension === "jpeg") {
-                component.extension = "jpg";
-            }
-
-            if (["jpg", "png", "gif", "svg", "webp"].indexOf(component.extension) === -1) {
-                reportError("Unsupported file extension " + JSON.stringify(component.extension));
-            }
-            
-            if ((typeof component.quality) !== "undefined") {
-                if (component.extension === "jpg" || component.extension === "webp") {
-                    if (component.quality.slice(-1) === "%") {
-                        quality = parseInt(component.quality.slice(0, -1), 10);
-                        if (quality < 1 || quality > 100) {
-                            reportError(
-                                "Quality must be between 1% and 100% (is " +
-                                JSON.stringify(component.quality) +
-                                ")"
-                            );
-                        } else {
-                            component.quality = quality;
-                        }
-                    }
-                    else {
-                        quality = parseInt(component.quality, 10);
-                        if (component.quality < 1 || component.quality > 10) {
-                            reportError(
-                                "Quality must be between 1 and 10 (is " +
-                                JSON.stringify(component.quality) +
-                                ")"
-                            );
-                        } else {
-                            component.quality = quality * 10;
-                        }
-                    }
-                }
-                else if (component.extension === "png") {
-                    if (["8", "24", "32"].indexOf(component.quality) === -1) {
-                        reportError("PNG quality must be 8, 24 or 32 (is " + JSON.stringify(component.quality) + ")");
-                    }
-                }
-                else {
-                    reportError(
-                        "There should not be a quality setting for files with the extension \"" +
-                        component.extension +
-                        "\""
-                    );
-                }
-            }
+            analyzeComponent(component, reportError);
 
             return !hadErrors;
         });
@@ -472,6 +504,10 @@
         // If there is a file name (e.g., after saving or when switching between files, even unsaved ones)
         if (document.file) {
             processPathChange(document);
+        }
+
+        if (document.resolution) {
+            context.resolution = document.resolution;
         }
         
         var pendingPromises = [];
@@ -706,6 +742,23 @@
             reportErrorsToUser(documentContext, analysis.errors);
         }
 
+        function convertToPixels(value, unit) {
+            if (!value || !unit || unit === "px") {
+                return value;
+            }
+            
+            var resolution = changeContext.documentContext.resolution;
+            if (unit === "in") {
+                return value * resolution;
+            } else if (unit === "mm") {
+                return (value / 25.4) * resolution;
+            } else if (unit === "cm") {
+                return (value / 2.54) * resolution;
+            } else {
+                console.error("An invalid length unit was specified: " + unit);
+            }
+        }
+
         // TODO: Make sure this function is refactored so that it doesn't have so much
         // callback nesting. This function will change substantially when we move image
         // creation to core, so avoiding the refactor right now.
@@ -721,9 +774,13 @@
                     imageCreatedDeferred.reject(err);
                     return;
                 }
+                // Calculate the pixel lengths of the image (undefined persists)
+                var pixelWidth = convertToPixels(component.width, component.widthUnit);
+                var pixelHeight = convertToPixels(component.height, component.heightUnit);
+
                 // Save the image in a temporary file
                 convertImage(pixmap, tmpPath, component.extension, component.quality,
-                            component.scale, component.width, component.height).then(
+                            component.scale, pixelWidth, pixelHeight).then(
                     // When ImageMagick is done
                     function () {
                         var directory = changeContext.documentContext.assetGenerationDir;
@@ -960,6 +1017,7 @@
     exports.init = init;
 
     // Unit test function exports
-    exports._parseLayerName = parseLayerName;
+    exports._parseLayerName   = parseLayerName;
+    exports._analyzeComponent = analyzeComponent;
 
 }());
