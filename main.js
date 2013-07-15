@@ -34,6 +34,8 @@
     var DELAY_TO_WAIT_UNTIL_USER_DONE = 300,
         MENU_ID = "assets";
 
+    var DEFAULT_JPG_AND_WEBP_QUALITY = 90;
+
     // TODO: Once we get the layer change management/updating right, we should add a
     // big comment at the top of this file explaining how this all works. In particular
     // we should explain what contexts are, and how we manage scheduling updates.
@@ -68,7 +70,7 @@
         var args = [
             // In order to know the pixel boundaries, ImageMagick needs to know the resolution and pixel depth
             "-size", pixmap.width + "x" + pixmap.height,
-            "-depth", 8,
+            "-depth", pixmap.bitsPerChannel,
             // pixmap.pixels contains the pixels in ARGB format, but ImageMagick only understands RGBA
             // The color-matrix parameter allows us to compensate for that
             "-color-matrix", "0 1 0 0, 0 0 1 0, 0 0 0 1, 1 0 0 0",
@@ -76,7 +78,17 @@
             "rgba:-"
         ];
 
+        // For best results, first resize
+        if (scale) {
+            args.push("-resize", (scale * 100) + "%");
+        }
         if (width || height) {
+            if (width) {
+                width = Math.max(1, Math.round(width));
+            }
+            if (height) {
+                height = Math.max(1, Math.round(height));
+            }
             if (width && height) {
                 args.push("-resize", width + "x" + height + "!"); // ! ignores ratio
             } else if (width) {
@@ -86,23 +98,30 @@
             }
         }
 
-        
-        if (format === "jpg" || format === "gif" || format === "png8" || format === "png24") {
+        // Now perform color conversions
+        if (format === "jpg" || format === "png24") {
+            // Blend against a white background. Otherwise, semi-transparent pixels would just
+            // lose their transparency, making the colors too intense
             args.push("-background", backgroundColor, "-flatten");
         }
-        if (format === "gif" || format === "png8") {
-            args.push("-transparent", backgroundColor);
+        if (format === "gif") {
+            // Make it so that pixels that were <1% transparent before become fully transparent
+            // while the other pixels have the same color as if seen against a white background
+            // Create a copy of the original image, making it truly RGBA, and delete the ARGB original
+            // Copy the image and flatten it, then apply the binary transparency of another copy
+            // Afterwards, remove the RGBA image as well, leaving just one image
+            args = args.concat(("( -clone 0 ) -delete 0 ( -clone 0 -background " + backgroundColor +
+                " -flatten -clone 0 -channel A -threshold 99% -compose dst-in -composite ) -delete 0").split(/ /));
         }
-        if (scale) {
-            args.push("-resize", (scale * 100) + "%");
-        }
-        if (format === "jpg" && quality) {
-            args.push("-quality", quality);
-        }
-
-        // "png8" as a format produces different colors
         if (format === "png8") {
+            // Just make sure to use a palette
+            args.push("-colors", 256);
+            // "png8" as the ImageMagick format produces GIF-like PNGs (binary transparency)
             format = "png";
+        }
+        if (format === "jpg" || format === "webp") {
+            quality = quality || DEFAULT_JPG_AND_WEBP_QUALITY;
+            args.push("-quality", quality);
         }
 
         // Write an image of format <format> to STDOUT
@@ -206,16 +225,12 @@
                     result.width = parseInt(match[4], 10);
                     if (typeof match[5] !== "undefined") {
                         result.widthUnit = match[5];
-                    } else {
-                        result.widthUnit = "px";
                     }
                 }
                 if (match[6] !== "?") {
                     result.height = parseInt(match[7], 10);
                     if (typeof match[8] !== "undefined") {
                         result.heightUnit = match[8];
-                    } else {
-                        result.heightUnit = "px";
                     }
                 }
             }
@@ -224,11 +239,84 @@
         return result;
     }
     
+    function analyzeComponent(component, reportError) {
+        var supportedUnits      = ["in", "cm", "px", "mm"];
+        var supportedExtensions = ["jpg", "jpeg", "png", "gif", "svg", "webp"];
+
+        // Scaling checks
+        if (component.scale === 0) {
+            reportError("Cannot scale an image to 0%");
+        }
+
+        if (component.width === 0) {
+            reportError("Cannot set an image width to 0");
+        }
+
+        if (component.height === 0) {
+            reportError("Cannot set an image height to 0");
+        }
+
+        if (component.widthUnit && supportedUnits.indexOf(component.widthUnit) === -1) {
+            reportError("Unsupported image width unit " + JSON.stringify(component.widthUnit));
+        }
+        if (component.heightUnit && supportedUnits.indexOf(component.heightUnit) === -1) {
+            reportError("Unsupported image height unit " + JSON.stringify(component.heightUnit));
+        }
+
+        if (component.extension === "jpeg") {
+            component.extension = "jpg";
+        }
+        if (component.extension && supportedExtensions.indexOf(component.extension) === -1) {
+            reportError("Unsupported file extension " + JSON.stringify(component.extension));
+        }
+
+        var quality;
+        if ((typeof component.quality) !== "undefined") {
+            if (["jpg", "jpeg", "webp"].indexOf(component.extension) !== -1) {
+                if (component.quality.slice(-1) === "%") {
+                    quality = parseInt(component.quality.slice(0, -1), 10);
+                    if (quality < 1 || quality > 100) {
+                        reportError(
+                            "Quality must be between 1% and 100% (is " +
+                            JSON.stringify(component.quality) +
+                            ")"
+                        );
+                    } else {
+                        component.quality = quality;
+                    }
+                }
+                else {
+                    quality = parseInt(component.quality, 10);
+                    if (component.quality < 1 || component.quality > 10) {
+                        reportError(
+                            "Quality must be between 1 and 10 (is " +
+                            JSON.stringify(component.quality) +
+                            ")"
+                        );
+                    } else {
+                        component.quality = quality * 10;
+                    }
+                }
+            }
+            else if (component.extension === "png") {
+                if (["8", "24", "32"].indexOf(component.quality) === -1) {
+                    reportError("PNG quality must be 8, 24 or 32 (is " + JSON.stringify(component.quality) + ")");
+                }
+            }
+            else {
+                reportError(
+                    "There should not be a quality setting for files with the extension \"" +
+                    component.extension +
+                    "\""
+                );
+            }
+        }
+    }
+    
     function analyzeLayerName(layerName) {
         var components = parseLayerName(layerName),
-            errors = [],
-            quality;
-        
+            errors = [];
+
         var validFileComponents = components.filter(function (component) {
             if (!component.file) {
                 return false;
@@ -239,73 +327,8 @@
                 hadErrors = true;
                 errors.push(component.name + ": " + message);
             }
-            
-            if (component.scale === 0) {
-                reportError("Cannot scale an image to 0%");
-            }
 
-            if (component.width === 0) {
-                if (["in", "cm", "px", "mm"].indexOf(component.widthUnit) === -1) {
-                    reportError("Unsupported image width unit " + JSON.stringify(component.widthUnit));
-                }
-                if (["in", "cm", "px", "mm"].indexOf(component.heightUnit) === -1) {
-                    reportError("Unsupported image height unit " + JSON.stringify(component.heightUnit));
-                }
-                reportError("Cannot set an image width to 0");
-            }
-
-            if (component.height === 0) {
-                reportError("Cannot set an image height to 0");
-            }
-
-            if (component.extension === "jpeg") {
-                component.extension = "jpg";
-            }
-
-            if (["jpg", "png", "gif", "svg"].indexOf(component.extension) === -1) {
-                reportError("Unsupported file extension " + JSON.stringify(component.extension));
-            }
-            
-            if ((typeof component.quality) !== "undefined") {
-                if (component.extension === "jpg") {
-                    if (component.quality.slice(-1) === "%") {
-                        quality = parseInt(component.quality.slice(0, -1), 10);
-                        if (quality < 1 || quality > 100) {
-                            reportError(
-                                "JPEG quality must be between 1% and 100% (is " +
-                                JSON.stringify(component.quality) +
-                                ")"
-                            );
-                        } else {
-                            component.quality = quality;
-                        }
-                    }
-                    else {
-                        quality = parseInt(component.quality, 10);
-                        if (component.quality < 1 || component.quality > 10) {
-                            reportError(
-                                "JPEG quality must be between 1 and 10 (is " +
-                                JSON.stringify(component.quality) +
-                                ")"
-                            );
-                        } else {
-                            component.quality = quality * 10;
-                        }
-                    }
-                }
-                else if (component.extension === "png") {
-                    if (["8", "24", "32"].indexOf(component.quality) === -1) {
-                        reportError("PNG quality must be 8, 24 or 32 (is " + JSON.stringify(component.quality) + ")");
-                    }
-                }
-                else {
-                    reportError(
-                        "There should not be a quality setting for files with the extension \"" +
-                        component.extension +
-                        "\""
-                    );
-                }
-            }
+            analyzeComponent(component, reportError);
 
             return !hadErrors;
         });
@@ -481,6 +504,10 @@
         // If there is a file name (e.g., after saving or when switching between files, even unsaved ones)
         if (document.file) {
             processPathChange(document);
+        }
+
+        if (document.resolution) {
+            context.resolution = document.resolution;
         }
         
         var pendingPromises = [];
@@ -719,12 +746,14 @@
             if (!value || !unit || unit === "px") {
                 return value;
             }
+            
+            var resolution = changeContext.documentContext.resolution;
             if (unit === "in") {
-                return value * changeContext.document.resolution;
+                return value * resolution;
             } else if (unit === "mm") {
-                return (value / 25.4) * changeContext.document.resolution;
+                return (value / 25.4) * resolution;
             } else if (unit === "cm") {
-                return (value / 2.54) * changeContext.document.resolution;
+                return (value / 2.54) * resolution;
             } else {
                 console.error("An invalid length unit was specified: " + unit);
             }
@@ -988,6 +1017,7 @@
     exports.init = init;
 
     // Unit test function exports
-    exports.parseLayerName = parseLayerName;
+    exports._parseLayerName   = parseLayerName;
+    exports._analyzeComponent = analyzeComponent;
 
 }());
