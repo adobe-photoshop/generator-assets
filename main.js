@@ -31,8 +31,9 @@
         mkdirp = Q.denodeify(require("mkdirp")),
         convert = require("./lib/convert");
 
-    var DELAY_TO_WAIT_UNTIL_USER_DONE = 300,
-        MENU_ID = "assets";
+    var PLUGIN_ID = "com.adobe.web-assets",
+        MENU_ID = "assets",
+        DELAY_TO_WAIT_UNTIL_USER_DONE = 300;
 
     var DEFAULT_JPG_AND_WEBP_QUALITY = 90;
 
@@ -400,6 +401,7 @@
         // - User opened an image
         // - User switched to an image that was created/opened before Generator started
         if (!_contextPerDocument[document.id]) {
+            console.log("Unknown document, so getting all information");
             // Make sure we have all information
             _currentDocumentLoaded = false;
             processEntireDocument();
@@ -427,7 +429,7 @@
             return;
         }
         
-        console.log(event);
+        console.log("Menu event", event);
 
         // Before we know about the current document, we cannot reasonably process the events
         _menuClicked = true;
@@ -462,6 +464,7 @@
         // Toggle the state
         context.assetGenerationEnabled = !context.assetGenerationEnabled;
         updateMenuState();
+        updateDocumentState();
         console.log("Asset generation is now " + (context.assetGenerationEnabled ? "enabled" : "disabled"));
     }
 
@@ -496,6 +499,16 @@
         _generator.toggleMenu(MENU_ID, true, enabled);
     }
 
+    function updateDocumentState() {
+        var context = _contextPerDocument[_currentDocumentId];
+        if (!context) {
+            return;
+        }
+        
+        var settings = { enabled: Boolean(context.assetGenerationEnabled) };
+        _generator.setDocumentSettingsForPlugin(PLUGIN_ID, settings);
+    }
+
     function processChangesToDocument(document) {
         // Stop if the document isn't an object describing a menu (could be "[ActionDescriptor]")
         // Happens if no document is open, but maybe also at other times
@@ -511,6 +524,11 @@
                 layers: {},
                 assetGenerationEnabled: false
             };
+            
+            if (document.generatorSettings) {
+                var settings = _generator.parseDocumentSettingsForPlugin(PLUGIN_ID, document.generatorSettings);
+                context.assetGenerationEnabled = Boolean(settings.enabled);
+            }
         }
 
         processDocumentId(document.id);
@@ -615,6 +633,7 @@
             // Turn asset generation off
             context.assetGenerationEnabled = false;
             updateMenuState();
+            updateDocumentState();
         }
 
         if (!wasSaved && context.isSaved && previousStorageDir) {
