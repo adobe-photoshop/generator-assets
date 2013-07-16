@@ -56,8 +56,27 @@
 
     // TODO: PNG-8 right now basically means GIF-like PNGs (binary transparency)
     //       Ultimately, we want it to mean a palette of RGBA colors (arbitrary transparency)
-    function convertImage(pixmap, filename, format, quality, scale, width, height) {
-        var fileCompleteDeferred = Q.defer();
+    /**
+     * @param pixmap     An object representing the layer's image
+     * @param {!integer} pixmap.width          The width of the image
+     * @param {!integer} pixmap.height         The height of the image
+     * @param {!Buffer}  pixmap.pixels         A buffer containing the actual pixel data
+     * @param {!integer} pixmap.bitsPerChannel Bits per channel
+     * @param {!String}  filename              The filename to write to
+     * @param settings   An object with settings for converting the image
+     * @param {!String}  settings.format  ImageMagick output format
+     * @param {?integer} settings.quality A number indicating the quality - the meaning depends on the format
+     * @param {?float}   settings.scale   A scaling factor
+     * @param {?integer} settings.pixelWidth   The width to resize the image to, in pixels
+     * @param {?integer} settings.pixelHeight  The height to resize the image to, in pixels
+     */
+    function convertImage(pixmap, filename, settings) {
+        var fileCompleteDeferred = Q.defer(),
+            format  = settings.format,
+            quality = settings.quality,
+            scale   = settings.scale,
+            width   = settings.pixelWidth,
+            height  = settings.pixelHeight;
 
         _generator.publish("assets.debug.dump", "dumping " + filename);
 
@@ -775,12 +794,12 @@
                     return;
                 }
                 // Calculate the pixel lengths of the image (undefined persists)
-                var pixelWidth = convertToPixels(component.width, component.widthUnit);
-                var pixelHeight = convertToPixels(component.height, component.heightUnit);
+                component.pixelWidth = convertToPixels(component.width, component.widthUnit);
+                component.pixelHeight = convertToPixels(component.height, component.heightUnit);
 
                 // Save the image in a temporary file
-                convertImage(pixmap, tmpPath, component.extension, component.quality,
-                            component.scale, pixelWidth, pixelHeight).then(
+                component.format = component.extension;
+                convertImage(pixmap, tmpPath, component).then(
                     // When ImageMagick is done
                     function () {
                         var directory = changeContext.documentContext.assetGenerationDir;
