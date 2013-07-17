@@ -47,7 +47,7 @@
         _changeContextPerLayer = {},
         _photoshopPath = null,
         _currentDocumentId,
-        _setupDone = false,
+        _currentDocumentLoaded = false,
         _menuClicked = false;
 
     function getUserHomeDirectory() {
@@ -401,6 +401,7 @@
         // - User switched to an image that was created/opened before Generator started
         if (!_contextPerDocument[document.id]) {
             // Make sure we have all information
+            _currentDocumentLoaded = false;
             processEntireDocument();
             return;
         }
@@ -430,7 +431,7 @@
 
         // Before we know about the current document, we cannot reasonably process the events
         _menuClicked = true;
-        if (!_setupDone) {
+        if (!_currentDocumentLoaded) {
             return;
         }
         
@@ -515,8 +516,8 @@
         processDocumentId(document.id);
 
         // Now that we know the current document, we can actually process any menu clicks
-        if (! _setupDone) {
-            _setupDone = true;
+        if (!_currentDocumentLoaded) {
+            _currentDocumentLoaded = true;
             processMenuEvents();
         }
 
