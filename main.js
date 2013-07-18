@@ -941,10 +941,19 @@
             // and therefore might not be empty like new layers
             
             // Note .svg uses a different code path from the pixel-based formats
-            if (layerContext.validFileComponents[0].extension === "svg") {
+            var foundSVG = (function () {
+                for (var i in layerContext.validFileComponents) {
+                    if (layerContext.validFileComponents[i].extension === "svg") {
+                        return i;
+                    }
+                }
+                return -1;
+            })();
+            if (foundSVG >= 0) {
                 console.log("Create SVG for layer[" + changeContext.layer.id + "]: " +
-                            layerContext.validFileComponents[0].name);
-                var params = { layerID: changeContext.layer.id };
+                            layerContext.validFileComponents[foundSVG].name);
+                var params = { layerID: changeContext.layer.id,
+                               layerFilename: layerContext.validFileComponents[foundSVG].file };
                 _generator.evaluateJSXFile("./jsx/layerSVG.jsx", params);
                 // TODO: We should verify results here.
                 layerUpdatedDeferred.resolve();
