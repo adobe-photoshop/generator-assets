@@ -48,7 +48,8 @@
         _photoshopPath = null,
         _currentDocumentId,
         _currentDocumentLoaded = false,
-        _menuClicked = false;
+        _menuClicked = false,
+        _lastDocumentRequestId = 0;
 
     function getUserHomeDirectory() {
         return process.env[(process.platform === "win32") ? "USERPROFILE" : "HOME"];
@@ -466,8 +467,25 @@
     }
 
     function processEntireDocument() {
+        var requestId  = ++_lastDocumentRequestId,
+            documentId = _currentDocumentId;
+
         _generator.getDocumentInfo().then(
             function (document) {
+                
+                if (requestId !== _lastDocumentRequestId) {
+                    console.warn("Processing entire document " + documentId +
+                        " was interrupted => deleting its context");
+                    // Processing information about this document was interrupted
+                    // Assume we're in an unknown state and force a full reset if it becomes
+                    // active again by deleting the context. It will look as if the user had
+                    // just opened the file, even if they just switch back to it
+                    if (documentId) {
+                        delete _contextPerDocument[documentId];
+                    }
+                    return;
+                }
+
                 if (document.id && !document.file) {
                     console.warn("WARNING: file information is missing from document.");
                 }
