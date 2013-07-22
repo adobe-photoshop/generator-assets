@@ -64,11 +64,12 @@
      * @param {!integer} pixmap.bitsPerChannel Bits per channel
      * @param {!String}  filename              The filename to write to
      * @param settings   An object with settings for converting the image
-     * @param {!String}  settings.format  ImageMagick output format
-     * @param {?integer} settings.quality A number indicating the quality - the meaning depends on the format
-     * @param {?float}   settings.scale   A scaling factor
-     * @param {?integer} settings.width   The width to resize the image to, in pixels
-     * @param {?integer} settings.height  The height to resize the image to, in pixels
+     * @param {!String}  settings.format       ImageMagick output format
+     * @param {?integer} settings.quality      A number indicating the quality - the meaning depends on the format
+     * @param {?float}   settings.scale        A scaling factor
+     * @param {?integer} settings.width        The width to resize the image to, in pixels
+     * @param {?integer} settings.height       The height to resize the image to, in pixels
+     * @param {?integer} settings.ppi          The image's pixel density
      */
     function convertImage(pixmap, filename, settings) {
         var fileCompleteDeferred = Q.defer(),
@@ -76,7 +77,8 @@
             quality = settings.quality,
             scale   = settings.scale,
             width   = settings.width,
-            height  = settings.height;
+            height  = settings.height,
+            ppi     = settings.ppi;
 
         _generator.publish("assets.debug.dump", "dumping " + filename);
 
@@ -93,6 +95,8 @@
             // pixmap.pixels contains the pixels in ARGB format, but ImageMagick only understands RGBA
             // The color-matrix parameter allows us to compensate for that
             "-color-matrix", "0 1 0 0, 0 0 1 0, 0 0 0 1, 1 0 0 0",
+            // Pass information about the image's pixel density
+            "-units", "PixelsPerInch", "-density", ppi,
             // Read the pixels in RGBA form from STDIN
             "rgba:-"
         ];
@@ -861,7 +865,8 @@
                 // Copy component into settings
                 var settings = {
                         quality: component.quality,
-                        format:  component.extension
+                        format:  component.extension,
+                        ppi:     documentContext.resolution
                     },
                     scaleX = component.scale || 1,
                     scaleY = component.scale || 1,
