@@ -956,6 +956,9 @@
                                layerFilename: layerContext.validFileComponents[foundSVG].file };
                 _generator.evaluateJSXFile("./jsx/layerSVG.jsx", params);
                 // TODO: We should verify results here.
+                var genPath = resolve(documentContext.assetGenerationDir,
+                                      layerContext.validFileComponents[foundSVG].file);
+                layerContext.generatedFiles[genPath] = true;
                 layerUpdatedDeferred.resolve();
             }
             else {
