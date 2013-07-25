@@ -67,16 +67,16 @@
      * @param {!String}  settings.format  ImageMagick output format
      * @param {?integer} settings.quality A number indicating the quality - the meaning depends on the format
      * @param {?float}   settings.scale   A scaling factor
-     * @param {?integer} settings.pixelWidth   The width to resize the image to, in pixels
-     * @param {?integer} settings.pixelHeight  The height to resize the image to, in pixels
+     * @param {?integer} settings.width   The width to resize the image to, in pixels
+     * @param {?integer} settings.height  The height to resize the image to, in pixels
      */
     function convertImage(pixmap, filename, settings) {
         var fileCompleteDeferred = Q.defer(),
             format  = settings.format,
             quality = settings.quality,
             scale   = settings.scale,
-            width   = settings.pixelWidth,
-            height  = settings.pixelHeight;
+            width   = settings.width,
+            height  = settings.height;
 
         _generator.publish("assets.debug.dump", "dumping " + filename);
 
@@ -98,10 +98,10 @@
         ];
 
         // For best results, first resize
-        if (scale) {
+        if (scale && scale !== 1) {
             args.push("-resize", (scale * 100) + "%");
         }
-        if (width || height) {
+        if ((width && width !== pixmap.width) || (height && height !== pixmap.height)) {
             if (width) {
                 width = Math.max(1, Math.round(width));
             }
@@ -782,9 +782,9 @@
         // TODO: Make sure this function is refactored so that it doesn't have so much
         // callback nesting. This function will change substantially when we move image
         // creation to core, so avoiding the refactor right now.
-        function createLayerImage(pixmap, component) {
+        function createLayerImage(pixmap, fileName, settings) {
             var imageCreatedDeferred = Q.defer(),
-                path = resolve(documentContext.assetGenerationDir, component.file);
+                path = resolve(documentContext.assetGenerationDir, fileName);
             
             console.log("Generating " + path);
 
@@ -794,13 +794,9 @@
                     imageCreatedDeferred.reject(err);
                     return;
                 }
-                // Calculate the pixel lengths of the image (undefined persists)
-                component.pixelWidth = convertToPixels(component.width, component.widthUnit);
-                component.pixelHeight = convertToPixels(component.height, component.heightUnit);
 
                 // Save the image in a temporary file
-                component.format = component.extension;
-                convertImage(pixmap, tmpPath, component).then(
+                convertImage(pixmap, tmpPath, settings).then(
                     // When ImageMagick is done
                     function () {
                         var directory = changeContext.documentContext.assetGenerationDir;
@@ -858,43 +854,75 @@
         }
 
         function createLayerImages() {
-            // Get the pixmap - but only once
-            _generator.getPixmap(changeContext.layer.id, 100).then(
-                function (pixmap) {
-                    // Prevent an error after deleting a layer's contents, resulting in a 0x0 pixmap
-                    if (pixmap.width === 0 || pixmap.height === 0) {
-                        deleteLayerImages();
-                        layerUpdatedDeferred.resolve();
-                        return;
-                    }
-                    
-                    var components = layerContext.validFileComponents;
-                    var componentPromises = components.map(function (component) {
-                        return createLayerImage(pixmap, component);
-                    });
+            var components = layerContext.validFileComponents,
+                emptyPixmapReceived = false;
 
-                    Q.allSettled(componentPromises).then(function (results) {
-                        var errors = [];
-                        results.forEach(function (result, i) {
-                            if (result.state === "rejected") {
-                                errors.push(components[i].name + ": " + result.reason);
-                            }
-                        });
+            var componentPromises = components.map(function (component) {
+                // Copy component into settings
+                var settings = {
+                        quality: component.quality,
+                        format:  component.extension
+                    },
+                    scaleX = component.scale || 1,
+                    scaleY = component.scale || 1,
+                    width  = convertToPixels(component.width,  component.widthUnit),
+                    height = convertToPixels(component.height, component.heightUnit);
 
-                        if (errors.length) {
-                            reportErrorsToUser(documentContext, errors);
-                            layerUpdatedDeferred.reject(errors);
-                        } else {
-                            layerUpdatedDeferred.resolve();
+                if ((width && width !== layerContext.width) || (height && height !== layerContext.height)) {
+                    if (width) {
+                        width  = Math.max(1, Math.round(width));
+                        scaleX = width / layerContext.width;
+                        if (!height) {
+                            scaleY = scaleX;
                         }
-                    }).done();
-                },
-                function (err) {
-                    reportErrorsToUser(["Failed to get pixmap: " + err]);
-                    _generator.publish("assets.error.getPixmap", "Error: " + err);
-                    layerUpdatedDeferred.reject(err);
+                    }
+                    if (height) {
+                        height = Math.max(1, Math.round(height));
+                        scaleY = height / layerContext.height;
+                        if (!width) {
+                            scaleX = scaleY;
+                        }
+                    }
                 }
-            );
+
+                // Get the pixmap
+                return _generator.getPixmap(changeContext.layer.id, scaleX, scaleY).then(
+                    function (pixmap) {
+                        // Prevent an error after deleting a layer's contents, resulting in a 0x0 pixmap
+                        if (!emptyPixmapReceived && (pixmap.width === 0 || pixmap.height === 0)) {
+                            emptyPixmapReceived = true;
+                            deleteLayerImages();
+                        }
+                        if (emptyPixmapReceived) {
+                            layerUpdatedDeferred.resolve();
+                            return;
+                        }
+
+                        return createLayerImage(pixmap, component.file, settings);
+                    },
+                    function (err) {
+                        reportErrorsToUser(["Failed to get pixmap: " + err]);
+                        _generator.publish("assets.error.getPixmap", "Error: " + err);
+                        layerUpdatedDeferred.reject(err);
+                    }
+                );
+            });
+
+            Q.allSettled(componentPromises).then(function (results) {
+                var errors = [];
+                results.forEach(function (result, i) {
+                    if (result.state === "rejected") {
+                        errors.push(components[i].name + ": " + result.reason);
+                    }
+                });
+
+                if (errors.length) {
+                    reportErrorsToUser(documentContext, errors);
+                    layerUpdatedDeferred.reject(errors);
+                } else {
+                    layerUpdatedDeferred.resolve();
+                }
+            }).done();
         }
 
         if (layer.removed) {
@@ -920,6 +948,11 @@
             else if (layer.atRootOfChange) {
                 delete layerContext.parentLayerId;
             }
+        }
+
+        if (layer.bounds) {
+            layerContext.width  = layer.bounds.right  - layer.bounds.left;
+            layerContext.height = layer.bounds.bottom - layer.bounds.top;
         }
 
         if (layer.removed || !layerContext.validFileComponents || layerContext.validFileComponents.length === 0) {
