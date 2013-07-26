@@ -47,8 +47,7 @@
         _changeContextPerLayer = {},
         _photoshopPath = null,
         _currentDocumentId,
-        _currentDocumentLoaded = false,
-        _menuClicked = false;
+        _documentIdsWithMenuClicks = {};
 
     function getUserHomeDirectory() {
         return process.env[(process.platform === "win32") ? "USERPROFILE" : "HOME"];
@@ -372,7 +371,7 @@
     }
 
     function handleImageChanged(document) {
-        console.log("Image was changed:", document);
+        console.log("Image " + document.id + " was changed:", document);
 
         // If the document was closed
         if (document.closed) {
@@ -387,22 +386,18 @@
             // same, closed file must have been the last open one
             // => set _currentDocumentId to null
             if (document.id === _currentDocumentId) {
-                processDocumentId(null);
+                setCurrentDocumentId(null);
             }
             // Stop here
             return;
         }
-
-        processDocumentId(document.id);
 
         // Possible reasons for an undefined context:
         // - User created a new image
         // - User opened an image
         // - User switched to an image that was created/opened before Generator started
         if (!_contextPerDocument[document.id]) {
-            // Make sure we have all information
-            _currentDocumentLoaded = false;
-            processEntireDocument();
+            requestEntireDocument(document.id);
             return;
         }
             
@@ -410,14 +405,23 @@
         
         // Resize event: regenerate everything
         if (!document.layers && document.bounds) {
-            processEntireDocument();
+            requestEntireDocument(document.id);
         } else {
             processChangesToDocument(document);
         }
     }
 
     function handleCurrentDocumentChanged(id) {
-        processDocumentId(id);
+        setCurrentDocumentId(id);
+    }
+
+    function setCurrentDocumentId(id) {
+        if (_currentDocumentId === id) {
+            return;
+        }
+        console.log("Current document ID: " + id);
+        _currentDocumentId = id;
+        updateMenuState();
     }
 
     function handleGeneratorMenuClicked(event) {
@@ -427,49 +431,87 @@
             return;
         }
         
-        console.log(event);
-
+        console.log("Menu event", event);
+        _documentIdsWithMenuClicks[_currentDocumentId || ""] = true;
+        
         // Before we know about the current document, we cannot reasonably process the events
-        _menuClicked = true;
-        if (!_currentDocumentLoaded) {
+        if (!_currentDocumentId || !_contextPerDocument[_currentDocumentId]) {
+            console.log("Processing menu event later because the current document is not yet loaded" +
+                " (ID: " + _currentDocumentId + ")");
             return;
         }
-        
-        processMenuEvents();
-        
-        var context = _contextPerDocument[_currentDocumentId];
-        if (context && context.assetGenerationEnabled) {
-            processEntireDocument();
-        }
+
+        var nowEnabledDocumentIds = processMenuEvents();
+        nowEnabledDocumentIds.forEach(requestEntireDocument);
     }
 
     function processMenuEvents() {
-        if (!_menuClicked) {
-            return;
-        }
+        var clickedDocumentIds = Object.keys(_documentIdsWithMenuClicks);
+        if (clickedDocumentIds.length === 0) { return; }
 
-        // Without a current document, we cannot actually process any menu events
-        // But there also shouldn't be such an event then
-        var context = _contextPerDocument[_currentDocumentId];
-        if (!context) {
-            console.warn("Trying to process menu events for an unknown document with ID:", _currentDocumentId);
-            return;
-        }
+        var nowEnabledDocumentIds = [];
 
-        // Reset
-        _menuClicked = false;
+        clickedDocumentIds.forEach(function (originalDocumentId) {
+            console.log("document id", JSON.stringify(originalDocumentId));
 
-        // Toggle the state
-        context.assetGenerationEnabled = !context.assetGenerationEnabled;
+            if (!originalDocumentId) {
+                console.log("Interpreting menu event for unknown document" +
+                    " as being for the current one (" + _currentDocumentId + ")");
+            }
+
+            // Object keys are always strings, so convert them to integer first
+            // If the event was used to start Generator, _currentDocumentId was still undefined
+            var documentId = parseInt(originalDocumentId, 10) || _currentDocumentId;
+            
+            var context = _contextPerDocument[documentId];
+            
+            // Without knowing the document that was active at the time of the event,
+            // we cannot actually process any menu events.
+            if (!context) {
+                console.warn("Trying to process menu events for an unknown document with ID:", documentId);
+                return false;
+            }
+
+            // Forget about the menu clicks for this document, we are processing them now
+            delete _documentIdsWithMenuClicks[originalDocumentId];
+
+            // Toggle the state
+            context.assetGenerationEnabled = !context.assetGenerationEnabled;
+            if (context.assetGenerationEnabled) {
+                nowEnabledDocumentIds.push(documentId);
+            }
+            
+            console.log("Asset generation is now " +
+                (context.assetGenerationEnabled ? "enabled" : "disabled") + " for document " + documentId);
+        });
+
         updateMenuState();
-        console.log("Asset generation is now " + (context.assetGenerationEnabled ? "enabled" : "disabled"));
+
+        return nowEnabledDocumentIds;
     }
 
-    function processEntireDocument() {
-        _generator.getDocumentInfo().then(
+    /**
+     * @params {?integer} documentId Optional document ID
+     */
+    function requestEntireDocument(documentId) {
+        if (!documentId) {
+            console.log("Determining the current document ID");
+        }
+        
+        _generator.getDocumentInfo(documentId).then(
             function (document) {
                 if (document.id && !document.file) {
                     console.warn("WARNING: file information is missing from document.");
+                }
+                // No document ID was specified and the current document is unkown,
+                // so the returned document must be the current one
+                if (!documentId && !_currentDocumentId) {
+                    if (!document.id) {
+                        console.log("No document is currently open");
+                    } else {
+                        console.log("Using ID from document info as current document ID", document.id);
+                        setCurrentDocumentId(document.id);
+                    }
                 }
                 // Act as if everything has changed
                 processChangesToDocument(document);
@@ -478,14 +520,6 @@
                 _generator.publish("assets.error.getDocumentInfo", err);
             }
         ).done();
-    }
-
-    function processDocumentId(id) {
-        if (_currentDocumentId === id) {
-            return;
-        }
-        _currentDocumentId = id;
-        updateMenuState();
     }
 
     function updateMenuState() {
@@ -513,13 +547,8 @@
             };
         }
 
-        processDocumentId(document.id);
-
-        // Now that we know the current document, we can actually process any menu clicks
-        if (!_currentDocumentLoaded) {
-            _currentDocumentLoaded = true;
-            processMenuEvents();
-        }
+        // Now that we know this document, we can actually process any related menu clicks
+        processMenuEvents();
 
         // If there is a file name (e.g., after saving or when switching between files, even unsaved ones)
         if (document.file) {
@@ -886,7 +915,7 @@
                 }
 
                 // Get the pixmap
-                return _generator.getPixmap(changeContext.layer.id, scaleX, scaleY).then(
+                return _generator.getPixmap(changeContext.document.id, changeContext.layer.id, scaleX, scaleY).then(
                     function (pixmap) {
                         // Prevent an error after deleting a layer's contents, resulting in a 0x0 pixmap
                         if (!emptyPixmapReceived && (pixmap.width === 0 || pixmap.height === 0)) {
@@ -1076,7 +1105,7 @@
         initPhotoshopPath().then(function () {
             _generator.subscribe("photoshop.event.imageChanged", handleImageChanged);
 
-            processEntireDocument();
+            requestEntireDocument();
         }).done();
     }
 
