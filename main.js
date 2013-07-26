@@ -901,7 +901,7 @@
                         return createLayerImage(pixmap, component.file, settings);
                     },
                     function (err) {
-                        reportErrorsToUser(["Failed to get pixmap: " + err]);
+                        reportErrorsToUser(documentContext, ["Failed to get pixmap: " + err]);
                         _generator.publish("assets.error.getPixmap", "Error: " + err);
                         layerUpdatedDeferred.reject(err);
                     }
@@ -912,7 +912,8 @@
                 var errors = [];
                 results.forEach(function (result, i) {
                     if (result.state === "rejected") {
-                        errors.push(components[i].name + ": " + result.reason);
+                        var error = result.reason ? (result.reason.stack || result.reason) : "Unknown reason";
+                        errors.push(components[i].name + ": " + error);
                     }
                 });
 
