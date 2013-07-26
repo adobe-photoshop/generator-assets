@@ -32,7 +32,9 @@
         convert = require("./lib/convert");
 
     var DELAY_TO_WAIT_UNTIL_USER_DONE = 300,
-        MENU_ID = "assets";
+        MENU_ID = "assets",
+        // This format allows localization by Photoshop
+        MENU_LABEL = "$$$/JavaScripts/Generate/Name=Web Assets";
 
     var DEFAULT_JPG_AND_WEBP_QUALITY = 90;
 
@@ -1091,7 +1093,7 @@
         // 4. Initiate asset generation on current document if enabled
         //
 
-        _generator.addMenuItem(MENU_ID, "Web Assets", true, false).then(
+        _generator.addMenuItem(MENU_ID, MENU_LABEL, true, false).then(
             function () {
                 _generator.publish("assets.info.menuCreated", MENU_ID);
             }, function () {
