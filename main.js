@@ -1015,14 +1015,14 @@
                 return -1;
             })();
             if (foundSVG >= 0) {
-                console.log("Create SVG for layer[" + changeContext.layer.id + "]: " +
-                            layerContext.validFileComponents[foundSVG].name);
+                var svgComponent = layerContext.validFileComponents[foundSVG];
+                console.log("Create SVG for layer[" + changeContext.layer.id + "]: " + svgComponent.name);
                 var params = { layerID: changeContext.layer.id,
-                               layerFilename: layerContext.validFileComponents[foundSVG].file };
+                               layerScale: svgComponent.scale ? svgComponent.scale : 1,
+                               layerFilename: svgComponent.file };
                 _generator.evaluateJSXFile("./jsx/layerSVG.jsx", params);
                 // TODO: We should verify results here.
-                var genPath = resolve(documentContext.assetGenerationDir,
-                                      layerContext.validFileComponents[foundSVG].file);
+                var genPath = resolve(documentContext.assetGenerationDir, svgComponent.file);
                 layerContext.generatedFiles[genPath] = true;
                 layerUpdatedDeferred.resolve();
             }
