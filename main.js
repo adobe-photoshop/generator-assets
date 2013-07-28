@@ -34,9 +34,9 @@
     var DELAY_TO_WAIT_UNTIL_USER_DONE = 300,
         MENU_ID = "assets",
         // This format allows localization by Photoshop
-        MENU_LABEL = "$$$/JavaScripts/Generate/Name=Web Assets";
-
-    var DEFAULT_JPG_AND_WEBP_QUALITY = 90;
+        MENU_LABEL = "$$$/JavaScripts/Generate/Name=Web Assets",
+        MAX_SIMULTANEOUS_UPDATES = 50,
+        DEFAULT_JPG_AND_WEBP_QUALITY = 90;
 
     // TODO: Once we get the layer change management/updating right, we should add a
     // big comment at the top of this file explaining how this all works. In particular
@@ -49,7 +49,9 @@
         _changeContextPerLayer = {},
         _photoshopPath = null,
         _currentDocumentId,
-        _documentIdsWithMenuClicks = {};
+        _documentIdsWithMenuClicks = {},
+        _pendingUpdates = [],
+        _runningUpdates = 0;
 
     function getUserHomeDirectory() {
         return process.env[(process.platform === "win32") ? "USERPROFILE" : "HOME"];
@@ -735,6 +737,19 @@
         context.assetGenerationDir = baseDirectory ? resolve(baseDirectory, documentName + "-assets") : null;
     }
 
+    function runPendingUpdates() {
+        if (_pendingUpdates.length === 0) {
+            return;
+        }
+        
+        var updatesToStart = Math.min(_pendingUpdates.length, MAX_SIMULTANEOUS_UPDATES - _runningUpdates);
+
+        while (updatesToStart--) {
+            _runningUpdates++;
+            (_pendingUpdates.shift())();
+        }
+    }
+
     // Run the update now if none is in progress, or wait until the current one is finished
     function scheduleLayerUpdate(changeContext) {
         // If no update is scheduled or the scheduled update is still being delayed, start from scratch
@@ -745,9 +760,19 @@
             changeContext.updateDelayTimeout = setTimeout(function () {
                 changeContext.updateDelayTimeout = null;
                 var finish = function () {
-                    finishLayerUpdate(changeContext);
+                    _runningUpdates--;
+                    try {
+                        finishLayerUpdate(changeContext);
+                    } catch (e) {
+                        console.error(e);
+                    }
+                    runPendingUpdates();
                 };
-                startLayerUpdate(changeContext).then(finish, finish).done();
+
+                _pendingUpdates.push(function () {
+                    startLayerUpdate(changeContext).then(finish, finish).done();
+                });
+                runPendingUpdates();
             }, DELAY_TO_WAIT_UNTIL_USER_DONE);
         }
         // Otherwise, mark the scheduled update as obsolete so we can start over when it's done
@@ -937,6 +962,7 @@
                         return createLayerImage(pixmap, component.file, settings);
                     },
                     function (err) {
+                        console.error(err);
                         reportErrorsToUser(documentContext, ["Failed to get pixmap: " + err]);
                         _generator.publish("assets.error.getPixmap", "Error: " + err);
                         layerUpdatedDeferred.reject(err);
