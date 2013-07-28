@@ -1006,23 +1006,25 @@
             // and therefore might not be empty like new layers
             
             // Note .svg uses a different code path from the pixel-based formats
-            var foundSVG = (function () {
-                for (var i in layerContext.validFileComponents) {
-                    if (layerContext.validFileComponents[i].extension === "svg") {
-                        return i;
-                    }
+            var svgFileComponent = -1, i;
+            for (i = 0; i < layerContext.validFileComponents.length; i++) {
+                if (layerContext.validFileComponents[i].extension === "svg") {
+                    svgFileComponent = i;
+                    break;
                 }
-                return -1;
-            })();
-            if (foundSVG >= 0) {
-                console.log("Create SVG for layer[" + changeContext.layer.id + "]: " +
-                            layerContext.validFileComponents[foundSVG].name);
-                var params = { layerID: changeContext.layer.id,
-                               layerFilename: layerContext.validFileComponents[foundSVG].file };
-                _generator.evaluateJSXFile("./jsx/layerSVG.jsx", params);
+            }
+            if (svgFileComponent >= 0) {
+                var svgComponent = layerContext.validFileComponents[svgFileComponent];
+                console.log("Create SVG for layer[" + changeContext.layer.id + "]: " + svgComponent.name);
+
+                _generator.saveLayerToSVGFile(
+                    changeContext.layer.id,
+                    svgComponent.scale || 1,
+                    svgComponent.file
+                );
+
                 // TODO: We should verify results here.
-                var genPath = resolve(documentContext.assetGenerationDir,
-                                      layerContext.validFileComponents[foundSVG].file);
+                var genPath = resolve(documentContext.assetGenerationDir, svgComponent.file);
                 layerContext.generatedFiles[genPath] = true;
                 layerUpdatedDeferred.resolve();
             }
