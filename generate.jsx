@@ -12,7 +12,7 @@
 // BEGIN__HARVEST_EXCEPTION_ZSTRING
 
 <javascriptresource>
-<name>$$$/JavaScripts/Generate/Name=Web Assets</name>
+<name>$$$/JavaScripts/Generator/WebAssets/Menu=Web Assets</name>
 <menu>generate</menu>
 <enableinfo>true</enableinfo>
 <eventid>CA37AEAF-6272-41F7-8258-F272711964E2</eventid>

@@ -34,7 +34,7 @@
     var DELAY_TO_WAIT_UNTIL_USER_DONE = 300,
         MENU_ID = "assets",
         // This format allows localization by Photoshop
-        MENU_LABEL = "$$$/JavaScripts/Generate/Name=Web Assets",
+        MENU_LABEL = "$$$/JavaScripts/Generator/WebAssets/Menu=Web Assets",
         MAX_SIMULTANEOUS_UPDATES = 50,
         DEFAULT_JPG_AND_WEBP_QUALITY = 90;
 
