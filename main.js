@@ -914,8 +914,10 @@
         }
 
         function createLayerImages() {
-            var components = layerContext.validFileComponents,
-                emptyPixmapReceived = false;
+            var emptyPixmapReceived = false,
+                components = layerContext.validFileComponents.filter(function (component) {
+                return (component.extension !== "svg");
+            });
 
             var componentPromises = components.map(function (component) {
                 // Copy component into settings
@@ -1050,31 +1052,26 @@
             // and therefore might not be empty like new layers
             
             // Note .svg uses a different code path from the pixel-based formats
-            var svgFileComponent = -1, i;
+            var i;
             for (i = 0; i < layerContext.validFileComponents.length; i++) {
                 if (layerContext.validFileComponents[i].extension === "svg") {
-                    svgFileComponent = i;
-                    break;
+                    var svgComponent = layerContext.validFileComponents[i];
+                    console.log("Create SVG for layer[" + changeContext.layer.id + "]: " + svgComponent.name);
+
+                    _generator.saveLayerToSVGFile(
+                        changeContext.layer.id,
+                        svgComponent.scale || 1,
+                        svgComponent.file
+                    );
+    
+                    // TODO: We should verify results here.
+                    var genPath = resolve(documentContext.assetGenerationDir, svgComponent.file);
+                    layerContext.generatedFiles[genPath] = true;
+                    layerUpdatedDeferred.resolve();
                 }
             }
-            if (svgFileComponent >= 0) {
-                var svgComponent = layerContext.validFileComponents[svgFileComponent];
-                console.log("Create SVG for layer[" + changeContext.layer.id + "]: " + svgComponent.name);
 
-                _generator.saveLayerToSVGFile(
-                    changeContext.layer.id,
-                    svgComponent.scale || 1,
-                    svgComponent.file
-                );
-
-                // TODO: We should verify results here.
-                var genPath = resolve(documentContext.assetGenerationDir, svgComponent.file);
-                layerContext.generatedFiles[genPath] = true;
-                layerUpdatedDeferred.resolve();
-            }
-            else {
-                createLayerImages();
-            }
+            createLayerImages();
         }
 
         return layerUpdatedDeferred.promise;
