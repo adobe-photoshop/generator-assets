@@ -949,6 +949,16 @@
                 // Get the pixmap
                 return _generator.getPixmap(changeContext.document.id, changeContext.layer.id, scaleX, scaleY).then(
                     function (pixmap) {
+                        var expectedWidth = layerContext.width * scaleX;
+                        var expectedHeight = layerContext.height * scaleY;
+
+                        if (pixmap.width !== expectedWidth || pixmap.height !== expectedHeight) {
+                            console.warn("Image size is " + layerContext.width + "x" + layerContext.height +
+                                ", scaling by " + scaleX + " / " + scaleY +
+                                ", expected to get " + expectedWidth + "x" + expectedHeight +
+                                ", got " + pixmap.width + "x" + pixmap.height);
+                        }
+
                         // Prevent an error after deleting a layer's contents, resulting in a 0x0 pixmap
                         if (!emptyPixmapReceived && (pixmap.width === 0 || pixmap.height === 0)) {
                             emptyPixmapReceived = true;
@@ -963,7 +973,10 @@
                     },
                     function (err) {
                         console.error(err);
-                        reportErrorsToUser(documentContext, ["Failed to get pixmap: " + err]);
+                        reportErrorsToUser(documentContext, [
+                            "Failed to get pixmap of layer " + changeContext.layer.id +
+                            " (" + (changeContext.layer.name || changeContext.layerContext.name) + "): " + err
+                        ]);
                         _generator.publish("assets.error.getPixmap", "Error: " + err);
                         layerUpdatedDeferred.reject(err);
                     }
