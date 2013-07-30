@@ -53,6 +53,15 @@
         _pendingUpdates = [],
         _runningUpdates = 0;
 
+    function stringify(object) {
+        try {
+            return JSON.stringify(object, null, "    ");
+        } catch (e) {
+            console.error(e);
+        }
+        return String(object);
+    }
+
     function getUserHomeDirectory() {
         return process.env[(process.platform === "win32") ? "USERPROFILE" : "HOME"];
     }
@@ -283,17 +292,17 @@
         }
 
         if (component.widthUnit && supportedUnits.indexOf(component.widthUnit) === -1) {
-            reportError("Unsupported image width unit " + JSON.stringify(component.widthUnit));
+            reportError("Unsupported image width unit " + stringify(component.widthUnit));
         }
         if (component.heightUnit && supportedUnits.indexOf(component.heightUnit) === -1) {
-            reportError("Unsupported image height unit " + JSON.stringify(component.heightUnit));
+            reportError("Unsupported image height unit " + stringify(component.heightUnit));
         }
 
         if (component.extension === "jpeg") {
             component.extension = "jpg";
         }
         if (component.extension && supportedExtensions.indexOf(component.extension) === -1) {
-            reportError("Unsupported file extension " + JSON.stringify(component.extension));
+            reportError("Unsupported file extension " + stringify(component.extension));
         }
 
         var quality;
@@ -303,9 +312,7 @@
                     quality = parseInt(component.quality.slice(0, -1), 10);
                     if (quality < 1 || quality > 100) {
                         reportError(
-                            "Quality must be between 1% and 100% (is " +
-                            JSON.stringify(component.quality) +
-                            ")"
+                            "Quality must be between 1% and 100% (is " + stringify(component.quality) + ")"
                         );
                     } else {
                         component.quality = quality;
@@ -315,9 +322,7 @@
                     quality = parseInt(component.quality, 10);
                     if (component.quality < 1 || component.quality > 10) {
                         reportError(
-                            "Quality must be between 1 and 10 (is " +
-                            JSON.stringify(component.quality) +
-                            ")"
+                            "Quality must be between 1 and 10 (is " + stringify(component.quality) + ")"
                         );
                     } else {
                         component.quality = quality * 10;
@@ -326,7 +331,7 @@
             }
             else if (component.extension === "png") {
                 if (["8", "24", "32"].indexOf(component.quality) === -1) {
-                    reportError("PNG quality must be 8, 24 or 32 (is " + JSON.stringify(component.quality) + ")");
+                    reportError("PNG quality must be 8, 24 or 32 (is " + stringify(component.quality) + ")");
                 }
             }
             else {
@@ -379,7 +384,7 @@
     }
 
     function handleImageChanged(document) {
-        console.log("Image " + document.id + " was changed:", document);
+        console.log("Image " + document.id + " was changed:", stringify(document));
 
         // If the document was closed
         if (document.closed) {
@@ -427,7 +432,7 @@
         if (_currentDocumentId === id) {
             return;
         }
-        console.log("Current document ID: " + id);
+        console.log("Current document ID:", id);
         _currentDocumentId = id;
         updateMenuState();
     }
@@ -439,7 +444,7 @@
             return;
         }
         
-        console.log("Menu event", event);
+        console.log("Menu event", stringify(event));
         _documentIdsWithMenuClicks[_currentDocumentId || ""] = true;
         
         // Before we know about the current document, we cannot reasonably process the events
@@ -460,8 +465,6 @@
         var nowEnabledDocumentIds = [];
 
         clickedDocumentIds.forEach(function (originalDocumentId) {
-            console.log("document id", JSON.stringify(originalDocumentId));
-
             if (!originalDocumentId) {
                 console.log("Interpreting menu event for unknown document" +
                     " as being for the current one (" + _currentDocumentId + ")");
@@ -490,7 +493,7 @@
             }
             
             console.log("Asset generation is now " +
-                (context.assetGenerationEnabled ? "enabled" : "disabled") + " for document " + documentId);
+                (context.assetGenerationEnabled ? "enabled" : "disabled") + " for document ID " + documentId);
         });
 
         updateMenuState();
@@ -508,6 +511,8 @@
         
         _generator.getDocumentInfo(documentId).then(
             function (document) {
+                console.log("Received complete document:", stringify(document));
+
                 if (document.id && !document.file) {
                     console.warn("WARNING: file information is missing from document.");
                 }
@@ -534,7 +539,7 @@
         var context = _contextPerDocument[_currentDocumentId],
             enabled = context ? Boolean(context.assetGenerationEnabled) : false;
 
-        console.log("Setting menu state to " + enabled);
+        console.log("Setting menu state to", enabled);
         _generator.toggleMenu(MENU_ID, true, enabled);
     }
 
@@ -787,7 +792,7 @@
         var layerUpdatedDeferred = Q.defer();
 
         console.log("Updating layer " + changeContext.layer.id +
-            " (" + JSON.stringify(changeContext.layer.name || changeContext.layerContext.name) + ")"
+            " (" + stringify(changeContext.layer.name || changeContext.layerContext.name) + ")"
         );
 
         var documentContext = changeContext.documentContext,
@@ -846,7 +851,7 @@
             var imageCreatedDeferred = Q.defer(),
                 path = resolve(documentContext.assetGenerationDir, fileName);
             
-            console.log("Generating " + path);
+            console.log("Generating", path);
 
             // Create a temporary file name
             tmp.tmpName(function (err, tmpPath) {
@@ -1059,7 +1064,7 @@
             }
             if (svgFileComponent >= 0) {
                 var svgComponent = layerContext.validFileComponents[svgFileComponent];
-                console.log("Create SVG for layer[" + changeContext.layer.id + "]: " + svgComponent.name);
+                console.log("Creating SVG for layer " + changeContext.layer.id + " (" + svgComponent.name + ")");
 
                 _generator.saveLayerToSVGFile(
                     changeContext.layer.id,
