@@ -33,7 +33,14 @@
 
     var DELAY_TO_WAIT_UNTIL_USER_DONE = 300,
         MENU_ID = "assets",
-        // This format allows localization by Photoshop
+        // Note to third-party plugin developers: This string format ("$$$...") is used for
+        // localization of strings that are built in to Photoshop. Third-party plugins should
+        // use a regular string (or use their own approach to localization) for menu lables.
+        // The user's locale can be accessed with the getPhotoshopLocale() API call on the
+        // Generator singleton.
+        //
+        // NOTE to Photoshop engineers: This zstring must be kept in sync with the zstring in
+        // generate.jsx in the Photoshop repo.
         MENU_LABEL = "$$$/JavaScripts/Generator/WebAssets/Menu=Web Assets",
         MAX_SIMULTANEOUS_UPDATES = 50,
         DEFAULT_JPG_AND_WEBP_QUALITY = 90;
