@@ -421,6 +421,9 @@
                     }
                 }
                 // Act as if everything has changed
+                if (_contextPerDocument[documentId]) {
+                    resetDocumentContext(documentId);
+                }
                 processChangesToDocument(document);
             },
             function (err) {
@@ -447,6 +450,18 @@
         _generator.setDocumentSettingsForPlugin(settings, PLUGIN_ID).done();
     }
 
+    function resetDocumentContext(documentId) {
+        console.log("Resetting state for document" + documentId);
+        var context = _contextPerDocument[documentId];
+        if (!context) {
+            context = _contextPerDocument[documentId] = {
+                assetGenerationEnabled: false
+            };
+        }
+        context.document = { id: documentId };
+        context.layers   = {};
+    }
+
     function processChangesToDocument(document) {
         // Stop if the document isn't an object describing a menu (could be "[ActionDescriptor]")
         // Happens if no document is open, but maybe also at other times
@@ -457,11 +472,8 @@
         var context = _contextPerDocument[document.id];
         
         if (!context) {
-            context = _contextPerDocument[document.id] = {
-                document: { id: document.id },
-                layers: {},
-                assetGenerationEnabled: false
-            };
+            resetDocumentContext(document.id);
+            context = _contextPerDocument[document.id];
             
             if (document.generatorSettings) {
                 console.log("Document contains generator settings", document.generatorSettings);
