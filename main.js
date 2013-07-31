@@ -927,7 +927,9 @@
                 if (component.extension === "svg") {
                     var fileSavedDeferred = Q.defer();
 
-                    console.log("Creating SVG for layer " + changeContext.layer.id + " (" + component.name + ")");
+                    var svgActionString = _generator.svgEnable() ? "Creating" : "Skipping (disabled)";
+                    console.log(svgActionString + " SVG for layer " +
+                                changeContext.layer.id + " (" + component.name + ")");
                     _generator.saveLayerToSVGFile(changeContext.layer.id, component.scale || 1, component.file);
 
                     // TODO: We should verify results here.
