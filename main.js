@@ -31,17 +31,18 @@
         mkdirp = Q.denodeify(require("mkdirp")),
         convert = require("./lib/convert");
 
-    var DELAY_TO_WAIT_UNTIL_USER_DONE = 300,
+    var PLUGIN_ID = require("./package.json").name,
         MENU_ID = "assets",
         // Note to third-party plugin developers: This string format ("$$$...") is used for
         // localization of strings that are built in to Photoshop. Third-party plugins should
-        // use a regular string (or use their own approach to localization) for menu lables.
+        // use a regular string (or use their own approach to localization) for menu labels.
         // The user's locale can be accessed with the getPhotoshopLocale() API call on the
         // Generator singleton.
         //
-        // NOTE to Photoshop engineers: This zstring must be kept in sync with the zstring in
+        // Note to Photoshop engineers: This zstring must be kept in sync with the zstring in
         // generate.jsx in the Photoshop repo.
         MENU_LABEL = "$$$/JavaScripts/Generator/WebAssets/Menu=Web Assets",
+        DELAY_TO_WAIT_UNTIL_USER_DONE = 300,
         MAX_SIMULTANEOUS_UPDATES = 50,
         DEFAULT_JPG_AND_WEBP_QUALITY = 90;
 
@@ -417,6 +418,7 @@
         // - User opened an image
         // - User switched to an image that was created/opened before Generator started
         if (!_contextPerDocument[document.id]) {
+            console.log("Unknown document, so getting all information");
             requestEntireDocument(document.id);
             return;
         }
@@ -504,6 +506,7 @@
         });
 
         updateMenuState();
+        updateDocumentState();
 
         return nowEnabledDocumentIds;
     }
@@ -550,6 +553,16 @@
         _generator.toggleMenu(MENU_ID, true, enabled);
     }
 
+    function updateDocumentState() {
+        var context = _contextPerDocument[_currentDocumentId];
+        if (!context) {
+            return;
+        }
+        
+        var settings = { enabled: Boolean(context.assetGenerationEnabled) };
+        _generator.setDocumentSettingsForPlugin(settings, PLUGIN_ID).done();
+    }
+
     function processChangesToDocument(document) {
         // Stop if the document isn't an object describing a menu (could be "[ActionDescriptor]")
         // Happens if no document is open, but maybe also at other times
@@ -565,6 +578,14 @@
                 layers: {},
                 assetGenerationEnabled: false
             };
+            
+            if (document.generatorSettings) {
+                console.log("Document contains generator settings", document.generatorSettings);
+                var settings = _generator.extractDocumentSettings(document, PLUGIN_ID);
+                console.log("Parsed generator for plugin " + PLUGIN_ID + " as", settings);
+                context.assetGenerationEnabled = Boolean(settings.enabled);
+                updateMenuState();
+            }
         }
 
         // Now that we know this document, we can actually process any related menu clicks
@@ -664,6 +685,7 @@
             // Turn asset generation off
             context.assetGenerationEnabled = false;
             updateMenuState();
+            updateDocumentState();
         }
 
         if (!wasSaved && context.isSaved && previousStorageDir) {
@@ -799,7 +821,8 @@
         var layerUpdatedDeferred = Q.defer();
 
         console.log("Updating layer " + changeContext.layer.id +
-            " (" + stringify(changeContext.layer.name || changeContext.layerContext.name) + ")"
+            " (" + stringify(changeContext.layer.name || changeContext.layerContext.name) +
+                ") of document " + changeContext.document.id
         );
 
         var documentContext = changeContext.documentContext,
