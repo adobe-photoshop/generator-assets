@@ -121,5 +121,16 @@
 
         test.done();
     };
- 
+
+    exports.testFileNames = function (test) {
+        // Only test here if file name checking is done at all.
+        // Detailed testing of file name checking is done in test-valid-file-name.js
+        test.functionReportsErrors(test, analyzeComponent, [{ file: "foo.jpg" }],
+            []);
+        test.functionReportsErrors(test, analyzeComponent, [{ file: "fo:o.jpg" }],
+            ["File name contains invalid character \":\""]);
+
+        test.done();
+    };
+
 }());
