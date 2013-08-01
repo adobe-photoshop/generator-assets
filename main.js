@@ -799,7 +799,8 @@
         var layerUpdatedDeferred = Q.defer();
 
         console.log("Updating layer " + changeContext.layer.id +
-            " (" + stringify(changeContext.layer.name || changeContext.layerContext.name) + ")"
+            " (" + stringify(changeContext.layer.name || changeContext.layerContext.name) +
+                ") of document " + changeContext.document.id
         );
 
         var documentContext = changeContext.documentContext,
