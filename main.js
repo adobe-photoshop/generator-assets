@@ -29,7 +29,8 @@
         tmp = require("tmp"),
         Q = require("q"),
         mkdirp = Q.denodeify(require("mkdirp")),
-        convert = require("./lib/convert");
+        convert = require("./lib/convert"),
+        validation = require("./lib/validation");
 
     var PLUGIN_ID = require("./package.json").name,
         MENU_ID = "assets",
@@ -285,6 +286,11 @@
     function analyzeComponent(component, reportError) {
         var supportedUnits      = ["in", "cm", "px", "mm"];
         var supportedExtensions = ["jpg", "jpeg", "png", "gif", "svg", "webp"];
+
+        // File name checks
+        if (component.file) {
+            validation.validateFileName(component.file, reportError);
+        }
 
         // Scaling checks
         if (component.scale === 0) {
@@ -921,8 +927,22 @@
 
                                     // There was an error when renaming, so let's try copy + delete instead
                                     try {
-                                        // Yes, the notion of copying a file is too high level for Node.js
-                                        fs.createReadStream(tmpPath).pipe(fs.createWriteStream(path));
+                                        // The notion of copying a file is too high level for Node.js,
+                                        // so we pipe a read stream into a write stream
+
+                                        // Setup error handling
+                                        var readStream = fs.createReadStream(tmpPath);
+                                        readStream.on("error", function (err) {
+                                            console.error("Error while reading " + tmpPath + ": " + err);
+                                        });
+
+                                        var writeStream = fs.createWriteStream(path);
+                                        writeStream.on("error", function (err) {
+                                            console.error("Error while writing " + path + ": " + err);
+                                        });
+
+                                        // Pipe the contents of tmpPath to path
+                                        readStream.pipe(writeStream);
                                     } catch (e) {
                                         // If copying doesn't work, we're out of options
                                         imageCreatedDeferred.reject(e);
