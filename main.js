@@ -934,11 +934,13 @@
                                         var readStream = fs.createReadStream(tmpPath);
                                         readStream.on("error", function (err) {
                                             console.error("Error while reading " + tmpPath + ": " + err);
+                                            imageCreatedDeferred.reject(err);
                                         });
 
                                         var writeStream = fs.createWriteStream(path);
                                         writeStream.on("error", function (err) {
                                             console.error("Error while writing " + path + ": " + err);
+                                            imageCreatedDeferred.reject(err);
                                         });
 
                                         // Pipe the contents of tmpPath to path
