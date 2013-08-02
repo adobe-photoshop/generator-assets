@@ -29,7 +29,7 @@
         tmp = require("tmp"),
         Q = require("q"),
         mkdirp = Q.denodeify(require("mkdirp")),
-        convert = require("./lib/convert");
+        validation = require("./lib/validation");
 
     var PLUGIN_ID = require("./package.json").name,
         MENU_ID = "assets",
@@ -43,8 +43,7 @@
         // generate.jsx in the Photoshop repo.
         MENU_LABEL = "$$$/JavaScripts/Generator/WebAssets/Menu=Web Assets",
         DELAY_TO_WAIT_UNTIL_USER_DONE = 300,
-        MAX_SIMULTANEOUS_UPDATES = 50,
-        DEFAULT_JPG_AND_WEBP_QUALITY = 90;
+        MAX_SIMULTANEOUS_UPDATES = 50;
 
     // TODO: Once we get the layer change management/updating right, we should add a
     // big comment at the top of this file explaining how this all works. In particular
@@ -72,126 +71,6 @@
 
     function getUserHomeDirectory() {
         return process.env[(process.platform === "win32") ? "USERPROFILE" : "HOME"];
-    }
-
-    // TODO: PNG-8 right now basically means GIF-like PNGs (binary transparency)
-    //       Ultimately, we want it to mean a palette of RGBA colors (arbitrary transparency)
-    /**
-     * @param pixmap     An object representing the layer's image
-     * @param {!integer} pixmap.width          The width of the image
-     * @param {!integer} pixmap.height         The height of the image
-     * @param {!Buffer}  pixmap.pixels         A buffer containing the actual pixel data
-     * @param {!integer} pixmap.bitsPerChannel Bits per channel
-     * @param {!String}  filename              The filename to write to
-     * @param settings   An object with settings for converting the image
-     * @param {!String}  settings.format       ImageMagick output format
-     * @param {?integer} settings.quality      A number indicating the quality - the meaning depends on the format
-     * @param {?float}   settings.scale        A scaling factor
-     * @param {?integer} settings.width        The width to resize the image to, in pixels
-     * @param {?integer} settings.height       The height to resize the image to, in pixels
-     * @param {?integer} settings.ppi          The image's pixel density
-     */
-    function convertImage(pixmap, filename, settings) {
-        var fileCompleteDeferred = Q.defer(),
-            format  = settings.format,
-            quality = settings.quality,
-            scale   = settings.scale,
-            width   = settings.width,
-            height  = settings.height,
-            ppi     = settings.ppi;
-
-        _generator.publish("assets.debug.dump", "dumping " + filename);
-
-        var backgroundColor = "#fff";
-
-        if (format === "png" && quality) {
-            format = "png" + quality;
-        }
-
-        var args = [
-            // In order to know the pixel boundaries, ImageMagick needs to know the resolution and pixel depth
-            "-size", pixmap.width + "x" + pixmap.height,
-            "-depth", pixmap.bitsPerChannel,
-            // pixmap.pixels contains the pixels in ARGB format, but ImageMagick only understands RGBA
-            // The color-matrix parameter allows us to compensate for that
-            "-color-matrix", "0 1 0 0, 0 0 1 0, 0 0 0 1, 1 0 0 0",
-            // Pass information about the image's pixel density
-            "-units", "PixelsPerInch", "-density", ppi,
-            // Read the pixels in RGBA form from STDIN
-            "rgba:-"
-        ];
-
-        // For best results, first resize
-        if (scale && scale !== 1) {
-            args.push("-resize", (scale * 100) + "%");
-        }
-        if ((width && width !== pixmap.width) || (height && height !== pixmap.height)) {
-            if (width) {
-                width = Math.max(1, Math.round(width));
-            }
-            if (height) {
-                height = Math.max(1, Math.round(height));
-            }
-            if (width && height) {
-                args.push("-resize", width + "x" + height + "!"); // ! ignores ratio
-            } else if (width) {
-                args.push("-resize", width);
-            } else {
-                args.push("-resize", "x" + height);
-            }
-        }
-
-        // Now perform color conversions
-        if (format === "jpg" || format === "png24") {
-            // Blend against a white background. Otherwise, semi-transparent pixels would just
-            // lose their transparency, making the colors too intense
-            args.push("-background", backgroundColor, "-flatten");
-        }
-        if (format === "gif") {
-            // Make it so that pixels that were <1% transparent before become fully transparent
-            // while the other pixels have the same color as if seen against a white background
-            // Create a copy of the original image, making it truly RGBA, and delete the ARGB original
-            // Copy the image and flatten it, then apply the binary transparency of another copy
-            // Afterwards, remove the RGBA image as well, leaving just one image
-            args = args.concat(("( -clone 0 ) -delete 0 ( -clone 0 -background " + backgroundColor +
-                " -flatten -clone 0 -channel A -threshold 99% -compose dst-in -composite ) -delete 0").split(/ /));
-        }
-        if (format === "png8") {
-            // Just make sure to use a palette
-            args.push("-colors", 256);
-            // "png8" as the ImageMagick format produces GIF-like PNGs (binary transparency)
-            format = "png";
-        }
-        if (format === "jpg" || format === "webp") {
-            quality = quality || DEFAULT_JPG_AND_WEBP_QUALITY;
-            args.push("-quality", quality);
-        }
-
-        // Write an image of format <format> to STDOUT
-        args.push(format + ":-");
-
-        var proc = convert(args, _photoshopPath);
-        var fileStream = fs.createWriteStream(filename);
-        var stderr = "";
-
-        proc.stderr.on("data", function (chunk) {
-            stderr += chunk;
-        });
-
-        proc.stdout.pipe(fileStream);
-        proc.stdin.end(pixmap.pixels);
-
-        proc.stdout.on("close", function () {
-            if (stderr) {
-                var error = "error from ImageMagick: " + stderr;
-                _generator.publish("assets.error.convert", error);
-                fileCompleteDeferred.reject(stderr);
-            } else {
-                fileCompleteDeferred.resolve(filename);
-            }
-        });
-        
-        return fileCompleteDeferred.promise;
     }
 
     function deleteDirectoryRecursively(directory) {
@@ -285,6 +164,11 @@
     function analyzeComponent(component, reportError) {
         var supportedUnits      = ["in", "cm", "px", "mm"];
         var supportedExtensions = ["jpg", "jpeg", "png", "gif", "svg", "webp"];
+
+        // File name checks
+        if (component.file) {
+            validation.validateFileName(component.file, reportError);
+        }
 
         // Scaling checks
         if (component.scale === 0) {
@@ -891,7 +775,7 @@
                 }
 
                 // Save the image in a temporary file
-                convertImage(pixmap, tmpPath, settings).then(
+                _generator.savePixmap(pixmap, tmpPath, settings).then(
                     // When ImageMagick is done
                     function () {
                         var directory = changeContext.documentContext.assetGenerationDir;
@@ -921,8 +805,24 @@
 
                                     // There was an error when renaming, so let's try copy + delete instead
                                     try {
-                                        // Yes, the notion of copying a file is too high level for Node.js
-                                        fs.createReadStream(tmpPath).pipe(fs.createWriteStream(path));
+                                        // The notion of copying a file is too high level for Node.js,
+                                        // so we pipe a read stream into a write stream
+
+                                        // Setup error handling
+                                        var readStream = fs.createReadStream(tmpPath);
+                                        readStream.on("error", function (err) {
+                                            console.error("Error while reading " + tmpPath + ": " + err);
+                                            imageCreatedDeferred.reject(err);
+                                        });
+
+                                        var writeStream = fs.createWriteStream(path);
+                                        writeStream.on("error", function (err) {
+                                            console.error("Error while writing " + path + ": " + err);
+                                            imageCreatedDeferred.reject(err);
+                                        });
+
+                                        // Pipe the contents of tmpPath to path
+                                        readStream.pipe(writeStream);
                                     } catch (e) {
                                         // If copying doesn't work, we're out of options
                                         imageCreatedDeferred.reject(e);
