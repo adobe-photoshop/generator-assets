@@ -50,6 +50,7 @@
     // we should explain what contexts are, and how we manage scheduling updates.
     
     var _generator = null,
+        _config = null,
         // For unsaved files
         _fallbackBaseDirectory = null,
         _contextPerDocument = {},
@@ -869,8 +870,13 @@
                 if (component.extension === "svg") {
                     var fileSavedDeferred = Q.defer();
 
-                    console.log("Creating SVG for layer " + changeContext.layer.id + " (" + component.name + ")");
-                    _generator.saveLayerToSVGFile(changeContext.layer.id, component.scale || 1, component.file);
+                    if (_config["svg-enabled"]) {
+                        console.log("Creating SVG for layer " + changeContext.layer.id + " (" + component.name + ")");
+                        _generator.saveLayerToSVGFile(changeContext.layer.id, component.scale || 1, component.file);
+                    } else {
+                        console.log("SVG disabled, skipping SVG for layer " +
+                            changeContext.layer.id + " (" + component.name + ")");
+                    }
 
                     // TODO: We should verify results here.
                     var generatedPath = resolve(documentContext.assetGenerationDir, component.file);
@@ -1062,8 +1068,11 @@
         }
     }
 
-    function init(generator) {
+    function init(generator, config) {
         _generator = generator;
+        _config = config;
+
+        console.log("initializing generator-assets plugin with config %j", _config);
 
         // TODO: Much of this initialization is currently temporary. Once
         // we have storage of assets in the correct location implemented, we
