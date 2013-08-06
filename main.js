@@ -1094,14 +1094,23 @@
             }
         );
         _generator.subscribe("photoshop.event.generatorMenuChanged", handleGeneratorMenuClicked);
-        _generator.subscribe("photoshop.event.currentDocumentChanged", handleCurrentDocumentChanged);
 
-        initFallbackBaseDirectory();
-        initPhotoshopPath().then(function () {
-            _generator.subscribe("photoshop.event.imageChanged", handleImageChanged);
+        // Plugins should do as little as possible synchronously in init(). That way, all plugins get a
+        // chance to put "fast" operations (e.g. menu registration) into the photoshop communication
+        // pipe before slower startup stuff gets put in the pipe. Photoshop processes requests one at
+        // a time in FIFO order.
+        function initLater() {
+            _generator.subscribe("photoshop.event.currentDocumentChanged", handleCurrentDocumentChanged);
 
-            requestEntireDocument();
-        }).done();
+            initFallbackBaseDirectory();
+            initPhotoshopPath().then(function () {
+                _generator.subscribe("photoshop.event.imageChanged", handleImageChanged);
+
+                requestEntireDocument();
+            }).done();
+        }
+
+        process.nextTick(initLater);
     }
 
     exports.init = init;
