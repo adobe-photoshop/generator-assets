@@ -494,7 +494,17 @@
         }
 
         if (document.resolution) {
-            context.resolution = document.resolution;
+            var ppi = parseFloat(document.resolution);
+            if (isNaN(ppi)) {
+                console.warn("Resolution was not a valid number:", document.resolution);
+                context.ppi = null;
+            } else {
+                context.ppi = ppi;
+            }
+        }
+        if (!context.ppi) {
+            console.warn("Assuming a resolution of 72 PPI");
+            context.ppi = 72;
         }
         
         var pendingPromises = [];
@@ -759,13 +769,14 @@
                 return value;
             }
             
-            var resolution = changeContext.documentContext.resolution;
+            var ppi = changeContext.documentContext.ppi;
+
             if (unit === "in") {
-                return value * resolution;
+                return value * ppi;
             } else if (unit === "mm") {
-                return (value / 25.4) * resolution;
+                return (value / 25.4) * ppi;
             } else if (unit === "cm") {
-                return (value / 2.54) * resolution;
+                return (value / 2.54) * ppi;
             } else {
                 console.error("An invalid length unit was specified: " + unit);
             }
@@ -889,7 +900,7 @@
                 var settings = {
                         quality: component.quality,
                         format:  component.extension,
-                        ppi:     documentContext.resolution
+                        ppi:     documentContext.ppi
                     },
                     scaleX = component.scale || 1,
                     scaleY = component.scale || 1,
