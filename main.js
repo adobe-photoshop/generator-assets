@@ -428,7 +428,7 @@
                 processChangesToDocument(document);
             },
             function (err) {
-                _generator.publish("assets.error.getDocumentInfo", err);
+                console.error("[Assets] Error in getDocumentInfo:", err);
             }
         ).done();
     }
@@ -597,7 +597,7 @@
             // TODO: check whether this works when moving from one drive letter to another on Windows
             fs.rename(previousStorageDir, context.assetGenerationDir, function (err) {
                 if (err) {
-                    _generator.publish("assets.error.rename", err);
+                    console.error("[Assets] Error in rename:", err);
                 }
             });
         }
@@ -794,10 +794,7 @@
                         var directory = changeContext.documentContext.assetGenerationDir;
                         mkdirp(directory)
                             .fail(function () {
-                                _generator.publish(
-                                    "assets.error.init",
-                                    "Could not create directory '" + directory + "'"
-                                );
+                                console.error("[Assets] Error in init, could not create directory '%s'", directory);
                                 imageCreatedDeferred.reject();
                             })
                             .done(function () {
@@ -947,7 +944,8 @@
                             "Failed to get pixmap of layer " + changeContext.layer.id +
                             " (" + (changeContext.layer.name || changeContext.layerContext.name) + "): " + err
                         ]);
-                        _generator.publish("assets.error.getPixmap", "Error: " + err);
+
+                        console.error("[Assets] Error getting pixmap:", err);
                         layerUpdatedDeferred.reject(err);
                     }
                 );
@@ -1047,10 +1045,7 @@
                 _photoshopPath = path;
             },
             function (err) {
-                _generator.publish(
-                    "assets.error.init",
-                    "Could not get photoshop path: " + err
-                );
+                console.error("[Assets] Error in init: Could not get photoshop path:", err);
             }
         );
     }
@@ -1061,8 +1056,7 @@
         if (homeDirectory) {
             _fallbackBaseDirectory = resolve(homeDirectory, "Desktop", "generator");
         } else {
-            _generator.publish(
-                "assets.error.init",
+            console.error("[Assets] Error in init: " +
                 "Could not locate home directory in env vars, no assets will be dumped for unsaved files"
             );
         }
@@ -1088,29 +1082,30 @@
 
         _generator.addMenuItem(MENU_ID, MENU_LABEL, true, false).then(
             function () {
-                _generator.publish("assets.info.menuCreated", MENU_ID);
+                console.log("Menu created", MENU_ID);
             }, function () {
-                _generator.publish("assets.error.menuCreationFailed", MENU_ID);
+                console.error("Menu creation failed", MENU_ID);
             }
         );
-        _generator.subscribe("photoshop.event.generatorMenuChanged", handleGeneratorMenuClicked);
+        _generator.onPhotoshopEvent("generatorMenuChanged", handleGeneratorMenuClicked);
 
         // Plugins should do as little as possible synchronously in init(). That way, all plugins get a
         // chance to put "fast" operations (e.g. menu registration) into the photoshop communication
         // pipe before slower startup stuff gets put in the pipe. Photoshop processes requests one at
         // a time in FIFO order.
         function initLater() {
-            _generator.subscribe("photoshop.event.currentDocumentChanged", handleCurrentDocumentChanged);
+            _generator.onPhotoshopEvent("currentDocumentChanged", handleCurrentDocumentChanged);
 
             initFallbackBaseDirectory();
             initPhotoshopPath().then(function () {
-                _generator.subscribe("photoshop.event.imageChanged", handleImageChanged);
+                _generator.onPhotoshopEvent("imageChanged", handleImageChanged);
 
                 requestEntireDocument();
             }).done();
         }
-
+        
         process.nextTick(initLater);
+
     }
 
     exports.init = init;
