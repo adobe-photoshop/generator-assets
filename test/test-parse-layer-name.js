@@ -196,6 +196,19 @@
         test.done();
     };
 
+    exports.testWhitespace = function (test) {
+        var spec = {
+            "  foo.jpg   ,    bar     ": [
+                { name: "foo.jpg", file: "foo.jpg", extension: "jpg" },
+                { name: "bar" }
+            ],
+        };
+        
+        test.expect(Object.keys(spec).length + 1);
+        test.callsMatchSpecification(test, main._parseLayerName, spec);
+        test.done();
+    };
+
     exports.testUltimate = function (test) {
         var spec = {
             // Putting it all together

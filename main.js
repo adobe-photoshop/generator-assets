@@ -102,7 +102,9 @@
     }
 
     function parseLayerName(layerName) {
-        var parts = layerName.split(/ *[,\+] */);
+        var parts = layerName.split(/[,\+]/).map(function (layerName) {
+            return layerName.trim();
+        });
         return parts.map(parseFileSpec);
     }
 
