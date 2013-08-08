@@ -209,6 +209,67 @@
         test.done();
     };
 
+    // "معايير"
+
+    exports.testRTL = function (test) {
+        var spec = {
+            "معايير.jpg": [
+                { name: "معايير.jpg", file: "معايير.jpg", extension: "jpg" }
+            ],
+            "foo.jpg,معايير.jpg": [
+                { name: "foo.jpg", file: "foo.jpg", extension: "jpg" },
+                { name: "معايير.jpg", file: "معايير.jpg", extension: "jpg" }
+            ],
+            "foo.jpg+معايير.jpg": [
+                { name: "foo.jpg", file: "foo.jpg", extension: "jpg" },
+                { name: "معايير.jpg", file: "معايير.jpg", extension: "jpg" }
+            ],
+            "foo.jpg معايير.png": [
+                { name: "foo.jpg معايير.png", file: "foo.jpg معايير.png", extension: "png" }
+            ],
+            "foo.jpg, معايير.jpg": [
+                { name: "foo.jpg", file: "foo.jpg", extension: "jpg" },
+                { name: "معايير.jpg", file: "معايير.jpg", extension: "jpg" }
+            ],
+            "foo.jpg+ معايير.jpg": [
+                { name: "foo.jpg", file: "foo.jpg", extension: "jpg" },
+                { name: "معايير.jpg", file: "معايير.jpg", extension: "jpg" }
+            ],
+            "foo.jpg ,معايير.jpg": [
+                { name: "foo.jpg", file: "foo.jpg", extension: "jpg" },
+                { name: "معايير.jpg", file: "معايير.jpg", extension: "jpg" }
+            ],
+            "foo.jpg +معايير.jpg": [
+                { name: "foo.jpg", file: "foo.jpg", extension: "jpg" },
+                { name: "معايير.jpg", file: "معايير.jpg", extension: "jpg" }
+            ],
+            "معايير.jpg,bar.jpg": [
+                { name: "معايير.jpg", file: "معايير.jpg", extension: "jpg" },
+                { name: "bar.jpg", file: "bar.jpg", extension: "jpg" }
+            ],
+            "معايير.jpg+bar.jpg": [
+                { name: "معايير.jpg", file: "معايير.jpg", extension: "jpg" },
+                { name: "bar.jpg", file: "bar.jpg", extension: "jpg" }
+            ],
+            "معايير.jpg bar.png": [
+                { name: "معايير.jpg bar.png", file: "معايير.jpg bar.png", extension: "png" }
+            ],
+            "معايير.jpg, bar.jpg": [
+                { name: "معايير.jpg", file: "معايير.jpg", extension: "jpg" },
+                { name: "bar.jpg", file: "bar.jpg", extension: "jpg" }
+            ],
+            "معايير.jpg+ bar.jpg": [
+                { name: "معايير.jpg", file: "معايير.jpg", extension: "jpg" },
+                { name: "bar.jpg", file: "bar.jpg", extension: "jpg" }
+            ]
+
+        };
+        
+        test.expect(Object.keys(spec).length + 1);
+        test.callsMatchSpecification(test, main._parseLayerName, spec);
+        test.done();
+    };
+
     exports.testUltimate = function (test) {
         var spec = {
             // Putting it all together
