@@ -75,29 +75,40 @@
     }
 
     function deleteDirectoryRecursively(directory) {
-        // Directory doesn't exist? We're done.
-        if (!fs.existsSync(directory)) {
-            return;
-        }
-        
-        // Delete all entries in the directory
-        var files = fs.readdirSync(directory);
-        files.forEach(function (file) {
-            var path = resolve(directory, file);
-            if (fs.statSync(path).isDirectory()) {
-                deleteDirectoryRecursively(path);
-            } else {
-                fs.unlinkSync(path);
+        try {
+            // Directory doesn't exist? We're done.
+            if (!fs.existsSync(directory)) {
+                return true;
             }
-        });
 
-        // Delete the now empty directory
-        fs.rmdirSync(directory);
+            // Delete all entries in the directory
+            var files = fs.readdirSync(directory);
+            files.forEach(function (file) {
+                var path = resolve(directory, file);
+                if (fs.statSync(path).isDirectory()) {
+                    deleteDirectoryRecursively(path);
+                } else {
+                    fs.unlinkSync(path);
+                }
+            });
+
+            // Delete the now empty directory
+            fs.rmdirSync(directory);
+
+            return true;
+        } catch (e) {
+            console.error("Error while trying to delete directory %j: %s", directory, e.stack);
+            return false;
+        }
     }
 
     function deleteDirectoryIfEmpty(directory) {
-        if (fs.existsSync(directory) && fs.readdirSync(directory).length === 0) {
-            fs.rmdirSync(directory);
+        try {
+            if (fs.existsSync(directory) && fs.readdirSync(directory).length === 0) {
+                fs.rmdirSync(directory);
+            }
+        } catch (e) {
+            console.error("Error while trying to delete directory %j (if empty): %s", directory, e.stack);
         }
     }
 
@@ -273,7 +284,13 @@
             var text = "[" + new Date() + "]\n" + errors.join("\n") + "\n\n",
                 directory = documentContext.assetGenerationDir;
             mkdirp(directory).then(function () {
-                fs.appendFileSync(resolve(directory, "errors.txt"), text);
+                var errorsFile = resolve(directory, "errors.txt");
+                try {
+                    fs.appendFileSync(errorsFile, text);
+                } catch (e) {
+                    console.error("Failed to write to file %j: %s", errorsFile, e.stack);
+                    console.log("Errors were: %s", text);
+                }
             }).done();
         }
     }
@@ -609,7 +626,8 @@
             // TODO: check whether this works when moving from one drive letter to another on Windows
             fs.rename(previousStorageDir, context.assetGenerationDir, function (err) {
                 if (err) {
-                    console.error("[Assets] Error in rename:", err);
+                    console.error("[Assets] Error while renaming %j to %j: %j",
+                        previousStorageDir, context.assetGenerationDir, err);
                 }
             });
         }
@@ -740,8 +758,12 @@
 
         function deleteLayerImages() {
             Object.keys(layerContext.generatedFiles).forEach(function (path) {
-                if (fs.existsSync(path)) {
-                    fs.unlinkSync(path);
+                try {
+                    if (fs.existsSync(path)) {
+                        fs.unlinkSync(path);
+                    }
+                } catch (e) {
+                    console.error("Error when deleting image %j: %s", path, e.stack);
                 }
             });
         }
