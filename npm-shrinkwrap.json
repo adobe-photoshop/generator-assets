@@ -1,14 +1,10 @@
 {
   "name": "generator-assets",
-  "version": "0.0.5",
+  "version": "1.0.0",
   "dependencies": {
     "mkdirp": {
       "version": "0.3.5",
       "from": "mkdirp@~0.3.5"
-    },
-    "buffer-crc32": {
-      "version": "0.2.1",
-      "from": "buffer-crc32@~0.2.1"
     },
     "q": {
       "version": "0.9.6",
@@ -16,8 +12,7 @@
     },
     "tmp": {
       "version": "0.0.21",
-      "from": "tmp@~0.0.20",
-      "resolved": "https://registry.npmjs.org/tmp/-/tmp-0.0.21.tgz"
+      "from": "tmp@~0.0.20"
     }
   }
 }

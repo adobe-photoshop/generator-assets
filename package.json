@@ -1,6 +1,6 @@
 {
   "name": "generator-assets",
-  "version": "0.0.5",
+  "version": "1.0.0",
   "description": "Asset generation plug-in for Photoshop Generator",
   "main": "main.js",
   "repository": {
@@ -14,7 +14,6 @@
   },
   "dependencies": {
     "mkdirp": "~0.3.5",
-    "buffer-crc32": "~0.2.1",
     "q": "0.9.6",
     "tmp": "~0.0.20"
   },
