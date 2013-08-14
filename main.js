@@ -41,7 +41,7 @@
         //
         // Note to Photoshop engineers: This zstring must be kept in sync with the zstring in
         // generate.jsx in the Photoshop repo.
-        MENU_LABEL = "$$$/JavaScripts/Generator/WebAssets/Menu=Web Assets",
+        MENU_LABEL = "$$$/JavaScripts/Generator/ImageAssets/Menu=Image Assets",
         DELAY_TO_WAIT_UNTIL_USER_DONE = 300,
         MAX_SIMULTANEOUS_UPDATES = 50;
 
