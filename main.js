@@ -44,6 +44,8 @@
         // Note to Photoshop engineers: This zstring must be kept in sync with the zstring in
         // generate.jsx in the Photoshop repo.
         MENU_LABEL = "$$$/JavaScripts/Generator/ImageAssets/Menu=Image Assets",
+        // Files that are ignored when trying to determine whether a directory is empty
+        FILES_TO_IGNORE = [".ds_store", "desktop.ini"],
         DELAY_TO_WAIT_UNTIL_USER_DONE = 300,
         MAX_SIMULTANEOUS_UPDATES = 50;
 
@@ -70,6 +72,11 @@
             console.error(e);
         }
         return String(object);
+    }
+
+    function resolvedPromise() {
+        // JSHint doesn't like Q() because it regards Q as a constructor
+        return Q.call();
     }
 
     function getUserHomeDirectory() {
@@ -106,11 +113,33 @@
 
     function deleteDirectoryIfEmpty(directory) {
         try {
-            if (fs.existsSync(directory) && fs.readdirSync(directory).length === 0) {
-                fs.rmdirSync(directory);
+            if (!fs.existsSync(directory)) {
+                console.log("Not deleting directory %j: it doesn't exist", directory);
+                return;
             }
+            
+            var files = fs.readdirSync(directory),
+                filesToKeep = files.filter(function (fileName) {
+                    return FILES_TO_IGNORE.indexOf(fileName.toLowerCase()) === -1;
+                });
+            
+            if (filesToKeep.length === 0) {
+                if (files.length) {
+                    console.log("Deleting unimportant files in %j: %j", directory, files);
+                    files.forEach(function (fileName) {
+                        fs.unlinkSync(resolve(directory, fileName));
+                    });
+                }
+                console.log("Deleting empty directory %j", directory);
+                fs.rmdirSync(directory);
+            } else {
+                console.log("Not deleting directory %j, it still contains items to keep: %j", directory, filesToKeep);
+            }
+
+            return true;
         } catch (e) {
             console.error("Error while trying to delete directory %j (if empty): %s", directory, e.stack);
+            return false;
         }
     }
 
@@ -509,130 +538,168 @@
         // Now that we know this document, we can actually process any related menu clicks
         processMenuEvents();
 
-        // If there is a file name (e.g., after saving or when switching between files, even unsaved ones)
-        if (document.file) {
-            processPathChange(document);
-        }
-
-        if (document.resolution) {
-            var ppi = parseFloat(document.resolution);
-            if (isNaN(ppi)) {
-                console.warn("Resolution was not a valid number:", document.resolution);
-                context.ppi = null;
-            } else {
-                context.ppi = ppi;
-            }
-        }
-        if (!context.ppi) {
-            console.warn("Assuming a resolution of 72 PPI");
-            context.ppi = 72;
-        }
-        
-        var pendingPromises = [];
-
-        // If there are layer changes
-        if (document.layers) {
-            var layers = document.layers.concat();
-
-            // Mark the layers as directly mentioned by the change event
-            // Assume there's layer group P and layer L.
-            // However, moving layer L to the root level (out of P), gives us this:
-            // { id: <L>, index: ... }
-            // Moving layer L into P results in an event like this:
-            // { id: <P>, index: ..., layers: [{ id: <L>, index: ... }]}
-            // This allows us to store P as L's parent.
-            // But when we iterate over the the sublayers, it will look as if L has lost
-            // its parent because by itself this would again look like this:
-            // { id: <L>, index: ... }
-            // By marking the layers mentioned at the root of a change, we get this:
-            // { id: <L>, index: ..., atRootOfChange: true }
-            // when moving L out of P and this:
-            // { id: <L>, index: ... }
-            // when moving L into P, allowing us to track child-parent relationships
-            layers.forEach(function (layer) {
-                layer.atRootOfChange = true;
-            });
-            
-            // Flatten the layer hierarchy mentioned in the change
-            // [{ id: 1, layers: [{ id: 2, layers: [{ id: 3 }] }] }]
-            // will be treated as
-            // [{ id: 1, ... }, { id: 2, ... }, { id: 3 }]
-            var changedLayers = {};
-            while (layers.length) {
-                // Remove the first entry of layers and store it in layers
-                var layer = layers.shift();
-                // Keep track of the layers that were mentioned as changed
-                changedLayers[layer.id] = true;
-                // Process the layer change
-                pendingPromises.push(processLayerChange(document, layer));
-                // Add the children to the layers queue
-                if (layer.layers) {
-                    layers.push.apply(layers, layer.layers);
+        // Create an already resolved promise so we can add steps in sequence
+        resolvedPromise()
+            .then(function () {
+                // If there is a file name (e.g., after saving or when switching between files, even unsaved ones)
+                if (document.file) {
+                    return processPathChange(document);
                 }
-            }
-
-            // Iterate over all the IDs of changed layers
-            var changedLayerIds = Object.keys(changedLayers);
-            // Using while instead of forEach allows adding new IDs
-            while (changedLayerIds.length) {
-                // Remove the first entry of changedLayerIds and store it in layerId
-                var layerId = changedLayerIds.shift();
-                // Check if that layer has a parent layer
-                var parentLayerId = context.layers[layerId].parentLayerId;
-                // If it does, and the parent layer hasn't been mentioned in the change...
-                if (parentLayerId && !changedLayers[parentLayerId]) {
-                    // Act as if it had been mentioned
-                    changedLayers[parentLayerId] = true;
-                    changedLayerIds.push(parentLayerId);
-                    // I.e., update this layer, too
-                    pendingPromises.push(processLayerChange(document, { id: parentLayerId }));
+            })
+            .then(function () {
+                if (document.resolution) {
+                    var ppi = parseFloat(document.resolution);
+                    if (isNaN(ppi)) {
+                        console.warn("Resolution was not a valid number:", document.resolution);
+                        context.ppi = null;
+                    } else {
+                        context.ppi = ppi;
+                    }
                 }
-            }
-        }
+                if (!context.ppi) {
+                    console.warn("Assuming a resolution of 72 PPI");
+                    context.ppi = 72;
+                }
+                
+                var pendingPromises = [];
 
-        Q.allSettled(pendingPromises).then(function () {
-            // Delete directory foo-assets/ for foo.psd if it is empty now
-            deleteDirectoryIfEmpty(context.assetGenerationDir);
-            // Delete ~/Desktop/generator if it is empty now
-            // Could fail if the user adjusts the thumbnail size in Finder on Mac OS X
-            // The size is stored as .DS_Store, making the directory seem not empty
-            deleteDirectoryIfEmpty(_fallbackBaseDirectory);
-        });
+                // If there are layer changes
+                if (document.layers) {
+                    var layers = document.layers.concat();
+
+                    // Mark the layers as directly mentioned by the change event
+                    // Assume there's layer group P and layer L.
+                    // However, moving layer L to the root level (out of P), gives us this:
+                    // { id: <L>, index: ... }
+                    // Moving layer L into P results in an event like this:
+                    // { id: <P>, index: ..., layers: [{ id: <L>, index: ... }]}
+                    // This allows us to store P as L's parent.
+                    // But when we iterate over the the sublayers, it will look as if L has lost
+                    // its parent because by itself this would again look like this:
+                    // { id: <L>, index: ... }
+                    // By marking the layers mentioned at the root of a change, we get this:
+                    // { id: <L>, index: ..., atRootOfChange: true }
+                    // when moving L out of P and this:
+                    // { id: <L>, index: ... }
+                    // when moving L into P, allowing us to track child-parent relationships
+                    layers.forEach(function (layer) {
+                        layer.atRootOfChange = true;
+                    });
+                    
+                    // Flatten the layer hierarchy mentioned in the change
+                    // [{ id: 1, layers: [{ id: 2, layers: [{ id: 3 }] }] }]
+                    // will be treated as
+                    // [{ id: 1, ... }, { id: 2, ... }, { id: 3 }]
+                    var changedLayers = {};
+                    while (layers.length) {
+                        // Remove the first entry of layers and store it in layers
+                        var layer = layers.shift();
+                        // Keep track of the layers that were mentioned as changed
+                        changedLayers[layer.id] = true;
+                        // Process the layer change
+                        pendingPromises.push(processLayerChange(document, layer));
+                        // Add the children to the layers queue
+                        if (layer.layers) {
+                            layers.push.apply(layers, layer.layers);
+                        }
+                    }
+
+                    // Iterate over all the IDs of changed layers
+                    var changedLayerIds = Object.keys(changedLayers);
+                    // Using while instead of forEach allows adding new IDs
+                    while (changedLayerIds.length) {
+                        // Remove the first entry of changedLayerIds and store it in layerId
+                        var layerId = changedLayerIds.shift();
+                        // Check if that layer has a parent layer
+                        var parentLayerId = context.layers[layerId].parentLayerId;
+                        // If it does, and the parent layer hasn't been mentioned in the change...
+                        if (parentLayerId && !changedLayers[parentLayerId]) {
+                            // Act as if it had been mentioned
+                            changedLayers[parentLayerId] = true;
+                            changedLayerIds.push(parentLayerId);
+                            // I.e., update this layer, too
+                            pendingPromises.push(processLayerChange(document, { id: parentLayerId }));
+                        }
+                    }
+                }
+
+                Q.allSettled(pendingPromises).then(function () {
+                    // Delete directory foo-assets/ for foo.psd if it is empty now
+                    deleteDirectoryIfEmpty(context.assetGenerationDir);
+                    // Delete ~/Desktop/generator if it is empty now
+                    // Could fail if the user adjusts the thumbnail size in Finder on Mac OS X
+                    // The size is stored as .DS_Store, making the directory seem not empty
+                    deleteDirectoryIfEmpty(_fallbackBaseDirectory);
+                });
+            })
+            .done();
     }
 
     function processPathChange(document) {
-        var context            = _contextPerDocument[document.id],
-            wasSaved           = context.isSaved,
-            previousPath       = context.path,
-            previousStorageDir = context.assetGenerationDir;
+        var context      = _contextPerDocument[document.id],
+            wasSaved     = context.isSaved,
+            previousPath = context.path;
 
+        console.log("Document path changed from %j to %j", previousPath, document.file);
+
+        var previousStorageDir = context.assetGenerationDir;
         updatePathInfoForDocument(document);
+        var newStorageDir = context.assetGenerationDir;
 
+        // If the user saved and unsaved file
+        if (!wasSaved && context.isSaved && previousStorageDir) {
+            console.log("An unsaved file was saved");
+            // Delete the assets of a previous file
+            // Photoshop will have asked the user to confirm overwriting the PSD file at this point,
+            // so "overwriting" its assets is fine, too
+            if (fs.existsSync(newStorageDir)) {
+                console.log("Deleting existing storage directory %j", newStorageDir);
+                deleteDirectoryRecursively(newStorageDir);
+            }
+
+            // Move generated assets to the new directory and delete the old one if empty
+            console.log("Creating new storage directory %j", newStorageDir);
+            return mkdirp(newStorageDir)
+                .then(function () {
+                    var promises = [];
+
+                    console.log("Moving all generated files to the new storage directory");
+                    
+                    Object.keys(context.layers).forEach(function (layerId) {
+                        var layer = context.layers[layerId];
+
+                        Object.keys(layer.generatedFiles).forEach(function (sourcePath) {
+                            var fileName   = layer.generatedFiles[sourcePath],
+                                targetPath = resolve(newStorageDir, fileName);
+
+                            console.log("Moving %s to %s", sourcePath, targetPath);
+
+                            var movedPromise = utils.moveFile(sourcePath, targetPath, true);
+                            movedPromise.fail(function (err) {
+                                console.error(err);
+                            });
+
+                            promises.push(movedPromise);
+                        });
+                    });
+                    
+                    return Q.allSettled(promises).then(function () {
+                        deleteDirectoryIfEmpty(previousStorageDir);
+                    });
+                });
+        }
+        
         // Did the user perform "Save as..."?
         if (wasSaved && previousPath !== context.path) {
+            console.log("Save as... was used, turning asset generator off");
             // Turn asset generation off
             context.assetGenerationEnabled = false;
             updateMenuState();
             updateDocumentState();
         }
-
-        if (!wasSaved && context.isSaved && previousStorageDir) {
-            // Delete the assets of a previous file
-            // Photoshop will have asked the user to confirm overwriting the PSD file at this point,
-            // so "overwriting" its assets is fine, too
-            if (fs.existsSync(context.assetGenerationDir)) {
-                deleteDirectoryRecursively(context.assetGenerationDir);
-            }
-
-            // Move the directory with the assets to the new location
-            // TODO: check whether this works when moving from one drive letter to another on Windows
-            fs.rename(previousStorageDir, context.assetGenerationDir, function (err) {
-                if (err) {
-                    console.error("[Assets] Error while renaming %j to %j: %j",
-                        previousStorageDir, context.assetGenerationDir, err);
-                }
-            });
-        }
+        
+        // Return a resolved promise
+        return resolvedPromise();
     }
 
     function processLayerChange(document, layer) {
@@ -674,15 +741,17 @@
     }
 
     function updatePathInfoForDocument(document) {
-        var extname = require("path").extname,
-            basename = require("path").basename,
-            dirname = require("path").dirname;
+        var pathLib  = require("path"),
+            extname  = pathLib.extname,
+            basename = pathLib.basename,
+            dirname  = pathLib.dirname;
 
         var context = _contextPerDocument[document.id],
             // The path to the document's file, or just its name (e.g., "Untitled-1" or "/foo/bar/hero-image.psd")
             path = document.file,
-            // Determine whether the file is saved (i.e., it contains slashes or backslashes)...
-            isSaved = path.match(/[\/\\]/),
+            // Determine whether the file is saved (i.e., it contains slashes or backslashes and is not in the trash)
+            // Note that on Windows, a deleted file is reported without an absolute path
+            isSaved = path.match(/[\/\\]/) && path.indexOf("/.Trashes/") === -1,
             // The file extension, including the dot (e.g., ".psd")
             extension = extname(path),
             // The file name, possibly with an extension (e.g., "Untitled-1" or "hero-image.psd")
@@ -690,14 +759,13 @@
             // The file name without its extension (e.g., "Untitled-1" or "hero-image")
             documentName = extension.length ? fileName.slice(0, -extension.length) : fileName,
             // For saved files, the directory the file was saved to. Otherwise, ~/Desktop/generator
-            baseDirectory = isSaved ? dirname(path) : _fallbackBaseDirectory;
+            baseDirectory = isSaved ? dirname(path) : _fallbackBaseDirectory,
+            // The directory to store generated assets in
+            assetGenerationDir = baseDirectory ? resolve(baseDirectory, documentName + "-assets") : null;
 
-        // Store the document's path
-        context.path = path;
-        // Determine whether the file is saved (i.e., the path is absolute, thus containing slashes or backslashes)...
-        context.isSaved = isSaved;
-        // Store the directory to store generated assets in
-        context.assetGenerationDir = baseDirectory ? resolve(baseDirectory, documentName + "-assets") : null;
+        context.path               = path;
+        context.isSaved            = isSaved;
+        context.assetGenerationDir = assetGenerationDir;
     }
 
     function runPendingUpdates() {
@@ -836,7 +904,7 @@
                 })
                 .then(function () {
                     // Remember that we generated this file (for delete-on-rename)
-                    layerContext.generatedFiles[path] = true;
+                    layerContext.generatedFiles[path] = fileName;
                     imageCreatedDeferred.resolve();
                 })
                 .fail(function (err) {
@@ -867,7 +935,7 @@
 
                     // TODO: We should verify results here.
                     var generatedPath = resolve(documentContext.assetGenerationDir, component.file);
-                    layerContext.generatedFiles[generatedPath] = true;
+                    layerContext.generatedFiles[generatedPath] = component.file;
                     
                     // TODO: Make sure this is called when the file operation is actually done...
                     fileSavedDeferred.resolve();
