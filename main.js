@@ -24,11 +24,13 @@
 (function () {
     "use strict";
 
-    var fs = require("fs"),
+    var fs      = require("fs"),
         resolve = require("path").resolve,
-        tmp = require("tmp"),
-        Q = require("q"),
-        mkdirp = Q.denodeify(require("mkdirp")),
+        Q       = require("q"),
+        tmpName = Q.denodeify(require("tmp").tmpName),
+        mkdirp  = Q.denodeify(require("mkdirp"));
+
+    var utils = require("./lib/utils"),
         validation = require("./lib/validation");
 
     var PLUGIN_ID = require("./package.json").name,
@@ -811,84 +813,37 @@
         // creation to core, so avoiding the refactor right now.
         function createLayerImage(pixmap, fileName, settings) {
             var imageCreatedDeferred = Q.defer(),
-                path = resolve(documentContext.assetGenerationDir, fileName);
+                path = resolve(documentContext.assetGenerationDir, fileName),
+                tmpPath;
             
             console.log("Generating", path);
 
             // Create a temporary file name
-            tmp.tmpName(function (err, tmpPath) {
-                if (err) {
+            tmpName()
+                .then(function (path) {
+                    // Save the image in a temporary file
+                    tmpPath = path;
+                    return _generator.savePixmap(pixmap, tmpPath, settings);
+                })
+                .then(function () {
+                    // Create the target directory
+                    return mkdirp(changeContext.documentContext.assetGenerationDir);
+                })
+                .then(function () {
+                    // Move the temporary file to the desired location
+                    // If this fails, delete the temporary file anyway (3rd parameter: true)
+                    return utils.moveFile(tmpPath, path, true);
+                })
+                .then(function () {
+                    // Remember that we generated this file (for delete-on-rename)
+                    layerContext.generatedFiles[path] = true;
+                    imageCreatedDeferred.resolve();
+                })
+                .fail(function (err) {
+                    // Forward any errors
                     imageCreatedDeferred.reject(err);
-                    return;
-                }
-
-                // Save the image in a temporary file
-                _generator.savePixmap(pixmap, tmpPath, settings).then(
-                    // When ImageMagick is done
-                    function () {
-                        var directory = changeContext.documentContext.assetGenerationDir;
-                        mkdirp(directory)
-                            .fail(function () {
-                                console.error("[Assets] Error in init, could not create directory '%s'", directory);
-                                imageCreatedDeferred.reject();
-                            })
-                            .done(function () {
-                                // ...move the temporary file to the desired location
-                                // TODO: check whether this works when moving from one
-                                // drive letter to another on Windows
-
-                                function onMoveCompleted() {
-                                    layerContext.generatedFiles[path] = true;
-                                    imageCreatedDeferred.resolve();
-                                }
-
-                                fs.rename(tmpPath, path, function (err) {
-                                    // Renaming the file worked: we're done
-                                    if (!err) {
-                                        return onMoveCompleted();
-                                    }
-
-                                    // There was an error when renaming, so let's try copy + delete instead
-                                    try {
-                                        // The notion of copying a file is too high level for Node.js,
-                                        // so we pipe a read stream into a write stream
-
-                                        // Setup error handling
-                                        var readStream = fs.createReadStream(tmpPath);
-                                        readStream.on("error", function (err) {
-                                            console.error("Error while reading " + tmpPath + ": " + err);
-                                            imageCreatedDeferred.reject(err);
-                                        });
-
-                                        var writeStream = fs.createWriteStream(path);
-                                        writeStream.on("error", function (err) {
-                                            console.error("Error while writing " + path + ": " + err);
-                                            imageCreatedDeferred.reject(err);
-                                        });
-
-                                        // Pipe the contents of tmpPath to path
-                                        readStream.pipe(writeStream);
-                                    } catch (e) {
-                                        // If copying doesn't work, we're out of options
-                                        imageCreatedDeferred.reject(e);
-                                        return;
-                                    }
-                                    // Copy was successful, now delete the temporary file
-                                    fs.unlink(tmpPath, function (err) {
-                                        // If we fail to delete the temporary file, report the error and continue
-                                        if (err) {
-                                            console.error("Could not delete the temporary file", tmpPath);
-                                        }
-                                        onMoveCompleted();
-                                    });
-                                });
-                            });
-                    },
-                    function (err) {
-                        imageCreatedDeferred.reject(err);
-                    }
-                );
-            });
+                })
+                .done();
             
             return imageCreatedDeferred.promise;
         }
