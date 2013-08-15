@@ -506,7 +506,8 @@
         var context = _contextPerDocument[documentId];
         if (!context) {
             context = _contextPerDocument[documentId] = {
-                assetGenerationEnabled: false
+                assetGenerationEnabled: false,
+                hasGeneratedAssets: false
             };
         }
         context.document = { id: documentId };
@@ -647,7 +648,7 @@
         var newStorageDir = context.assetGenerationDir;
 
         // If the user saved and unsaved file
-        if (!wasSaved && context.isSaved && previousStorageDir) {
+        if (context.hasGeneratedAssets && !wasSaved && context.isSaved && previousStorageDir) {
             console.log("An unsaved file was saved");
             // Delete the assets of a previous file
             // Photoshop will have asked the user to confirm overwriting the PSD file at this point,
@@ -906,6 +907,7 @@
                     // Remember that we generated this file (for delete-on-rename)
                     layerContext.generatedFiles[path] = fileName;
                     imageCreatedDeferred.resolve();
+                    documentContext.hasGeneratedAssets = true;
                 })
                 .fail(function (err) {
                     // Forward any errors
