@@ -28,7 +28,8 @@
         resolve = require("path").resolve,
         Q       = require("q"),
         tmpName = Q.denodeify(require("tmp").tmpName),
-        mkdirp  = Q.denodeify(require("mkdirp"));
+        mkdirp  = require("mkdirp"),
+        mkdirpQ = Q.denodeify(mkdirp);
 
     var utils = require("./lib/utils"),
         validation = require("./lib/validation");
@@ -314,15 +315,14 @@
         if (documentContext.assetGenerationEnabled && documentContext.assetGenerationDir) {
             var text = "[" + new Date() + "]\n" + errors.join("\n") + "\n\n",
                 directory = documentContext.assetGenerationDir;
-            mkdirp(directory).then(function () {
-                var errorsFile = resolve(directory, "errors.txt");
-                try {
-                    fs.appendFileSync(errorsFile, text);
-                } catch (e) {
-                    console.error("Failed to write to file %j: %s", errorsFile, e.stack);
-                    console.log("Errors were: %s", text);
-                }
-            }).done();
+            mkdirp.sync(directory);
+            var errorsFile = resolve(directory, "errors.txt");
+            try {
+                fs.appendFileSync(errorsFile, text);
+            } catch (e) {
+                console.error("Failed to write to file %j: %s", errorsFile, e.stack);
+                console.log("Errors were: %s", text);
+            }
         }
     }
 
@@ -659,34 +659,33 @@
 
             // Move generated assets to the new directory and delete the old one if empty
             console.log("Creating new storage directory %j", newStorageDir);
-            return mkdirp(newStorageDir)
-                .then(function () {
-                    var promises = [];
+            mkdirp.sync(newStorageDir);
 
-                    console.log("Moving all generated files to the new storage directory");
-                    
-                    Object.keys(context.layers).forEach(function (layerId) {
-                        var layer = context.layers[layerId];
+            var promises = [];
 
-                        Object.keys(layer.generatedFiles).forEach(function (sourcePath) {
-                            var fileName   = layer.generatedFiles[sourcePath],
-                                targetPath = resolve(newStorageDir, fileName);
+            console.log("Moving all generated files to the new storage directory");
+            
+            Object.keys(context.layers).forEach(function (layerId) {
+                var layer = context.layers[layerId];
 
-                            console.log("Moving %s to %s", sourcePath, targetPath);
+                Object.keys(layer.generatedFiles).forEach(function (sourcePath) {
+                    var fileName   = layer.generatedFiles[sourcePath],
+                        targetPath = resolve(newStorageDir, fileName);
 
-                            var movedPromise = utils.moveFile(sourcePath, targetPath, true);
-                            movedPromise.fail(function (err) {
-                                console.error(err);
-                            });
+                    console.log("Moving %s to %s", sourcePath, targetPath);
 
-                            promises.push(movedPromise);
-                        });
+                    var movedPromise = utils.moveFile(sourcePath, targetPath, true);
+                    movedPromise.fail(function (err) {
+                        console.error(err);
                     });
-                    
-                    return Q.allSettled(promises).then(function () {
-                        deleteDirectoryIfEmpty(previousStorageDir);
-                    });
+
+                    promises.push(movedPromise);
                 });
+            });
+            
+            return Q.allSettled(promises).then(function () {
+                deleteDirectoryIfEmpty(previousStorageDir);
+            });
         }
         
         // Did the user perform "Save as..."?
@@ -895,7 +894,7 @@
                 })
                 .then(function () {
                     // Create the target directory
-                    return mkdirp(changeContext.documentContext.assetGenerationDir);
+                    return mkdirpQ(changeContext.documentContext.assetGenerationDir);
                 })
                 .then(function () {
                     // Move the temporary file to the desired location
@@ -998,6 +997,9 @@
                     },
                     function (err) {
                         console.error(err);
+                        var layerName = layerContext.name || changeContext.layer.name;
+                        console.error("Error when geting the pixmap for layer %d (%s) in document %d",
+                            changeContext.layer.id, layerName, changeContext.document.id);
                         reportErrorsToUser(documentContext, [
                             "Failed to get pixmap of layer " + changeContext.layer.id +
                             " (" + (changeContext.layer.name || changeContext.layerContext.name) + "): " + err
@@ -1055,6 +1057,12 @@
         if (layer.bounds) {
             layerContext.width  = layer.bounds.right  - layer.bounds.left;
             layerContext.height = layer.bounds.bottom - layer.bounds.top;
+
+            if (layerContext.width < 1 || layerContext.height < 1) {
+                console.warn("Odd image size %dx%d for layer %d (%s)",
+                    layerContext.width, layerContext.height, layer.id, layerContext.name || layer.name);
+                console.log("Bounds: %j", layer.bounds);
+            }
         }
 
         if (layer.removed || !layerContext.validFileComponents || layerContext.validFileComponents.length === 0) {
