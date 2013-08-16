@@ -971,7 +971,12 @@
                 }
 
                 // Get the pixmap
-                return _generator.getPixmap(changeContext.document.id, changeContext.layer.id, scaleX, scaleY).then(
+
+                var pixmapSettings = { scaleX: scaleX, scaleY: scaleY };
+                console.log("Requesting pixmap for layer %d (%s) in document %d with settings %j",
+                    changeContext.layer.id, layerContext.name || changeContext.layer.name,
+                    changeContext.document.id, pixmapSettings);
+                return _generator.getPixmap(changeContext.document.id, changeContext.layer.id, pixmapSettings).then(
                     function (pixmap) {
                         var expectedWidth = layerContext.width * scaleX;
                         var expectedHeight = layerContext.height * scaleY;
@@ -996,10 +1001,9 @@
                         return createLayerImage(pixmap, component.file, settings);
                     },
                     function (err) {
-                        console.error(err);
                         var layerName = layerContext.name || changeContext.layer.name;
-                        console.error("Error when geting the pixmap for layer %d (%s) in document %d",
-                            changeContext.layer.id, layerName, changeContext.document.id);
+                        console.error("Error when getting the pixmap for layer %d (%s) in document %d: %j",
+                            changeContext.layer.id, layerName, changeContext.document.id, err);
                         reportErrorsToUser(documentContext, [
                             "Failed to get pixmap of layer " + changeContext.layer.id +
                             " (" + (changeContext.layer.name || changeContext.layerContext.name) + "): " + err
