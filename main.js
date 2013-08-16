@@ -971,13 +971,23 @@
                 }
 
                 // Get the pixmap
-
-                var pixmapSettings = { scaleX: scaleX, scaleY: scaleY };
+                // Also request the bounds. We don't use them right now, but we can do sanity checking
+                var pixmapSettings = { scaleX: scaleX, scaleY: scaleY, bounds: true };
                 console.log("Requesting pixmap for layer %d (%s) in document %d with settings %j",
                     changeContext.layer.id, layerContext.name || changeContext.layer.name,
                     changeContext.document.id, pixmapSettings);
                 return _generator.getPixmap(changeContext.document.id, changeContext.layer.id, pixmapSettings).then(
                     function (pixmap) {
+                        var bounds = pixmap.bounds;
+                        if (bounds) {
+                            bounds.width  = bounds.right - bounds.left;
+                            bounds.height = bounds.bottom - bounds.top;
+                            if (pixmap.width !== bounds.width || pixmap.height !== bounds.height) {
+                                console.error("Pixmap size (%dx%d) does not match the size of its bounds (%dx%d)",
+                                    pixmap.width, pixmap.height, bounds.width, bounds.height);
+                            }
+                        }
+
                         var expectedWidth = layerContext.width * scaleX;
                         var expectedHeight = layerContext.height * scaleY;
 
