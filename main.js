@@ -1062,7 +1062,7 @@
             layerContext.width  = layer.bounds.right  - layer.bounds.left;
             layerContext.height = layer.bounds.bottom - layer.bounds.top;
 
-            if (layerContext.width < 1 || layerContext.height < 1) {
+            if (layerContext.width < 0 || layerContext.height < 0) {
                 console.warn("Odd image size %dx%d for layer %d (%s)",
                     layerContext.width, layerContext.height, layer.id, layerContext.name || layer.name);
                 console.log("Bounds: %j", layer.bounds);
