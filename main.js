@@ -209,7 +209,11 @@
     
     function analyzeComponent(component, reportError) {
         var supportedUnits      = ["in", "cm", "px", "mm"];
-        var supportedExtensions = ["jpg", "jpeg", "png", "gif", "svg", "webp"];
+        var supportedExtensions = ["jpg", "jpeg", "png", "gif", "webp"];
+
+        if (_config && _config["svg-enabled"]) {
+            supportedExtensions.push("svg");
+        }
 
         // File name checks
         if (component.file) {
@@ -924,13 +928,8 @@
                 if (component.extension === "svg") {
                     var fileSavedDeferred = Q.defer();
 
-                    if (_config["svg-enabled"]) {
-                        console.log("Creating SVG for layer " + changeContext.layer.id + " (" + component.name + ")");
-                        _generator.saveLayerToSVGFile(changeContext.layer.id, component.scale || 1, component.file);
-                    } else {
-                        console.log("SVG disabled, skipping SVG for layer " +
-                            changeContext.layer.id + " (" + component.name + ")");
-                    }
+                    console.log("Creating SVG for layer " + changeContext.layer.id + " (" + component.name + ")");
+                    _generator.saveLayerToSVGFile(changeContext.layer.id, component.scale || 1, component.file);
 
                     // TODO: We should verify results here.
                     var generatedPath = resolve(documentContext.assetGenerationDir, component.file);
