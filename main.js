@@ -243,12 +243,11 @@
         if (component.extension === "jpeg") {
             component.extension = "jpg";
         }
-        if (component.extension && supportedExtensions.indexOf(component.extension) === -1) {
-            reportError("Unsupported file extension " + stringify(component.extension));
-        }
-
         var quality;
-        if ((typeof component.quality) !== "undefined") {
+        if (component.extension && supportedExtensions.indexOf(component.extension) === -1) {
+            reportError();
+        }
+        else if ((typeof component.quality) !== "undefined") {
             if (["jpg", "jpeg", "webp"].indexOf(component.extension) !== -1) {
                 if (component.quality.slice(-1) === "%") {
                     quality = parseInt(component.quality.slice(0, -1), 10);
@@ -298,7 +297,9 @@
             var hadErrors = false;
             function reportError(message) {
                 hadErrors = true;
-                errors.push(component.name + ": " + message);
+                if (message) {
+                    errors.push(component.name + ": " + message);
+                }
             }
 
             analyzeComponent(component, reportError);

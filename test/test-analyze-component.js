@@ -63,9 +63,9 @@
         test.functionReportsErrors(test, analyzeComponent,
             [{ extension: "jpg" }], []);
         
-        // Incorrect values
+        // Incorrect values: No message should be sent, but an error reported nonetheless
         test.functionReportsErrors(test, analyzeComponent,
-            [{ extension: "foo" }], ["Unsupported file extension \"foo\""]);
+            [{ extension: "foo" }], [undefined]);
 
         test.done();
     };
