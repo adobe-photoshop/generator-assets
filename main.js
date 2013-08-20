@@ -631,10 +631,6 @@
                 Q.allSettled(pendingPromises).then(function () {
                     // Delete directory foo-assets/ for foo.psd if it is empty now
                     deleteDirectoryIfEmpty(context.assetGenerationDir);
-                    // Delete ~/Desktop/generator if it is empty now
-                    // Could fail if the user adjusts the thumbnail size in Finder on Mac OS X
-                    // The size is stored as .DS_Store, making the directory seem not empty
-                    deleteDirectoryIfEmpty(_fallbackBaseDirectory);
                 });
             })
             .done();
@@ -651,7 +647,7 @@
         updatePathInfoForDocument(document);
         var newStorageDir = context.assetGenerationDir;
 
-        // If the user saved and unsaved file
+        // If the user saved an unsaved file
         if (!wasSaved && context.isSaved && previousStorageDir) {
             console.log("An unsaved file was saved");
             // Delete the assets of a previous file
@@ -668,10 +664,20 @@
 
             var promises = [];
 
+            try {
+                fs.unlinkSync(resolve(previousStorageDir, "errors.txt"));
+            } catch (e) {
+                console.error("Error when deleting errors.txt: %s", e.stack);
+            }
+
             console.log("Moving all generated files to the new storage directory");
             
             Object.keys(context.layers).forEach(function (layerId) {
                 var layer = context.layers[layerId];
+
+                // Recreate errors.txt if necessary, but only containing errors related to this document
+                // If we moved errors.txt directly, it might contain unrelated errors, too
+                reportErrorsToUser(context, analyzeLayerName(layer.name).errors);
 
                 Object.keys(layer.generatedFiles).forEach(function (sourcePath) {
                     var fileName   = layer.generatedFiles[sourcePath],
@@ -762,7 +768,7 @@
             fileName = basename(path),
             // The file name without its extension (e.g., "Untitled-1" or "hero-image")
             documentName = extension.length ? fileName.slice(0, -extension.length) : fileName,
-            // For saved files, the directory the file was saved to. Otherwise, ~/Desktop/generator
+            // For saved files, the directory the file was saved to. Otherwise, ~/Desktop
             baseDirectory = isSaved ? dirname(path) : _fallbackBaseDirectory,
             // The directory to store generated assets in
             assetGenerationDir = baseDirectory ? resolve(baseDirectory, documentName + "-assets") : null;
@@ -1124,7 +1130,7 @@
         // First, check whether we can retrieve the user's home directory
         var homeDirectory = getUserHomeDirectory();
         if (homeDirectory) {
-            _fallbackBaseDirectory = resolve(homeDirectory, "Desktop", "generator");
+            _fallbackBaseDirectory = resolve(homeDirectory, "Desktop");
         } else {
             console.error("[Assets] Error in init: " +
                 "Could not locate home directory in env vars, no assets will be dumped for unsaved files"
