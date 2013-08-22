@@ -650,53 +650,63 @@
         // If the user saved an unsaved file
         if (!wasSaved && context.isSaved && previousStorageDir) {
             console.log("An unsaved file was saved");
-            // Delete the assets of a previous file
-            // Photoshop will have asked the user to confirm overwriting the PSD file at this point,
-            // so "overwriting" its assets is fine, too
-            if (fs.existsSync(newStorageDir)) {
-                console.log("Deleting existing storage directory %j", newStorageDir);
-                deleteDirectoryRecursively(newStorageDir);
+
+            if (previousStorageDir.toLowerCase() === newStorageDir.toLowerCase()) {
+                console.log("The storage directory hasn't changed");
+                return resolvedPromise();
             }
+            else {
+                // Delete the assets of a previous file
+                // Photoshop will have asked the user to confirm overwriting the PSD file at this point,
+                // so "overwriting" its assets is fine, too
+                if (fs.existsSync(newStorageDir)) {
+                    console.log("Deleting existing storage directory %j", newStorageDir);
+                    deleteDirectoryRecursively(newStorageDir);
+                }
 
-            // Move generated assets to the new directory and delete the old one if empty
-            console.log("Creating new storage directory %j", newStorageDir);
-            mkdirp.sync(newStorageDir);
+                // Move generated assets to the new directory and delete the old one if empty
+                console.log("Creating new storage directory %j", newStorageDir);
+                mkdirp.sync(newStorageDir);
 
-            var promises = [];
+                var promises = [];
 
-            try {
-                fs.unlinkSync(resolve(previousStorageDir, "errors.txt"));
-            } catch (e) {
-                console.error("Error when deleting errors.txt: %s", e.stack);
-            }
+                try {
+                    var errorsFile = resolve(previousStorageDir, "errors.txt");
+                    if (fs.existsSync(errorsFile)) {
+                        fs.unlinkSync(errorsFile);
+                    }
+                } catch (e) {
+                    console.error("Error when deleting errors.txt: %s", e.stack);
+                }
 
-            console.log("Moving all generated files to the new storage directory");
-            
-            Object.keys(context.layers).forEach(function (layerId) {
-                var layer = context.layers[layerId];
+                console.log("Moving all generated files to the new storage directory");
+                
+                Object.keys(context.layers).forEach(function (layerId) {
+                    var layer = context.layers[layerId];
 
-                // Recreate errors.txt if necessary, but only containing errors related to this document
-                // If we moved errors.txt directly, it might contain unrelated errors, too
-                reportErrorsToUser(context, analyzeLayerName(layer.name).errors);
+                    // Recreate errors.txt if necessary, but only containing errors related to this document
+                    // If we moved errors.txt directly, it might contain unrelated errors, too
+                    reportErrorsToUser(context, analyzeLayerName(layer.name).errors);
 
-                Object.keys(layer.generatedFiles).forEach(function (sourcePath) {
-                    var fileName   = layer.generatedFiles[sourcePath],
-                        targetPath = resolve(newStorageDir, fileName);
+                    Object.keys(layer.generatedFiles).forEach(function (sourcePath) {
+                        var fileName   = layer.generatedFiles[sourcePath],
+                            targetPath = resolve(newStorageDir, fileName);
 
-                    console.log("Moving %s to %s", sourcePath, targetPath);
+                        console.log("Moving %s to %s", sourcePath, targetPath);
 
-                    var movedPromise = utils.moveFile(sourcePath, targetPath, true);
-                    movedPromise.fail(function (err) {
-                        console.error(err);
+                        var movedPromise = utils.moveFile(sourcePath, targetPath, true);
+                        movedPromise.fail(function (err) {
+                            console.error(err);
+                        });
+
+                        promises.push(movedPromise);
                     });
-
-                    promises.push(movedPromise);
                 });
-            });
-            
-            return Q.allSettled(promises).then(function () {
-                deleteDirectoryIfEmpty(previousStorageDir);
-            });
+                
+                return Q.allSettled(promises).then(function () {
+                    deleteDirectoryIfEmpty(previousStorageDir);
+                });
+            }
         }
         
         // Did the user perform "Save as..."?
