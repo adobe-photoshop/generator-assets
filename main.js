@@ -144,6 +144,41 @@
         }
     }
 
+    function deleteFilesRelatedToLayer(documentId, layerId) {
+        var documentContext = _contextPerDocument[documentId];
+        if (!documentContext) { return; }
+
+        var layerContext = documentContext.layers && documentContext.layers[layerId];
+        if (!layerContext) { return; }
+        
+        getFilesRelatedToLayer(documentId, layerId).forEach(function (relativePath) {
+            var path = resolve(documentContext.assetGenerationDir, relativePath);
+            try {
+                if (fs.existsSync(path)) {
+                    console.log("Deleting %j", path);
+                    fs.unlinkSync(path);
+                } else {
+                    console.log("Not deleting file %j - it does not exist", path);
+                }
+            } catch (e) {
+                console.error("Error while deleting %j: %s", path, e.stack);
+            }
+        });
+    }
+
+    function getFilesRelatedToLayer(documentId, layerId) {
+        var documentContext = _contextPerDocument[documentId];
+        if (!documentContext) { return; }
+
+        var layerContext = documentContext.layers && documentContext.layers[layerId];
+        if (!layerContext) { return; }
+
+        var components = layerContext.validFileComponents || [];
+        return components.map(function (component) {
+            return component.file;
+        });
+    }
+
     function parseLayerName(layerName) {
         var parts = layerName.split(/[,\+]/).map(function (layerName) {
             return layerName.trim();
@@ -353,11 +388,74 @@
             return;
         }
 
+        function traverseLayers(obj, callback, isLayer) {
+            callback(obj, isLayer);
+            if (obj.layers) {
+                obj.layers.forEach(function (child) {
+                    traverseLayers(child, callback, true);
+                });
+            }
+        }
+
+        var documentContext = _contextPerDocument[document.id],
+            unknownChange = false,
+            layersMoved = false;
+        
+        traverseLayers(document, function (obj, isLayer) {
+            console.log(obj, isLayer);
+            if (unknownChange) { return; }
+            if (obj.changed) {
+                unknownChange = true;
+                if (isLayer) {
+                    console.warn("Photoshop reported an unknown change in layer %j: %j", obj.id, obj);
+                } else {
+                    console.warn("Photoshop reported an unknown change in the document");
+                }
+            }
+            else if (isLayer) {
+                var layerContext = documentContext.layers && documentContext.layers[obj.id],
+                    layerType    = obj.type || (layerContext && layerContext.type);
+                
+                if (layerType === "adjustmentLayer") {
+                    console.warn("An adjustment layer changed, treating this as an unknown change: %j", obj);
+                    unknownChange = true;
+                }
+
+                if (obj.hasOwnProperty("index")) {
+                    layersMoved = true;
+                }
+            }
+        });
+
+        if (!unknownChange && layersMoved && documentContext.layers) {
+            Object.keys(documentContext.layers).forEach(function (layerId) {
+                var layerContext = documentContext.layers[layerId];
+                if (!unknownChange && layerContext.type === "adjustmentLayer") {
+                    console.warn("A layer was moved in a document that contains adjustment layers," +
+                        " treating this as an unknown change");
+                    unknownChange = true;
+                }
+            });
+        }
+
+        // Unknown change: reset
+        if (unknownChange) {
+            console.log("Handling an unknown change by deleting all generated files and resetting the state");
+            if (documentContext) {
+                Object.keys(documentContext.layers).forEach(function (layerId) {
+                    deleteFilesRelatedToLayer(document.id, layerId);
+                });
+                resetDocumentContext(document.id);
+            }
+            requestEntireDocument(document.id);
+            return;
+        }
+
         // Possible reasons for an undefined context:
         // - User created a new image
         // - User opened an image
         // - User switched to an image that was created/opened before Generator started
-        if (!_contextPerDocument[document.id]) {
+        if (!documentContext) {
             console.log("Unknown document, so getting all information");
             requestEntireDocument(document.id);
             return;
@@ -507,7 +605,7 @@
     }
 
     function resetDocumentContext(documentId) {
-        console.log("Resetting state for document" + documentId);
+        console.log("Resetting state for document", documentId);
         var context = _contextPerDocument[documentId];
         if (!context) {
             context = _contextPerDocument[documentId] = {
@@ -688,9 +786,9 @@
                     // If we moved errors.txt directly, it might contain unrelated errors, too
                     reportErrorsToUser(context, analyzeLayerName(layer.name).errors);
 
-                    Object.keys(layer.generatedFiles).forEach(function (sourcePath) {
-                        var fileName   = layer.generatedFiles[sourcePath],
-                            targetPath = resolve(newStorageDir, fileName);
+                    getFilesRelatedToLayer(document.id, layerId).forEach(function (relativePath) {
+                        var sourcePath = resolve(previousStorageDir, relativePath),
+                            targetPath = resolve(newStorageDir, relativePath);
 
                         console.log("Moving %s to %s", sourcePath, targetPath);
 
@@ -727,9 +825,7 @@
             layerContext    = documentContext.layers[layer.id];
 
         if (!layerContext) {
-            layerContext = documentContext.layers[layer.id] = {
-                generatedFiles: {}
-            };
+            layerContext = documentContext.layers[layer.id] = {};
         }
 
         // Layer change context
@@ -847,15 +943,7 @@
             layer           = changeContext.layer;
 
         function deleteLayerImages() {
-            Object.keys(layerContext.generatedFiles).forEach(function (path) {
-                try {
-                    if (fs.existsSync(path)) {
-                        fs.unlinkSync(path);
-                    }
-                } catch (e) {
-                    console.error("Error when deleting image %j: %s", path, e.stack);
-                }
-            });
+            deleteFilesRelatedToLayer(changeContext.document.id, changeContext.layer.id);
         }
 
         function updateLayerName() {
@@ -923,8 +1011,6 @@
                     return utils.moveFile(tmpPath, path, true);
                 })
                 .then(function () {
-                    // Remember that we generated this file (for delete-on-rename)
-                    layerContext.generatedFiles[path] = fileName;
                     imageCreatedDeferred.resolve();
                 })
                 .fail(function (err) {
@@ -948,10 +1034,6 @@
                     console.log("Creating SVG for layer " + changeContext.layer.id + " (" + component.name + ")");
                     _generator.saveLayerToSVGFile(changeContext.layer.id, component.scale || 1, component.file);
 
-                    // TODO: We should verify results here.
-                    var generatedPath = resolve(documentContext.assetGenerationDir, component.file);
-                    layerContext.generatedFiles[generatedPath] = component.file;
-                    
                     // TODO: Make sure this is called when the file operation is actually done...
                     fileSavedDeferred.resolve();
                     
@@ -1047,6 +1129,10 @@
                     layerUpdatedDeferred.resolve();
                 }
             }).done();
+        }
+
+        if (layer.type) {
+            layerContext.type = layer.type;
         }
 
         if (layer.removed) {
