@@ -147,6 +147,13 @@
             // wild card mixed with units
             "?x60in foo.png":
                 [{ name: "?x60in foo.png", file: "foo.png", extension: "png", height: 60, heightUnit: "in"}],
+            // fractional sizes
+            "5.5in x 6.3cm foo.png":
+                [{ name: "5.5in x 6.3cm foo.png", file: "foo.png", extension: "png",
+                        width: 5.5, widthUnit: "in", height: 6.3, heightUnit: "cm"}],
+            "5.0cm x .3mm foo.png":
+                [{ name: "5.0cm x .3mm foo.png", file: "foo.png", extension: "png",
+                        width: 5, widthUnit: "cm", height: 0.3, heightUnit: "mm"}],
 
             // Bad examples of absolute scaling
             // no space before file name
@@ -162,6 +169,10 @@
             // multiple units
             "20in cm x50cm foo.png":
                 [{ name: "20in cm x50cm foo.png", file: "20in cm x50cm foo.png", extension: "png"}],
+            // fractional pixels are okay, too - the other units require rounding support anyway
+            "5.5 x 6.3px foo.png":
+                [{ name: "5.5 x 6.3px foo.png", file: "foo.png", extension: "png",
+                        width: 5.5, height: 6.3, heightUnit: "px"}],
             // invalid unit, will not fail, but analyze will throw errors
             "30nm x20 nano.png":
                 [{ name: "30nm x20 nano.png", file: "nano.png", extension: "png",
