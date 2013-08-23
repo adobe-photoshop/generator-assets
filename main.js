@@ -244,10 +244,14 @@
     
     function analyzeComponent(component, reportError) {
         var supportedUnits      = ["in", "cm", "px", "mm"];
-        var supportedExtensions = ["jpg", "jpeg", "png", "gif", "webp"];
+        var supportedExtensions = ["jpg", "jpeg", "png", "gif"];
 
         if (_config && _config["svg-enabled"]) {
             supportedExtensions.push("svg");
+        }
+
+        if (_config && _config["webp-enabled"]) {
+            supportedExtensions.push("webp");
         }
 
         // File name checks
@@ -1285,5 +1289,6 @@
     // Unit test function exports
     exports._parseLayerName   = parseLayerName;
     exports._analyzeComponent = analyzeComponent;
+    exports._setConfig = function (config) { _config = config; };
 
 }());
