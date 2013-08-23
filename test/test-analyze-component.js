@@ -26,7 +26,13 @@
 
     require("./assertions");
 
-    var analyzeComponent = require("../main")._analyzeComponent;
+    var main = require("../main");
+    main._setConfig({
+        "svg-enabled": true,
+        "webp-enabled": true
+    });
+
+    var analyzeComponent = main._analyzeComponent;
 
     exports.testOnlyCheckPresentValues = function (test) {
         test.functionReportsErrors(test, analyzeComponent, [{}], []);
