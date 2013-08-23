@@ -1029,113 +1029,113 @@
             return imageCreatedDeferred.promise;
         }
 
-        function createLayerImages() {
-            var components = layerContext.validFileComponents,
-                emptyPixmapReceived = false;
+        function createComponentImage(component, exactBounds) {
+            // SVGs use a different code path from the pixel-based formats
+            if (component.extension === "svg") {
+                var fileSavedDeferred = Q.defer();
 
-            var componentPromises = components.map(function (component) {
-                // SVGs use a different code path from the pixel-based formats
-                if (component.extension === "svg") {
-                    var fileSavedDeferred = Q.defer();
+                console.log("Creating SVG for layer " + changeContext.layer.id + " (" + component.name + ")");
+                _generator.saveLayerToSVGFile(changeContext.layer.id, component.scale || 1, component.file);
 
-                    console.log("Creating SVG for layer " + changeContext.layer.id + " (" + component.name + ")");
-                    _generator.saveLayerToSVGFile(changeContext.layer.id, component.scale || 1, component.file);
+                // TODO: Make sure this is called when the file operation is actually done...
+                fileSavedDeferred.resolve();
+                
+                return fileSavedDeferred.promise;
+            }
 
-                    // TODO: Make sure this is called when the file operation is actually done...
-                    fileSavedDeferred.resolve();
+            var targetWidth    = convertToPixels(component.width,  component.widthUnit),
+                targetHeight   = convertToPixels(component.height, component.heightUnit),
+                targetScale    = component.scale,
+                scaleSettings  = {
+                    width:  targetWidth  ? Math.max(1, Math.ceil(targetWidth))  : null,
+                    height: targetHeight ? Math.max(1, Math.ceil(targetHeight)) : null,
+                    scale:  targetScale
+                },
+                deepBounds     = _generator.getDeepBounds(layerContext),
+                pixmapSettings = _generator.getPixmapParams(scaleSettings, deepBounds, exactBounds),
+                expectedWidth  = pixmapSettings.expectedWidth,
+                expectedHeight = pixmapSettings.expectedHeight;
+
+            delete pixmapSettings.expectedWidth;
+            delete pixmapSettings.expectedHeight;
+    
+            // Get the pixmap
+            console.log("Requesting pixmap for layer %d (%s) in document %d with settings %j",
+                changeContext.layer.id, layerContext.name || changeContext.layer.name,
+                changeContext.document.id, pixmapSettings);
+            return _generator.getPixmap(changeContext.document.id, changeContext.layer.id, pixmapSettings).then(
+                function (pixmap) {
+                    var sourceWidth  = exactBounds.right - exactBounds.left,
+                        sourceHeight = exactBounds.bottom - exactBounds.top;
                     
-                    return fileSavedDeferred.promise;
-                }
+                    if (pixmap.width  !== expectedWidth ||
+                        pixmap.height !== expectedHeight) {
+                        console.warn("Image size is " + sourceWidth + "x" + sourceHeight +
+                            ", expected to get " + expectedWidth + "x" +
+                            expectedHeight + ", got " + pixmap.width + "x" + pixmap.height +
+                            ", setting were %j", pixmapSettings);
+                    }
 
-                // Copy component into settings
-                var settings = {
+                    return createLayerImage(pixmap, component.file, {
                         quality: component.quality,
                         format:  component.extension,
                         ppi:     documentContext.ppi
-                    },
-                    scaleX = component.scale || 1,
-                    scaleY = component.scale || 1,
-                    width  = convertToPixels(component.width,  component.widthUnit),
-                    height = convertToPixels(component.height, component.heightUnit);
+                    });
+                },
+                function (err) {
+                    var layerName = layerContext.name || changeContext.layer.name;
+                    console.error("[Assets] Error when getting the pixmap for layer %d (%s) in document %d: %j",
+                        changeContext.layer.id, layerName, changeContext.document.id, err);
+                    reportErrorsToUser(documentContext, [
+                        "Failed to get pixmap of layer " + changeContext.layer.id +
+                        " (" + (changeContext.layer.name || changeContext.layerContext.name) + "): " + err
+                    ]);
 
-                if ((width && width !== layerContext.width) || (height && height !== layerContext.height)) {
-                    if (width) {
-                        width  = Math.max(1, Math.ceil(width));
-                        scaleX = width / layerContext.width;
-                        if (!height) {
-                            scaleY = scaleX;
-                        }
-                    }
-                    if (height) {
-                        height = Math.max(1, Math.ceil(height));
-                        scaleY = height / layerContext.height;
-                        if (!width) {
-                            scaleX = scaleY;
-                        }
-                    }
+                    layerUpdatedDeferred.reject(err);
                 }
+            );
+        }
 
-                // Get the pixmap
+        function createLayerImages() {
+            var components = layerContext.validFileComponents;
 
-                var pixmapSettings = { scaleX: scaleX, scaleY: scaleY };
-                console.log("Requesting pixmap for layer %d (%s) in document %d with settings %j",
-                    changeContext.layer.id, layerContext.name || changeContext.layer.name,
-                    changeContext.document.id, pixmapSettings);
-                return _generator.getPixmap(changeContext.document.id, changeContext.layer.id, pixmapSettings).then(
-                    function (pixmap) {
-                        var expectedWidth = layerContext.width * scaleX;
-                        var expectedHeight = layerContext.height * scaleY;
-
-                        if (pixmap.width !== expectedWidth || pixmap.height !== expectedHeight) {
-                            console.warn("Image size is " + layerContext.width + "x" + layerContext.height +
-                                ", scaling by " + scaleX + " / " + scaleY +
-                                ", expected to get " + expectedWidth + "x" + expectedHeight +
-                                ", got " + pixmap.width + "x" + pixmap.height);
-                        }
-
+            // Get exact bounds
+            _generator.getPixmap(changeContext.document.id, changeContext.layer.id, { boundsOnly: true }).then(
+                function (pixmapInfo) {
+                    var exactBounds = pixmapInfo.bounds;
+                    if (exactBounds.right <= exactBounds.left || exactBounds.bottom <= exactBounds.top) {
                         // Prevent an error after deleting a layer's contents, resulting in a 0x0 pixmap
-                        if (!emptyPixmapReceived && (pixmap.width === 0 || pixmap.height === 0)) {
-                            emptyPixmapReceived = true;
-                            deleteLayerImages();
-                        }
-                        if (emptyPixmapReceived) {
+                        deleteLayerImages();
+                        layerUpdatedDeferred.resolve();
+                        return;
+                    }
+
+                    var componentPromises  = components.map(function (component) {
+                        return createComponentImage(component, exactBounds);
+                    });
+
+                    Q.allSettled(componentPromises).then(function (results) {
+                        var errors = [];
+                        results.forEach(function (result, i) {
+                            if (result.state === "rejected") {
+                                var error = result.reason ? (result.reason.stack || result.reason) : "Unknown reason";
+                                errors.push(components[i].name + ": " + error);
+                            }
+                        });
+
+                        if (errors.length) {
+                            reportErrorsToUser(documentContext, errors);
+                            layerUpdatedDeferred.reject(errors);
+                        } else {
                             layerUpdatedDeferred.resolve();
-                            return;
                         }
-
-                        return createLayerImage(pixmap, component.file, settings);
-                    },
-                    function (err) {
-                        var layerName = layerContext.name || changeContext.layer.name;
-                        console.error("Error when getting the pixmap for layer %d (%s) in document %d: %j",
-                            changeContext.layer.id, layerName, changeContext.document.id, err);
-                        reportErrorsToUser(documentContext, [
-                            "Failed to get pixmap of layer " + changeContext.layer.id +
-                            " (" + (changeContext.layer.name || changeContext.layerContext.name) + "): " + err
-                        ]);
-
-                        console.error("[Assets] Error getting pixmap:", err);
-                        layerUpdatedDeferred.reject(err);
-                    }
-                );
-            });
-
-            Q.allSettled(componentPromises).then(function (results) {
-                var errors = [];
-                results.forEach(function (result, i) {
-                    if (result.state === "rejected") {
-                        var error = result.reason ? (result.reason.stack || result.reason) : "Unknown reason";
-                        errors.push(components[i].name + ": " + error);
-                    }
-                });
-
-                if (errors.length) {
-                    reportErrorsToUser(documentContext, errors);
-                    layerUpdatedDeferred.reject(errors);
-                } else {
-                    layerUpdatedDeferred.resolve();
+                    }).done();
+                },
+                function (err) {
+                    console.error("[Assets] Error when receive exact pixels bounds: %j", err);
+                    layerUpdatedDeferred.reject(err);
                 }
-            }).done();
+            );
         }
 
         if (layer.type) {
@@ -1168,13 +1168,13 @@
         }
 
         if (layer.bounds) {
-            layerContext.width  = layer.bounds.right  - layer.bounds.left;
-            layerContext.height = layer.bounds.bottom - layer.bounds.top;
-
-            if (layerContext.width < 0 || layerContext.height < 0) {
-                console.warn("Odd image size %dx%d for layer %d (%s)",
-                    layerContext.width, layerContext.height, layer.id, layerContext.name || layer.name);
-                console.log("Bounds: %j", layer.bounds);
+            layerContext.bounds = layer.bounds;
+        }
+        if (layer.mask) {
+            if (layer.mask.removed) {
+                delete layerContext.mask;
+            } else {
+                layerContext.mask = layer.mask;
             }
         }
 
