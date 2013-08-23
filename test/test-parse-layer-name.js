@@ -154,6 +154,10 @@
             "5.0cm x .3mm foo.png":
                 [{ name: "5.0cm x .3mm foo.png", file: "foo.png", extension: "png",
                         width: 5, widthUnit: "cm", height: 0.3, heightUnit: "mm"}],
+            // fractional pixels are (currently) okay, too - the other units require rounding support anyway
+            "5.5 x 6.3px foo.png":
+                [{ name: "5.5 x 6.3px foo.png", file: "foo.png", extension: "png",
+                        width: 5.5, height: 6.3, heightUnit: "px"}],
 
             // Bad examples of absolute scaling
             // no space before file name
@@ -169,14 +173,23 @@
             // multiple units
             "20in cm x50cm foo.png":
                 [{ name: "20in cm x50cm foo.png", file: "20in cm x50cm foo.png", extension: "png"}],
-            // fractional pixels are okay, too - the other units require rounding support anyway
-            "5.5 x 6.3px foo.png":
-                [{ name: "5.5 x 6.3px foo.png", file: "foo.png", extension: "png",
-                        width: 5.5, height: 6.3, heightUnit: "px"}],
             // invalid unit, will not fail, but analyze will throw errors
             "30nm x20 nano.png":
                 [{ name: "30nm x20 nano.png", file: "nano.png", extension: "png",
                         width: 30, widthUnit: "nm", height: 20 }],
+            // Multiple decimal points
+            "3.4.5in x 6.7in foo.png":
+                [{ name: "3.4.5in x 6.7in foo.png", file: "3.4.5in x 6.7in foo.png", extension: "png" }],
+
+            // Multiple decimal points in second size
+            "3.4in x 5.6.7in foo.png":
+                [{ name: "3.4in x 5.6.7in foo.png", file: "3.4in x 5.6.7in foo.png", extension: "png" }],
+
+            // Comma used as place value separator
+            "3,4in x 5,6in foo.png":
+                [{ name: "3" },
+                 { name: "4in x 5"},
+                 { name: "6in foo.png", file: "6in foo.png", extension: "png" }]
         };
 
         test.expect(Object.keys(spec).length + 1);
