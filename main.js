@@ -495,8 +495,9 @@
             return;
         }
         
-        console.log("Menu event", stringify(event));
-        _documentIdsWithMenuClicks[_currentDocumentId || ""] = true;
+        var startingMenuState = _generator.getMenuState(menu.name);
+        console.log("Menu event %s, starting state %s", stringify(event), stringify(startingMenuState));
+        _documentIdsWithMenuClicks[_currentDocumentId || ""] = startingMenuState;
         
         // Before we know about the current document, we cannot reasonably process the events
         if (!_currentDocumentId || !_contextPerDocument[_currentDocumentId]) {
@@ -516,6 +517,8 @@
         var nowEnabledDocumentIds = [];
 
         clickedDocumentIds.forEach(function (originalDocumentId) {
+            var startingMenuState = _documentIdsWithMenuClicks[originalDocumentId];
+
             if (!originalDocumentId) {
                 console.log("Interpreting menu event for unknown document" +
                     " as being for the current one (" + _currentDocumentId + ")");
@@ -538,11 +541,11 @@
             delete _documentIdsWithMenuClicks[originalDocumentId];
 
             // Toggle the state
-            context.assetGenerationEnabled = !context.assetGenerationEnabled;
+            context.assetGenerationEnabled = !(startingMenuState && startingMenuState.checked);
             if (context.assetGenerationEnabled) {
                 nowEnabledDocumentIds.push(documentId);
             }
-            
+
             console.log("Asset generation is now " +
                 (context.assetGenerationEnabled ? "enabled" : "disabled") + " for document ID " + documentId);
         });
