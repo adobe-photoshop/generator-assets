@@ -192,7 +192,7 @@
         };
         
         /* jshint maxlen: 160 */
-        var exp = /^((((\d+)(?:([a-z]{2}) )?|\?) *x *((\d+)(?:([a-z]{2}) *)?|\?) +)|((\d+)% *))?(.+\.([a-z0-9]*[a-z]))(\-?(\d+%?))?$/i;
+        var exp = /^((((\d+|\d*\.\d+)(?:([a-z]{2}) )?|\?) *x *((\d+|\d*\.\d+)(?:([a-z]{2}) *)?|\?) +)|((\d+)% *))?(.+\.([a-z0-9]*[a-z]))(\-?(\d+%?))?$/i;
         
         /* jshint maxlen: 120 */
         
@@ -225,13 +225,13 @@
             }
             if (typeof match[2] !== "undefined") {
                 if (match[3] !== "?") {
-                    result.width = parseInt(match[4], 10);
+                    result.width = parseFloat(match[4]);
                     if (typeof match[5] !== "undefined") {
                         result.widthUnit = match[5];
                     }
                 }
                 if (match[6] !== "?") {
-                    result.height = parseInt(match[7], 10);
+                    result.height = parseFloat(match[7]);
                     if (typeof match[8] !== "undefined") {
                         result.heightUnit = match[8];
                     }
@@ -1053,14 +1053,14 @@
 
                 if ((width && width !== layerContext.width) || (height && height !== layerContext.height)) {
                     if (width) {
-                        width  = Math.max(1, Math.round(width));
+                        width  = Math.max(1, Math.ceil(width));
                         scaleX = width / layerContext.width;
                         if (!height) {
                             scaleY = scaleX;
                         }
                     }
                     if (height) {
-                        height = Math.max(1, Math.round(height));
+                        height = Math.max(1, Math.ceil(height));
                         scaleY = height / layerContext.height;
                         if (!width) {
                             scaleX = scaleY;
