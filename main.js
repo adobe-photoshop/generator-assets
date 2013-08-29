@@ -406,7 +406,6 @@
             layersMoved = false;
         
         traverseLayers(document, function (obj, isLayer) {
-            console.log(obj, isLayer);
             if (unknownChange) { return; }
             if (obj.changed) {
                 unknownChange = true;
@@ -449,7 +448,6 @@
                 Object.keys(documentContext.layers).forEach(function (layerId) {
                     deleteFilesRelatedToLayer(document.id, layerId);
                 });
-                resetDocumentContext(document.id);
             }
             requestEntireDocument(document.id);
             return;
@@ -828,10 +826,12 @@
     }
 
     function processLayerChange(document, layer) {
+        console.log("Scheduling change to layer %s of %s", layer.id, document.id);
         var documentContext = _contextPerDocument[document.id],
             layerContext    = documentContext.layers[layer.id];
 
         if (!layerContext) {
+            console.log("Creating layer context for layer %s", layer.id);
             layerContext = documentContext.layers[layer.id] = {};
         }
 
@@ -839,22 +839,22 @@
         var contextID = document.id + "-" + layer.id,
             context = _changeContextPerLayer[contextID];
         if (!context) {
+            console.log("Creating change context for layer %s", layer.id);
             // Initialize the context object for this layer.
             // It will be deleted again once an update has finished
             // without the image changing during the update.
             context = _changeContextPerLayer[contextID] = {
                 // Store the context ID here so the context can be deleted by finishLayerUpdate
                 id:                     contextID,
-                document:               document,
-                documentContext:        documentContext,
-                layer:                  layer,
-                layerContext:           layerContext,
                 updateIsScheduled:      false,
                 updateIsObsolete:       false,
                 updateDelayTimeout:     null,
                 updateCompleteDeferred: Q.defer()
             };
         }
+
+        context.document = document;
+        context.layer = layer;
 
         // Regardless of the nature of the change, we want to make sure that
         // all changes to a layer are processed in sequence
@@ -940,14 +940,14 @@
     function startLayerUpdate(changeContext) {
         var layerUpdatedDeferred = Q.defer();
 
+        var documentContext = _contextPerDocument[changeContext.document.id],
+            layerContext    = documentContext.layers ? documentContext.layers[changeContext.layer.id] : {},
+            layer           = changeContext.layer;
+
         console.log("Updating layer " + changeContext.layer.id +
-            " (" + stringify(changeContext.layer.name || changeContext.layerContext.name) +
+            " (" + stringify(changeContext.layer.name || layerContext.name) +
                 ") of document " + changeContext.document.id
         );
-
-        var documentContext = changeContext.documentContext,
-            layerContext    = changeContext.layerContext,
-            layer           = changeContext.layer;
 
         function deleteLayerImages() {
             deleteFilesRelatedToLayer(changeContext.document.id, changeContext.layer.id);
@@ -978,7 +978,7 @@
                 return value;
             }
             
-            var ppi = changeContext.documentContext.ppi;
+            var ppi = documentContext.ppi;
 
             if (unit === "in") {
                 return value * ppi;
@@ -1010,7 +1010,7 @@
                 })
                 .then(function () {
                     // Create the target directory
-                    return mkdirpQ(changeContext.documentContext.assetGenerationDir);
+                    return mkdirpQ(documentContext.assetGenerationDir);
                 })
                 .then(function () {
                     // Move the temporary file to the desired location
@@ -1088,7 +1088,7 @@
                         changeContext.layer.id, layerName, changeContext.document.id, err);
                     reportErrorsToUser(documentContext, [
                         "Failed to get pixmap of layer " + changeContext.layer.id +
-                        " (" + (changeContext.layer.name || changeContext.layerContext.name) + "): " + err
+                        " (" + (changeContext.layer.name || layerContext.name) + "): " + err
                     ]);
 
                     layerUpdatedDeferred.reject(err);
@@ -1158,7 +1158,11 @@
             if (layer.layers) {
                 layer.layers.forEach(function (subLayer) {
                     var subLayerContext = documentContext.layers[subLayer.id];
-                    subLayerContext.parentLayerId = layer.id;
+                    if (subLayerContext.parentLayerId !== layer.id) {
+                        subLayerContext.parentLayerId = layer.id;
+                        console.log("Layer %j (%j) is now in layer %j (%j)", subLayer.id,
+                            subLayer.name || subLayerContext.name, layer.id, layer.name || layerContext.name);
+                    }
                 });
             }
             // This layer doesn't have a parent (otherwise the event would have been for the parent)
