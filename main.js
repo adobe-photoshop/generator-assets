@@ -31,6 +31,13 @@
         mkdirp  = require("mkdirp"),
         mkdirpQ = Q.denodeify(mkdirp);
 
+    // These objects hold booleans keyed on document ID that flag whether we're waiting
+    // to receive complete document info. If we get image changed events while
+    // we're waiting, then we completely throw out the document info and request
+    // it again.
+    var _waitingForDocument = {},
+        _gotChangeWhileWaiting = {};
+
     var utils = require("./lib/utils"),
         validation = require("./lib/validation");
 
@@ -48,7 +55,8 @@
         // Files that are ignored when trying to determine whether a directory is empty
         FILES_TO_IGNORE = [".ds_store", "desktop.ini"],
         DELAY_TO_WAIT_UNTIL_USER_DONE = 300,
-        MAX_SIMULTANEOUS_UPDATES = 50;
+        MAX_SIMULTANEOUS_UPDATES = 50,
+        TIMEOUT_ERROR_MESSAGE = "timeout"; // must be in sync with Generator's timeout error
 
     // TODO: Once we get the layer change management/updating right, we should add a
     // big comment at the top of this file explaining how this all works. In particular
@@ -373,6 +381,12 @@
     function handleImageChanged(document) {
         console.log("Image " + document.id + " was changed:", stringify(document));
 
+        if (_waitingForDocument[document.id]) {
+            console.log("Ignoring this change because we're still waiting for the full document");
+            _gotChangeWhileWaiting[document.id] = true;
+            return;
+        }
+
         // If the document was closed
         if (document.closed) {
             delete _contextPerDocument[document.id];
@@ -419,7 +433,10 @@
                 var layerContext = documentContext.layers && documentContext.layers[obj.id],
                     layerType    = obj.type || (layerContext && layerContext.type);
                 
-                if (layerType === "adjustmentLayer") {
+                if (!layerType) {
+                    console.warn("Unknown layer type, something is wrong with the document");
+                    unknownChange = true;
+                } else if (layerType === "adjustmentLayer") {
                     console.warn("An adjustment layer changed, treating this as an unknown change: %j", obj);
                     unknownChange = true;
                 }
@@ -558,12 +575,24 @@
      * @params {?integer} documentId Optional document ID
      */
     function requestEntireDocument(documentId) {
+        _waitingForDocument[documentId] = true;
+        _gotChangeWhileWaiting[documentId] = false;
+
         if (!documentId) {
             console.log("Determining the current document ID");
         }
         
         _generator.getDocumentInfo(documentId).then(
             function (document) {
+                _waitingForDocument[documentId] = false;
+                if (_gotChangeWhileWaiting[documentId]) {
+                    console.log("A change occured while waiting for document %j" +
+                        ", requesting the document again", documentId);
+                    process.nextTick(function () {
+                        requestEntireDocument(documentId);
+                    });
+                    return;
+                }
                 console.log("Received complete document:", stringify(document));
 
                 if (document.id && !document.file) {
@@ -587,6 +616,11 @@
             },
             function (err) {
                 console.error("[Assets] Error in getDocumentInfo:", err);
+                if (err instanceof Error && err.message === TIMEOUT_ERROR_MESSAGE) {
+                    process.nextTick(function () {
+                        requestEntireDocument(documentId);
+                    });
+                }
             }
         ).done();
     }
