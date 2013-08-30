@@ -418,8 +418,20 @@
             }
         }
 
-        var documentContext = _contextPerDocument[document.id],
-            unknownChange = false,
+        var documentContext = _contextPerDocument[document.id];
+        
+        // Possible reasons for an undefined context:
+        // - User created a new image
+        // - User opened an image
+        // - User switched to an image that was created/opened before Generator started
+        if (!documentContext) {
+            console.log("Unknown document, so getting all information");
+            requestEntireDocument(document.id);
+            return;
+        }
+
+        // We have seen this document before: information about the changes are enough
+        var unknownChange = false,
             layersMoved = false;
         
         traverseLayers(document, function (obj, isLayer) {
@@ -473,18 +485,6 @@
             return;
         }
 
-        // Possible reasons for an undefined context:
-        // - User created a new image
-        // - User opened an image
-        // - User switched to an image that was created/opened before Generator started
-        if (!documentContext) {
-            console.log("Unknown document, so getting all information");
-            requestEntireDocument(document.id);
-            return;
-        }
-            
-        // We have seen this document before: information about the changes are enough
-        
         // Resize event: regenerate everything
         if (!document.layers && document.bounds) {
             requestEntireDocument(document.id);
