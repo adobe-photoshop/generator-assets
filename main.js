@@ -1164,10 +1164,12 @@
 
         while (documentChanges.length) {
             document        = documentChanges.shift();
-            documentContext = _contextPerDocument[document.id];
-            
             layer           = layerChanges.shift();
-            layerContext    = documentContext.layers ? documentContext.layers[layer.id] : {};
+            documentContext = _contextPerDocument[document.id];
+            layerContext    = (documentContext && documentContext.layers) ? documentContext.layers[layer.id] : {};
+            
+            // The image could have been closed in the meantime
+            if (!documentContext) { continue; }
 
             console.log("Updating layer " + layer.id + " (" + stringify(layer.name || layerContext.name) +
                 ") of document " + document.id, layer);
