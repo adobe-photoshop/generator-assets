@@ -21,6 +21,8 @@
  * 
  */
 
+/*jshint unused: false */
+
 (function () {
     "use strict";
 
@@ -56,6 +58,7 @@
         FILES_TO_IGNORE = [".ds_store", "desktop.ini"],
         DELAY_TO_WAIT_UNTIL_USER_DONE = 300,
         MAX_SIMULTANEOUS_UPDATES = 50,
+        MAX_DIR_RENAME_ATTEMPTS = 1000,
         TIMEOUT_ERROR_MESSAGE = "timeout"; // must be in sync with Generator's timeout error
 
     // TODO: Once we get the layer change management/updating right, we should add a
@@ -793,12 +796,28 @@
                 return resolvedPromise();
             }
             else {
-                // Delete the assets of a previous file
-                // Photoshop will have asked the user to confirm overwriting the PSD file at this point,
-                // so "overwriting" its assets is fine, too
+                // Rename the assets folder of another document at this location
+                // Try foo-assets-old, then foo-assets-old-2, etc.
+                // Give up after MAX_DIR_RENAME_ATTEMPTS many unsuccessful attempts
                 if (fs.existsSync(newStorageDir)) {
-                    console.log("Deleting existing storage directory %j", newStorageDir);
-                    deleteDirectoryRecursively(newStorageDir);
+                    var attempts = 0,
+                        renamedNewStorageDir;
+                    do {
+                        attempts++;
+                        renamedNewStorageDir = newStorageDir + "-old";
+                        if (attempts > 1) {
+                            renamedNewStorageDir += "-" + attempts;
+                        }
+                    } while (fs.existsSync(renamedNewStorageDir) && attempts < MAX_DIR_RENAME_ATTEMPTS);
+                    
+                    // If the suggested path exists despite our efforts to find one that doesn't, give up
+                    if (fs.existsSync(renamedNewStorageDir)) {
+                        throw new Error("At least " + MAX_DIR_RENAME_ATTEMPTS + " other backups of " +
+                            newStorageDir + " already exist. Giving up.");
+                    }
+                    
+                    console.log("Renaming existing storage directory %j to %j", newStorageDir, renamedNewStorageDir);
+                    fs.renameSync(newStorageDir, renamedNewStorageDir);
                 }
 
                 // Move generated assets to the new directory and delete the old one if empty
