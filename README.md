@@ -2,7 +2,7 @@
 
 This repository contains a plug-in for Adobe Photoshop CC's Generator extensibility layer. This plug-in makes it easier for users to export image assets from their Photoshop files. Users simply enable image asset generation for a document and name layers (or layer groups, or smart objects) they want exported using a filename-like syntax. Generator then watches these layers, and any time they change, automatically updates the corresponding assets on disk.
 
-To learn more about Generator, please visit the [Generator Core repo](https://github.com/adobe-photoshop/generator-core).
+To learn more about Generator and creating your own Generator plug-ins, please visit the [Generator Core repo](https://github.com/adobe-photoshop/generator-core).
 
 ### License
 
