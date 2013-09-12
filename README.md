@@ -4,6 +4,13 @@ This repository contains a plug-in for Adobe Photoshop CC's Generator extensibil
 
 To learn more about Generator and creating your own Generator plug-ins, please visit the [Generator Core repo](https://github.com/adobe-photoshop/generator-core).
 
+### Usage
+
+The [Functional Spec](https://github.com/adobe-photoshop/generator-assets/wiki/Generate-Web-Assets-Functional-Spec)
+provides basic information about how to use the Image Assets plug-in.
+Another good source of information is Samartha Vashishtha's blog post
+[A closer look at the Photoshop Generator syntax](http://blogs.adobe.com/samartha/2013/09/a-closer-look-at-the-photoshop-generator-syntax.html).
+
 ### License
 
 (MIT License)
