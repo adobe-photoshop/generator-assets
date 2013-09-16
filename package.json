@@ -1,5 +1,5 @@
 {
-  "name": "generator-assets",
+  "name": "generator-assets-android",
   "version": "1.0.1",
   "description": "Asset generation plug-in for Photoshop Generator",
   "main": "main.js",

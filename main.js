@@ -28,6 +28,7 @@
 
     var fs      = require("fs"),
         resolve = require("path").resolve,
+        path_join = require("path").join,
         Q       = require("q"),
         tmpName = Q.denodeify(require("tmp").tmpName),
         mkdirp  = require("mkdirp"),
@@ -44,7 +45,7 @@
         validation = require("./lib/validation");
 
     var PLUGIN_ID = require("./package.json").name,
-        MENU_ID = "assets",
+        MENU_ID = "assets-android",
         // Note to third-party plugin developers: This string format ("$$$...") is used for
         // localization of strings that are built in to Photoshop. Third-party plugins should
         // use a regular string (or use their own approach to localization) for menu labels.
@@ -53,7 +54,8 @@
         //
         // Note to Photoshop engineers: This zstring must be kept in sync with the zstring in
         // generate.jsx in the Photoshop repo.
-        MENU_LABEL = "$$$/JavaScripts/Generator/ImageAssets/Menu=Image Assets",
+        // MENU_LABEL = "$$$/JavaScripts/Generator/ImageAssets/Menu=Image Assets",
+        MENU_LABEL = "Image Assets (with Android dp support)",
         // Files that are ignored when trying to determine whether a directory is empty
         FILES_TO_IGNORE = [".ds_store", "desktop.ini"],
         DELAY_TO_WAIT_UNTIL_USER_DONE = 300,
@@ -254,7 +256,7 @@
     }
     
     function analyzeComponent(component, reportError) {
-        var supportedUnits      = ["in", "cm", "px", "mm"];
+        var supportedUnits      = ["in", "cm", "px", "mm", "dp"];
         var supportedExtensions = ["jpg", "jpeg", "png", "gif"];
 
         if (_config && _config["svg-enabled"]) {
@@ -334,6 +336,36 @@
             }
         }
     }
+
+    var androidDensities = [{name:'ldpi', scale:0.75},
+      {name:'mdpi', scale:1},
+      {name:'hdpi', scale:1.5},
+      {name:'xhdpi', scale:2.0},
+      {name:'xxhdpi', scale:3.0}].map(function (d) {
+        d.dirName = "drawable-" + d.name;
+        return d;
+      });
+
+    function insertAndroidComponents(components) {
+        var densities = androidDensities;
+        var pxComps = [];
+        components.forEach(function (component) {
+          if (component.heightUnit=='dp' || component.widthUnit=='dp') {
+            densities.forEach(function (density) {
+              var c = JSON.parse(JSON.stringify(component));
+              c.height = c.height * density.scale;
+              c.width = c.width * density.scale;
+              c.heightUnit = c.widthUnit = "px";
+              c.file = path_join(density.dirName, c.file);
+              pxComps.push(c);
+            });
+          } else
+            pxComps.push(component);
+        });
+
+        console.log("!!!!android comps:", pxComps);
+        return pxComps;
+    }
     
     function analyzeLayerName(layerName) {
         var components = parseLayerName(layerName),
@@ -356,6 +388,7 @@
 
             return !hadErrors;
         });
+        validFileComponents = insertAndroidComponents(validFileComponents);
 
         return {
             errors: errors,
@@ -1066,6 +1099,15 @@
                     return mkdirpQ(documentContext.assetGenerationDir);
                 })
                 .then(function () {
+                    var dirname = require('path').dirname;
+                    var childPath = dirname(fileName);
+                    var p = resolve(documentContext.assetGenerationDir, childPath);
+                    if (!fs.existsSync(p)) {
+                      return mkdirpQ(p);
+                    } else
+                      return;
+                })
+                .then(function () {
                     // Move the temporary file to the desired location
                     // If this fails, delete the temporary file anyway (3rd parameter: true)
                     return utils.moveFile(tmpPath, path, true);
@@ -1164,7 +1206,7 @@
                     }
 
                     var componentPromises  = components.map(function (component) {
-                        return createComponentImage(component, exactBounds);
+                      return createComponentImage(component, exactBounds);
                     });
 
                     Q.allSettled(componentPromises).then(function (results) {
