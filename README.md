@@ -3,7 +3,14 @@
 This fork includes the support for the Android "dp" unit, i.e. it creates images for different screen densities in the corresponding "drawable-" directories.
 
 ### Installation
-Following the tutorial [here](http://tomkrcha.com/?p=3896) to get it working in development mode. I'll update this instruction once I figure out how to deploy it into the `Plug-ins` directory.
+Choose one of the following methods to get it working:
+
+- Deploy into Photoshop:
+  - Download the [zip file](https://github.com/jimulabs/generator-assets/releases/tag/android-1.0.1)
+  - Extract it into `/Applications/Adobe Photoshop CC/Plug-ins/Generator/` (Mac), or `Program Files/Adobe Photoshop CC/Plugin-ins/Generator...` on Windows.
+    - the resulting directory is `/Applications/Adobe Photoshop CC/Plug-ins/Generator/generator-assets-android.generate`
+  - Re-launch Photoshop
+- Development mode: follow the tutorial [here](http://tomkrcha.com/?p=3896) and run `npm install` inside the directory `generator-assets`. 
 
 ### Usage
 Change the name of a layer or layer group to something like `20x20dp ic_ab_search.png`, you'll get:
