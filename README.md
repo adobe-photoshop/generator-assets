@@ -1,3 +1,18 @@
+## Image Asset Generation Plug-in for Generator (with Android dp support)
+
+This fork includes support of the Android "dp" unit, i.e. it creates images for different screen densities in the corresponding "drawable-" directories.
+
+### Usage
+Change the name of a layer or layer group to something like `20x20dp ic_ab_search.png`, you'll get:
+![screenshot]()
+
+### Installation
+Following the tutorial [here](http://tomkrcha.com/?p=3896) to get it working in development mode. I'll update this instruction once I figure out how to deploy it into the `Plug-ins` directory.
+
+
+Below is the README in the [original repo](https://github.com/adobe-photoshop/generator-assets)
+
+
 ## Image Asset Generation Plug-in for Generator [![Build Status](https://travis-ci.org/adobe-photoshop/generator-assets.png?branch=master)](https://travis-ci.org/adobe-photoshop/generator-assets)
 
 This repository contains a plug-in for Adobe Photoshop CC's Generator extensibility layer. This plug-in makes it easier for users to export image assets from their Photoshop files. Users simply enable image asset generation for a document and name layers (or layer groups, or smart objects) they want exported using a filename-like syntax. Generator then watches these layers, and any time they change, automatically updates the corresponding assets on disk.
