@@ -2,13 +2,12 @@
 
 This fork includes the support for the Android "dp" unit, i.e. it creates images for different screen densities in the corresponding "drawable-" directories.
 
-### Usage
-Change the name of a layer or layer group to something like `20x20dp ic_ab_search.png`, you'll get:
-![screenshot](https://raw.github.com/jimulabs/generator-assets/master/generated_dirs_screenshot.png)
-
 ### Installation
 Following the tutorial [here](http://tomkrcha.com/?p=3896) to get it working in development mode. I'll update this instruction once I figure out how to deploy it into the `Plug-ins` directory.
 
+### Usage
+Change the name of a layer or layer group to something like `20x20dp ic_ab_search.png`, you'll get:
+![screenshot](https://raw.github.com/jimulabs/generator-assets/master/generated_dirs_screenshot.png)
 
 Below is the README in the [original repo](https://github.com/adobe-photoshop/generator-assets)
 
