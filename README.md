@@ -1,24 +1,3 @@
-## Image Asset Generation Plug-in for Generator (with Android dp support)
-
-This fork includes the support for the Android "dp" unit, i.e. it creates images for different screen densities in the corresponding "drawable-" directories.
-
-### Installation
-Choose one of the following methods to get it working:
-
-- Deploy into Photoshop:
-  - Download the [zip file](https://github.com/jimulabs/generator-assets/releases/tag/android-1.0.1)
-  - Extract it into `/Applications/Adobe Photoshop CC/Plug-ins/Generator/` (Mac), or `Program Files/Adobe Photoshop CC/Plugin-ins/Generator...` on Windows.
-    - the resulting directory is `/Applications/Adobe Photoshop CC/Plug-ins/Generator/generator-assets-android.generate`
-  - Re-launch Photoshop
-- Development mode: follow the tutorial [here](http://tomkrcha.com/?p=3896) and run `npm install` inside the directory `generator-assets`. 
-
-### Usage
-Change the name of a layer or layer group to something like `20x20dp ic_ab_search.png`, you'll get:
-![screenshot](https://raw.github.com/jimulabs/generator-assets/master/generated_dirs_screenshot.png)
-
-Below is the README in the [original repo](https://github.com/adobe-photoshop/generator-assets)
-
-
 ## Image Asset Generation Plug-in for Generator [![Build Status](https://travis-ci.org/adobe-photoshop/generator-assets.png?branch=master)](https://travis-ci.org/adobe-photoshop/generator-assets)
 
 This repository contains a plug-in for Adobe Photoshop CC's Generator extensibility layer. This plug-in makes it easier for users to export image assets from their Photoshop files. Users simply enable image asset generation for a document and name layers (or layer groups, or smart objects) they want exported using a filename-like syntax. Generator then watches these layers, and any time they change, automatically updates the corresponding assets on disk.
@@ -55,3 +34,4 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
 FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
 DEALINGS IN THE SOFTWARE.
+
