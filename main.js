@@ -28,7 +28,7 @@
 
     var fs      = require("fs"),
         resolve = require("path").resolve,
-        path_join = require("path").join,
+        pathJoin = require("path").join,
         Q       = require("q"),
         tmpName = Q.denodeify(require("tmp").tmpName),
         mkdirp  = require("mkdirp"),
@@ -337,30 +337,31 @@
         }
     }
 
-    var androidDensities = [{name:'ldpi', scale:0.75},
-      {name:'mdpi', scale:1},
-      {name:'hdpi', scale:1.5},
-      {name:'xhdpi', scale:2.0},
-      {name:'xxhdpi', scale:3.0}].map(function (d) {
+    var androidDensities = [{name: "ldpi", scale: 0.75},
+      {name: "mdpi", scale: 1},
+      {name: "hdpi", scale: 1.5},
+      {name: "xhdpi", scale: 2.0},
+      {name: "xxhdpi", scale: 3.0}].map(function (d) {
         d.dirName = "drawable-" + d.name;
         return d;
-      });
+    });
 
     function insertAndroidComponents(components) {
         var densities = androidDensities;
         var pxComps = [];
         components.forEach(function (component) {
-          if (component.heightUnit=='dp' || component.widthUnit=='dp') {
-            densities.forEach(function (density) {
-              var c = JSON.parse(JSON.stringify(component));
-              c.height = c.height * density.scale;
-              c.width = c.width * density.scale;
-              c.heightUnit = c.widthUnit = "px";
-              c.file = path_join(density.dirName, c.file);
-              pxComps.push(c);
-            });
-          } else
-            pxComps.push(component);
+            if (component.heightUnit === "dp" || component.widthUnit === "dp") {
+                densities.forEach(function (density) {
+                    var c = JSON.parse(JSON.stringify(component));
+                    c.height = c.height * density.scale;
+                    c.width = c.width * density.scale;
+                    c.heightUnit = c.widthUnit = "px";
+                    c.file = pathJoin(density.dirName, c.file);
+                    pxComps.push(c);
+                });
+            } else {
+                pxComps.push(component);
+            }
         });
 
         console.log("!!!!android comps:", pxComps);
@@ -1099,13 +1100,14 @@
                     return mkdirpQ(documentContext.assetGenerationDir);
                 })
                 .then(function () {
-                    var dirname = require('path').dirname;
+                    var dirname = require("path").dirname;
                     var childPath = dirname(fileName);
                     var p = resolve(documentContext.assetGenerationDir, childPath);
                     if (!fs.existsSync(p)) {
-                      return mkdirpQ(p);
-                    } else
-                      return;
+                        return mkdirpQ(p);
+                    } else {
+                        return;
+                    }
                 })
                 .then(function () {
                     // Move the temporary file to the desired location
@@ -1206,7 +1208,7 @@
                     }
 
                     var componentPromises  = components.map(function (component) {
-                      return createComponentImage(component, exactBounds);
+                        return createComponentImage(component, exactBounds);
                     });
 
                     Q.allSettled(componentPromises).then(function (results) {
