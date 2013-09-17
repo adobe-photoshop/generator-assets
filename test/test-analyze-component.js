@@ -139,4 +139,11 @@
         test.done();
     };
 
+    exports.testDpSupport = function (test) {
+        test.functionReportsErrors(test, analyzeComponent,
+            [{ width: 300, height: 200, widthUnit: "dp", heightUnit: "dp" }], []);
+
+        test.done();
+    };
+
 }());
