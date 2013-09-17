@@ -45,7 +45,7 @@
         validation = require("./lib/validation");
 
     var PLUGIN_ID = require("./package.json").name,
-        MENU_ID = "assets-android",
+        MENU_ID = "assets",
         // Note to third-party plugin developers: This string format ("$$$...") is used for
         // localization of strings that are built in to Photoshop. Third-party plugins should
         // use a regular string (or use their own approach to localization) for menu labels.
@@ -54,8 +54,7 @@
         //
         // Note to Photoshop engineers: This zstring must be kept in sync with the zstring in
         // generate.jsx in the Photoshop repo.
-        // MENU_LABEL = "$$$/JavaScripts/Generator/ImageAssets/Menu=Image Assets",
-        MENU_LABEL = "Image Assets (with Android dp support)",
+        MENU_LABEL = "$$$/JavaScripts/Generator/ImageAssets/Menu=Image Assets",
         // Files that are ignored when trying to determine whether a directory is empty
         FILES_TO_IGNORE = [".ds_store", "desktop.ini"],
         DELAY_TO_WAIT_UNTIL_USER_DONE = 300,
