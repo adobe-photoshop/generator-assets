@@ -1096,43 +1096,47 @@
                 return fileSavedDeferred.promise;
             }
 
-            var targetWidth    = convertToPixels(component.width,  component.widthUnit),
-                targetHeight   = convertToPixels(component.height, component.heightUnit),
-                targetScale    = component.scale,
-                scaleSettings  = {
-                    width:  targetWidth  ? Math.max(1, Math.ceil(targetWidth))  : null,
-                    height: targetHeight ? Math.max(1, Math.ceil(targetHeight)) : null,
-                    scale:  targetScale
+            var scaleSettings = {
+                    width:  convertToPixels(component.width,  component.widthUnit),
+                    height: convertToPixels(component.height, component.heightUnit),
+                    scaleX: component.scaleX || component.scale,
+                    scaleY: component.scaleY || component.scale,
+                    // Backwards compatibility
+                    scale:  component.scale
                 },
-                deepBounds     = _generator.getDeepBounds(layerContext),
-                pixmapSettings = _generator.getPixmapParams(scaleSettings, deepBounds, exactBounds),
-                expectedWidth  = pixmapSettings.expectedWidth,
-                expectedHeight = pixmapSettings.expectedHeight;
+                
+                // Mask
+                maskBounds = layerContext.mask && layerContext.mask.bounds,
+                
+                // Static: User provided
+                staticBounds  = _generator.getDeepBounds(layerContext),
+                // Visible: User provided + effects
+                visibleBounds = exactBounds,
+                // Padded: User provided + effects + padding through layer mask
+                paddedBounds  = !maskBounds ? exactBounds : {
+                    left:   Math.min(exactBounds.left,   maskBounds.left),
+                    top:    Math.min(exactBounds.top,    maskBounds.top),
+                    right:  Math.max(exactBounds.right,  maskBounds.right),
+                    bottom: Math.max(exactBounds.bottom, maskBounds.bottom)
+                },
 
-            delete pixmapSettings.expectedWidth;
-            delete pixmapSettings.expectedHeight;
-    
+                pixmapSettings = _generator.getPixmapParams(scaleSettings, staticBounds, visibleBounds, paddedBounds);
+
             // Get the pixmap
             console.log("Requesting pixmap for layer %d (%s) in document %d with settings %j",
                 changeContext.layer.id, layerContext.name || changeContext.layer.name,
                 changeContext.document.id, pixmapSettings);
             return _generator.getPixmap(changeContext.document.id, changeContext.layer.id, pixmapSettings).then(
                 function (pixmap) {
-                    var sourceWidth  = exactBounds.right - exactBounds.left,
-                        sourceHeight = exactBounds.bottom - exactBounds.top;
-                    
-                    if (pixmap.width  !== expectedWidth ||
-                        pixmap.height !== expectedHeight) {
-                        console.warn("Image size is " + sourceWidth + "x" + sourceHeight +
-                            ", expected to get " + expectedWidth + "x" +
-                            expectedHeight + ", got " + pixmap.width + "x" + pixmap.height +
-                            ", setting were %j", pixmapSettings);
+                    var padding;
+                    if (pixmapSettings.getPadding) {
+                        padding = pixmapSettings.getPadding(pixmap.width, pixmap.height);
                     }
-
                     return createLayerImage(pixmap, component.file, {
                         quality: component.quality,
                         format:  component.extension,
-                        ppi:     documentContext.ppi
+                        ppi:     documentContext.ppi,
+                        padding: padding
                     });
                 },
                 function (err) {
