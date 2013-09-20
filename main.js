@@ -95,6 +95,11 @@
         return process.env[(process.platform === "win32") ? "USERPROFILE" : "HOME"];
     }
 
+    function shouldUpdateFiles(documentContext) {
+        return documentContext && documentContext.assetGenerationEnabled &&
+            documentContext.assetGenerationDir;
+    }
+
     function deleteDirectoryRecursively(directory) {
         try {
             // Directory doesn't exist? We're done.
@@ -157,7 +162,7 @@
 
     function deleteFilesRelatedToLayer(documentId, layerId) {
         var documentContext = _contextPerDocument[documentId];
-        if (!documentContext) { return; }
+        if (!shouldUpdateFiles(documentContext)) { return; }
 
         var layerContext = documentContext.layers && documentContext.layers[layerId];
         if (!layerContext) { return; }
@@ -367,7 +372,7 @@
         if (!errors.length) {
             return;
         }
-        if (documentContext.assetGenerationEnabled && documentContext.assetGenerationDir) {
+        if (shouldUpdateFiles(documentContext)) {
             var text = "[" + new Date() + "]\n" + errors.join("\n") + "\n\n",
                 directory = documentContext.assetGenerationDir;
             mkdirp.sync(directory);
@@ -475,12 +480,13 @@
 
         // Unknown change: reset
         if (unknownChange) {
-            console.log("Handling an unknown change by deleting all generated files and resetting the state");
-            if (documentContext) {
+            if (shouldUpdateFiles(documentContext)) {
+                console.log("Deleting all generated files due to an unknown change");
                 Object.keys(documentContext.layers).forEach(function (layerId) {
                     deleteFilesRelatedToLayer(document.id, layerId);
                 });
             }
+            console.log("Handling an unknown change by resetting the state");
             requestEntireDocument(document.id);
             return;
         }
@@ -769,8 +775,10 @@
                 }
 
                 Q.allSettled(pendingPromises).then(function () {
-                    // Delete directory foo-assets/ for foo.psd if it is empty now
-                    deleteDirectoryIfEmpty(context.assetGenerationDir);
+                    if (shouldUpdateFiles(context)) {
+                        // Delete directory foo-assets/ for foo.psd if it is empty now
+                        deleteDirectoryIfEmpty(context.assetGenerationDir);
+                    }
                 });
             })
             .done();
@@ -793,6 +801,9 @@
 
             if (previousStorageDir.toLowerCase() === newStorageDir.toLowerCase()) {
                 console.log("The storage directory hasn't changed");
+                return resolvedPromise();
+            }
+            else if (!shouldUpdateFiles(context)) {
                 return resolvedPromise();
             }
             else {
@@ -1062,10 +1073,15 @@
                     return _generator.savePixmap(pixmap, tmpPath, settings);
                 })
                 .then(function () {
+                    // If asset generation has been turned off since requesting the pixmap,
+                    // delete the temporary file and stop here
+                    if (!shouldUpdateFiles(documentContext)) {
+                        fs.unlinkSync(tmpPath);
+                        return;
+                    }
+
                     // Create the target directory
-                    return mkdirpQ(documentContext.assetGenerationDir);
-                })
-                .then(function () {
+                    mkdirp.sync(documentContext.assetGenerationDir);
                     // Move the temporary file to the desired location
                     // If this fails, delete the temporary file anyway (3rd parameter: true)
                     return utils.moveFile(tmpPath, path, true);
@@ -1118,6 +1134,11 @@
                 changeContext.document.id, pixmapSettings);
             return _generator.getPixmap(changeContext.document.id, changeContext.layer.id, pixmapSettings).then(
                 function (pixmap) {
+                    // If asset generation has been turned off since requesting the pixmap, stop here
+                    if (!shouldUpdateFiles(documentContext)) {
+                        return;
+                    }
+
                     var sourceWidth  = exactBounds.right - exactBounds.left,
                         sourceHeight = exactBounds.bottom - exactBounds.top;
                     
@@ -1155,6 +1176,12 @@
             // Get exact bounds
             _generator.getPixmap(changeContext.document.id, changeContext.layer.id, { boundsOnly: true }).then(
                 function (pixmapInfo) {
+                    // If asset generation has been turned off since requesting the pixmap info, stop here
+                    if (!shouldUpdateFiles(documentContext)) {
+                        layerUpdatedDeferred.resolve();
+                        return;
+                    }
+
                     var exactBounds = pixmapInfo.bounds;
                     if (exactBounds.right <= exactBounds.left || exactBounds.bottom <= exactBounds.top) {
                         // Prevent an error after deleting a layer's contents, resulting in a 0x0 pixmap
