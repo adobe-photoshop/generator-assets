@@ -58,8 +58,7 @@
         FILES_TO_IGNORE = [".ds_store", "desktop.ini"],
         DELAY_TO_WAIT_UNTIL_USER_DONE = 300,
         MAX_SIMULTANEOUS_UPDATES = 50,
-        MAX_DIR_RENAME_ATTEMPTS = 1000,
-        TIMEOUT_ERROR_MESSAGE = "timeout"; // must be in sync with Generator's timeout error
+        MAX_DIR_RENAME_ATTEMPTS = 1000;
 
     // TODO: Once we get the layer change management/updating right, we should add a
     // big comment at the top of this file explaining how this all works. In particular
@@ -619,11 +618,6 @@
             },
             function (err) {
                 console.error("[Assets] Error in getDocumentInfo:", err);
-                if (err instanceof Error && err.message === TIMEOUT_ERROR_MESSAGE) {
-                    process.nextTick(function () {
-                        requestEntireDocument(documentId);
-                    });
-                }
             }
         ).done();
     }
