@@ -11,6 +11,12 @@ provides basic information about how to use the Image Assets plug-in.
 Another good source of information is Samartha Vashishtha's blog post
 [A closer look at the Photoshop Generator syntax](http://blogs.adobe.com/samartha/2013/09/a-closer-look-at-the-photoshop-generator-syntax.html).
 
+### Configuration
+
+For the brave, this plug-in supports a number of experimental configuration options. They're documented here: https://github.com/adobe-photoshop/generator-assets/wiki/Configuration-Options
+
+For details on how to create a configuration file, please see the documentation here: https://github.com/adobe-photoshop/generator-core/wiki/Generator-Configuration-File-Format
+
 ### License
 
 (MIT License)
