@@ -865,7 +865,9 @@
             // Turn asset generation off
             context.assetGenerationEnabled = false;
             updateMenuState();
-            updateDocumentState();
+            // We do not need to update the document state because generator metadata
+            // is cleared on saveas, so our assetGenerationEnabled = false is implicitly
+            // in the metadata already.
         }
         
         // Return a resolved promise
