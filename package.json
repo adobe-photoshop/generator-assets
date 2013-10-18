@@ -3,7 +3,7 @@
   "version": "1.0.1",
   "description": "Asset generation plug-in for Photoshop Generator",
   "main": "main.js",
-  "generator-core-version": "~1",
+  "generator-core-version": "~2",
   "repository": {
     "type": "git",
     "url": "https://github.com/adobe-photoshop/generator-assets"

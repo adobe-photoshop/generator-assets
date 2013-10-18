@@ -1031,10 +1031,7 @@
             }
         }
 
-        // TODO: Make sure this function is refactored so that it doesn't have so much
-        // callback nesting. This function will change substantially when we move image
-        // creation to core, so avoiding the refactor right now.
-        function createLayerImage(pixmap, fileName, settings) {
+        function createLayerImage(data, fileName, settings) {
             var imageCreatedDeferred = Q.defer(),
                 path = resolve(documentContext.assetGenerationDir, fileName),
                 tmpPath;
@@ -1046,7 +1043,21 @@
                 .then(function (path) {
                     // Save the image in a temporary file
                     tmpPath = path;
-                    return _generator.savePixmap(pixmap, tmpPath, settings);
+                    if (settings.format === "svg") {
+                        var svgDeferred = Q.defer();
+                        fs.writeFile(tmpPath, data, function (err) {
+                            if (err) {
+                                svgDeferred.reject("Error writing svgFile " + tmpPath);
+                            }
+                            else {
+                                svgDeferred.resolve(tmpPath);
+                            }
+                        });
+                        return svgDeferred.promise;
+                    }
+                    else {
+                        return _generator.savePixmap(data, tmpPath, settings);
+                    }
                 })
                 .then(function () {
                     // Create the target directory
@@ -1072,17 +1083,22 @@
         function createComponentImage(component, exactBounds) {
             // SVGs use a different code path from the pixel-based formats
             if (component.extension === "svg") {
-                var fileSavedDeferred = Q.defer();
-
                 console.log("Creating SVG for layer " + layer.id + " (" + component.name + ")");
-                _generator.saveLayerToSVGFile(layer.id, component.scale || 1, component.file);
-
-                // TODO: Make sure this is called when the file operation is actually done...
-                fileSavedDeferred.resolve();
-                
-                return fileSavedDeferred.promise;
+                var svgPromise = _generator.getSVG(layer.id, component.scale || 1);
+                return svgPromise.then(
+                    function (svgJSON) {
+                        console.log("Received SVG text:\n" + decodeURI(svgJSON.svgText));
+                        return createLayerImage(decodeURI(svgJSON.svgText),
+                                                component.file,
+                                                {format:  component.extension});
+                    },
+                    function (err) {
+                        console.log("SVG creation bombed: " + err + "\n");
+                    }
+                );
             }
 
+            // Code path for pixel-based output (SVG output will cause an early return)
             var scaleSettings = {
                     width:  convertToPixels(component.width,  component.widthUnit),
                     height: convertToPixels(component.height, component.heightUnit),
