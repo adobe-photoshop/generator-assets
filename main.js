@@ -335,7 +335,7 @@
     }
     
     function analyzeLayerName(layerName) {
-        var components = parseLayerName(layerName),
+        var components = typeof(layerName) === "string" ? parseLayerName(layerName) : [],
             errors = [];
 
         var validFileComponents = components.filter(function (component) {
