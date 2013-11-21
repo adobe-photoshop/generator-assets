@@ -94,34 +94,6 @@
         return process.env[(process.platform === "win32") ? "USERPROFILE" : "HOME"];
     }
 
-    function deleteDirectoryRecursively(directory) {
-        try {
-            // Directory doesn't exist? We're done.
-            if (!fs.existsSync(directory)) {
-                return true;
-            }
-
-            // Delete all entries in the directory
-            var files = fs.readdirSync(directory);
-            files.forEach(function (file) {
-                var path = resolve(directory, file);
-                if (fs.statSync(path).isDirectory()) {
-                    deleteDirectoryRecursively(path);
-                } else {
-                    fs.unlinkSync(path);
-                }
-            });
-
-            // Delete the now empty directory
-            fs.rmdirSync(directory);
-
-            return true;
-        } catch (e) {
-            console.error("Error while trying to delete directory %j: %s", directory, e.stack);
-            return false;
-        }
-    }
-
     function deleteDirectoryIfEmpty(directory) {
         try {
             if (!fs.existsSync(directory)) {
@@ -990,7 +962,9 @@
     // Start a new update
     function startLayerUpdate(changeContext) {
         function deleteLayerImages() {
-            deleteFilesRelatedToLayer(document.id, layer.id);
+            if (documentContext.assetGenerationEnabled) {
+                deleteFilesRelatedToLayer(document.id, layer.id);
+            }
         }
 
         function updateLayerName() {
