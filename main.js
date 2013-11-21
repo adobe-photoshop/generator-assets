@@ -1099,6 +1099,10 @@
 
                 pixmapSettings = _generator.getPixmapParams(scaleSettings, staticBounds, visibleBounds, paddedBounds);
 
+            if (_config && _config["use-smart-scaling"]) {
+                pixmapSettings.useSmartScaling = true;
+            }
+
             // Get the pixmap
             console.log("Requesting pixmap for layer %d (%s) in document %d with settings %j",
                 layer.id, layerContext.name || layer.name,
