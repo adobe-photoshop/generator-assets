@@ -1103,6 +1103,10 @@
                 pixmapSettings.useSmartScaling = true;
             }
 
+            if (_config && _config["include-ancestor-masks"]) {
+                pixmapSettings.includeAncestorMasks = true;
+            }
+
             // Get the pixmap
             console.log("Requesting pixmap for layer %d (%s) in document %d with settings %j",
                 layer.id, layerContext.name || layer.name,
@@ -1227,8 +1231,15 @@
         function createLayerImages() {
             var components = layerContext.validFileComponents;
 
+            var boundsOnlySettings = {
+                boundsOnly: true
+            };
+            if (_config && _config["include-ancestor-masks"]) {
+                boundsOnlySettings.includeAncestorMasks = true;
+            }
+
             // Get exact bounds
-            _generator.getPixmap(document.id, layer.id, { boundsOnly: true }).then(
+            _generator.getPixmap(document.id, layer.id, boundsOnlySettings).then(
                 function (pixmapInfo) {
                     var exactBounds = pixmapInfo.bounds;
                     if (exactBounds.right <= exactBounds.left || exactBounds.bottom <= exactBounds.top) {
