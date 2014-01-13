@@ -226,10 +226,14 @@
     
     function analyzeComponent(component, reportError) {
         var supportedUnits      = ["in", "cm", "px", "mm"];
-        var supportedExtensions = ["jpg", "jpeg", "png", "gif"];
+        var supportedExtensions = ["jpg", "jpeg", "png", "gif", "svg"];
 
-        if (_config && _config["svg-enabled"]) {
-            supportedExtensions.push("svg");
+        if (_config && _config.hasOwnProperty("svg-enabled") && !_config["svg-enabled"]) {
+            // This is written in a somewhat confusing way because we switched from
+            // svg being disabled by default to svg being enabled by default. We want to
+            // keep the config option name the same, and we want to optimize for the common
+            // case (that the config option is not present at all).
+            supportedExtensions.splice(supportedExtensions.indexOf("svg"), 1);
         }
 
         if (_config && _config["webp-enabled"]) {
