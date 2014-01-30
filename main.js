@@ -70,7 +70,6 @@
         _fallbackBaseDirectory = null,
         _contextPerDocument = {},
         _changeContextPerLayer = {},
-        _photoshopPath = null,
         _currentDocumentId,
         _documentIdsWithMenuClicks = {},
         _pendingUpdates = [],
@@ -1310,17 +1309,6 @@
         }
     }
 
-    function initPhotoshopPath() {
-        return _generator.getPhotoshopPath().then(
-            function (path) {
-                _photoshopPath = path;
-            },
-            function (err) {
-                console.error("[Assets] Error in init: Could not get photoshop path:", err);
-            }
-        );
-    }
-
     function initFallbackBaseDirectory() {
         // First, check whether we can retrieve the user's home directory
         var homeDirectory = getUserHomeDirectory();
@@ -1368,11 +1356,11 @@
             _generator.onPhotoshopEvent("currentDocumentChanged", handleCurrentDocumentChanged);
 
             initFallbackBaseDirectory();
-            initPhotoshopPath().then(function () {
-                _generator.onPhotoshopEvent("imageChanged", handleImageChanged);
 
-                requestEntireDocument();
-            }).done();
+            _generator.onPhotoshopEvent("imageChanged", handleImageChanged);
+
+            requestEntireDocument();
+
         }
         
         process.nextTick(initLater);
