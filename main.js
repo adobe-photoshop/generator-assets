@@ -170,62 +170,6 @@
             }];
         }
     }
-
-    function parseFileSpec(fileSpec) {
-        var result = {
-            name: fileSpec
-        };
-        
-        /* jshint maxlen: 160 */
-        var exp = /^((((\d+|\d*\.\d+)(?:([a-z]{2}) )?|\?) *x *((\d+|\d*\.\d+)(?:([a-z]{2}) *)?|\?) +)|((\d+)% *))?(.+\.([a-z0-9]*[a-z]))(\-?(\d+%?))?$/i;
-        
-        /* jshint maxlen: 120 */
-        
-        var match = fileSpec.match(exp);
-        // match items
-        // 0 - matching string
-        // 1 - matching part of the scaling (if both abs and rel, second one)
-        // 2 - absolute scaling match string
-        // 3 - absolute scaling width string (may be ?)
-        // 4 - absolute scaling width number (undefined for ?)
-        // 5 - absolute scaling width unit (if undefined - pixels)
-        // 6 - absolute scaling height string (may be ?)
-        // 7 - absolute scaling height number (undefined for ?)
-        // 8 - absolute scaling height unit (if undefined - pixels)
-        // 9 - relative scaling match string
-        // 10 - relative scaling match number
-        // 11 - file name
-        // 12 - file extension
-        // 13 - quality match string
-        // 14 - quality number
-
-        if (match) {
-            result.file      = match[11];
-            result.extension = match[12].toLowerCase();
-            if (typeof match[13] !== "undefined") {
-                result.quality = match[14];
-            }
-            if (typeof match[9] !== "undefined") {
-                result.scale = parseInt(match[10], 10) / 100;
-            }
-            if (typeof match[2] !== "undefined") {
-                if (match[3] !== "?") {
-                    result.width = parseFloat(match[4]);
-                    if (typeof match[5] !== "undefined") {
-                        result.widthUnit = match[5];
-                    }
-                }
-                if (match[6] !== "?") {
-                    result.height = parseFloat(match[7]);
-                    if (typeof match[8] !== "undefined") {
-                        result.heightUnit = match[8];
-                    }
-                }
-            }
-        }
-
-        return result;
-    }
     
     function analyzeComponent(component, reportError) {
         var supportedUnits      = ["in", "cm", "px", "mm"];
