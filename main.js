@@ -41,7 +41,8 @@
         _gotChangeWhileWaiting = {};
 
     var utils = require("./lib/utils"),
-        validation = require("./lib/validation");
+        validation = require("./lib/validation"),
+        layerNameParser = require("./lib/parser");
 
     var PLUGIN_ID = require("./package.json").name,
         MENU_ID = "assets",
@@ -161,10 +162,13 @@
     }
 
     function parseLayerName(layerName) {
-        var parts = layerName.split(/[,\+]/).map(function (layerName) {
-            return layerName.trim();
-        });
-        return parts.map(parseFileSpec);
+        try {
+            return layerNameParser.parse(layerName);
+        } catch (e) {
+            return [{
+                name: layerName
+            }];
+        }
     }
 
     function parseFileSpec(fileSpec) {

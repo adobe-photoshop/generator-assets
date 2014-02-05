@@ -13,21 +13,43 @@ speclist
 	/ only:spec { return [only]; }
 
 spec
-	= _ size:(scale?) _ filepart:filename _ {
-		return {
+	= _ size:(scale?) _ filepart:filename _ { // disallow duplicate scales
+		var result = {
 			file: filepart.filename,
 			extension: filepart.extension,
-			quality: filepart.quality,
-			scale: size && size.scale,
-			width: size && size.width,
-			widthUnit: size && size.widthUnit,
-			height: size && size.height,
-			heightUnit: size && size.heightUnit
-		};
+		}
+
+		if (filepart.quality) {
+			result.quality = filepart.quality;
+		}
+
+		if (size) {
+			if (size.scale !== null) {
+				result.scale = size.scale;
+			}
+
+			if (size.width) {
+				result.width = size.width;
+			}
+
+			if (size.widthUnit) {
+				result.widthUnit = size.widthUnit;
+			}
+
+			if (size.height) {
+				result.height = size.height;
+			}
+
+			if (size.heightUnit) {
+				result.heightUnit = size.heightUnit;
+			}
+		}
+		
+		return result;
 	}
-	/ layername:rchars {
+	/ _ layername:rchars _ {
 		return {
-			file: layername
+			name: layername.trim()
 		};
 	}
 
@@ -36,65 +58,28 @@ filename
 		var filename = String.prototype.concat.apply("", nameparts) + extpart.extension;
 
 		return {
-			filename: filename,
+			filename: filename.trim(),
 			extension: extpart.extension.toLowerCase(),
 			quality: extpart.quality
 		};
 	} 
 
 fileext
-	= ext:"jpg"i "-"? quality:jpgquality? {
-		return {
-			extension: ext,
-			quality: quality
-		}
-	}
-	/ ext:"png"i "-"? quality:pngquality? {
-		return {
-			extension: ext,
-			quality: quality
-		}
-	}
-	/ ext:"gif"i "-"? {
-		return {
-			extension: ext,
-		}
-	}
-	/ ext:"webp" "-"? quality:webpquality? {
-		return {
-			extension: ext,
-			quality: quality
-		}
-	}
+	= extension:[a-zA-Z]+ "-"? quality:digit* pct:"%"? {
+		var result = {
+			extension: extension.join(""),
+		};
 
-jpgquality
-	= digits:digits "%" { return digits.join("").concat("%"); }
-	/ "10"	
-	/ digit19
+		if (quality || pct) {
+			result.quality = quality.join("") + (pct ? pct : "");
+		}
 
-pngquality
-	= "8"
-	/ "24"
-	/ "32"
-
-webpquality
-	= digits:digits "%" { return digits.join("").concat("%"); }
-	/ "10"	
-	/ digit19
+		return result;
+	}
 
 scale
 	= relscale
-	/ absscale
-
-absscale
-	= width:absunit _ "x"i _ height:absunit {
-		return {
-			width: width.value,
-			widthUnit: width.unit,
-			height: height.value,
-			heightUnit: height.unit
-			};
-		}
+	/ abs:absscale " " { return abs; }
 
 relscale
 	= scale:percentage {
@@ -103,22 +88,36 @@ relscale
 		};
 	}
 
+absscale
+	= width:absunit _ "x"i _ height:absunit {
+		return {
+			width: width.value,
+			widthUnit: width.unit,
+			height: height.value,
+			heightUnit: height.unit
+		};
+	}
+
 absunit
-	= value:number unit:(unit?) {
+	= value:number unit:unit? {
 		return {
 			value: value,
 			unit: unit
-			};
-		}
+		};
+	}
 	/ "?" {
 		return { };
 	}
 
 unit
-	= chars:([a-z][a-z]) { return chars.join(""); }
+	= chars:([a-z][a-z]) {
+		return chars.join("");
+	}
 
 percentage
-	= num:posint "%" { return num / 100; }
+	= num:digit* "%" {
+		return parseInt(num.join("")) / 100;
+	}
 
 // stolen from the JSON grammer spec
 
@@ -163,10 +162,9 @@ char
     }
 
 number "number"
-  = parts:$(int frac exp) _ { return parseFloat(parts); }
-  / parts:$(int frac) _     { return parseFloat(parts); }
-  / parts:$(int exp) _      { return parseFloat(parts); }
-  / parts:$(int) _          { return parseFloat(parts); }
+  = parts:$(int frac)     { return parseFloat(parts); }
+  / parts:$(int)          { return parseFloat(parts); }
+  / parts:$(frac)         { return parseFloat(parts.slice(1)) / 10; }
 
 posint
   = parts:$(digit19 digits) { return parseInt(parts); }
@@ -179,14 +177,9 @@ int
 frac
   = "." digits
 
-exp
-  = e digits
-
 digits
   = digit+
 
-e
-  = [eE] [+-]?
 
 /*
  * The following rules are not present in the original JSON gramar, but they are
