@@ -161,6 +161,19 @@
         });
     }
 
+    /**
+     * Parse a layer name into a non-empty array of file specification parts.
+     * If a given layer specification part can be parsed into a file specification,
+     * then the resulting object has at least "file" and "extension" properties,
+     * and possibly also "quality", "width", "height", "widthUnit" and "heightUnit"
+     * properties as well. Otherwise, if a given layer name part (or the entire
+     * layer name) can't be parsed into a file specification, then the resulting
+     * object just has a single "name" property, which is the same as the input
+     * string.
+     * 
+     * @param {string} layerName
+     * @returns {Array.<{name: string} | {file: string, extension: string}>}
+     */
     function parseLayerName(layerName) {
         try {
             return layerNameParser.parse(layerName);
@@ -1008,7 +1021,7 @@
         function createComponentImage(component, exactBounds) {
             // SVGs use a different code path from the pixel-based formats
             if (component.extension === "svg") {
-                console.log("Creating SVG for layer " + layer.id + " (" + component.name + ")");
+                console.log("Creating SVG for layer " + layer.id + " (" + component.file + ")");
                 var svgPromise = _generator.getSVG(layer.id, component.scale || 1);
                 return svgPromise.then(
                     function (svgJSON) {
@@ -1209,7 +1222,7 @@
                         results.forEach(function (result, i) {
                             if (result.state === "rejected") {
                                 var error = result.reason ? (result.reason.stack || result.reason) : "Unknown reason";
-                                errors.push(components[i].name + ": " + error);
+                                errors.push(components[i].file + ": " + error);
                             }
                         });
 
@@ -1308,7 +1321,6 @@
             _generator.onPhotoshopEvent("imageChanged", handleImageChanged);
 
             requestEntireDocument();
-
         }
         
         process.nextTick(initLater);
