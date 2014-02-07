@@ -26,7 +26,7 @@
 
     require("./assertions");
     
-    var validateFileName = require("../lib/validation").validateFileName;
+    var validateFileName = require("../lib/analysis")._validateFileName;
 
     exports.test = function (test) {
         test.functionReportsErrors(test, validateFileName,

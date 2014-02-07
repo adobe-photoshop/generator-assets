@@ -26,7 +26,7 @@
 
     require("./assertions");
     
-    var main = require("../main.js");
+    var analysis = require("../lib/analysis");
 
     exports.testExtensions = function (test) {
         var spec = {
@@ -41,7 +41,7 @@
         };
 
         test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, main._parseLayerName, spec);
+        test.callsMatchSpecification(test, analysis._parseLayerName, spec);
         test.done();
     };
 
@@ -63,7 +63,7 @@
         };
         
         test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, main._parseLayerName, spec);
+        test.callsMatchSpecification(test, analysis._parseLayerName, spec);
         test.done();
     };
 
@@ -79,7 +79,7 @@
         };
         
         test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, main._parseLayerName, spec);
+        test.callsMatchSpecification(test, analysis._parseLayerName, spec);
         test.done();
     };
 
@@ -101,7 +101,7 @@
         };
         
         test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, main._parseLayerName, spec);
+        test.callsMatchSpecification(test, analysis._parseLayerName, spec);
         test.done();
     };
 
@@ -119,7 +119,7 @@
         };
         
         test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, main._parseLayerName, spec);
+        test.callsMatchSpecification(test, analysis._parseLayerName, spec);
         test.done();
     };
 
@@ -193,7 +193,7 @@
         };
 
         test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, main._parseLayerName, spec);
+        test.callsMatchSpecification(test, analysis._parseLayerName, spec);
         test.done();
     };
 
@@ -215,7 +215,7 @@
         };
         
         test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, main._parseLayerName, spec);
+        test.callsMatchSpecification(test, analysis._parseLayerName, spec);
         test.done();
     };
 
@@ -228,7 +228,7 @@
         };
         
         test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, main._parseLayerName, spec);
+        test.callsMatchSpecification(test, analysis._parseLayerName, spec);
         test.done();
     };
 
@@ -289,7 +289,7 @@
         };
         
         test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, main._parseLayerName, spec);
+        test.callsMatchSpecification(test, analysis._parseLayerName, spec);
         test.done();
     };
 
@@ -356,7 +356,7 @@
         };
         
         test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, main._parseLayerName, spec);
+        test.callsMatchSpecification(test, analysis._parseLayerName, spec);
         test.done();
     };
 
@@ -373,7 +373,7 @@
         };
         
         test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, main._parseLayerName, spec);
+        test.callsMatchSpecification(test, analysis._parseLayerName, spec);
         test.done();
     };
 }());
