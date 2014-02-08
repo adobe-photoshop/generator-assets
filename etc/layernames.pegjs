@@ -13,32 +13,33 @@ speclist "List of layer specifications"
 spec "Layer specification"
     = _ size:scale? _ filepart:filename _ { // Parsed layer name part
         var result = {
+            name: text().trim(),
             file: filepart.filename,
             extension: filepart.extension,
         }
 
-        if (filepart.quality) {
+        if (filepart.hasOwnProperty("quality")) {
             result.quality = filepart.quality;
         }
 
         if (size) {
-            if (size.scale !== null) {
+            if (size.hasOwnProperty("scale")) {
                 result.scale = size.scale;
             }
 
-            if (size.width) {
+            if (size.hasOwnProperty("width")) {
                 result.width = size.width;
             }
 
-            if (size.widthUnit) {
+            if (size.hasOwnProperty("widthUnit")) {
                 result.widthUnit = size.widthUnit;
             }
 
-            if (size.height) {
+            if (size.hasOwnProperty("height")) {
                 result.height = size.height;
             }
 
-            if (size.heightUnit) {
+            if (size.hasOwnProperty("heightUnit")) {
                 result.heightUnit = size.heightUnit;
             }
         }
@@ -53,15 +54,17 @@ spec "Layer specification"
 
 filename "Filename and quality suffix"
     = nameparts:goodcharsthendot+ suffix:fileext {
-        var filename = String.prototype.concat.apply("", nameparts);
+        var filename = String.prototype.concat.apply("", nameparts) + suffix.extension,
+            result = {
+                filename: filename.trim(),
+                extension: suffix.extension.toLowerCase()
+            };
 
-        filename += suffix.extension;
+        if (suffix.hasOwnProperty("quality")) {
+            result.quality = suffix.quality;
+        }
 
-        return {
-            filename: filename.trim(),
-            extension: suffix.extension.toLowerCase(),
-            quality: suffix.quality
-        };
+        return result;
     } 
 
 fileext "File extension and quality suffix"
@@ -70,7 +73,7 @@ fileext "File extension and quality suffix"
             extension: extension.join(""),
         };
 
-        if (quality || pct) {
+        if (quality.length > 0 || pct) {
             result.quality = quality.join("") + (pct ? pct : "");
         }
 
@@ -79,7 +82,9 @@ fileext "File extension and quality suffix"
 
 scale "Relative or absolute scale"
     = relscale
-    / abs:absscale " " { return abs; }
+    / abs:absscale " " {
+        return abs;
+    }
 
 relscale
     = scale:percent {
@@ -90,20 +95,38 @@ relscale
 
 absscale "Absolute scale"
     = width:abscomp _ "x"i _ height:abscomp {
-        return {
-            width: width.value,
-            widthUnit: width.unit,
-            height: height.value,
-            heightUnit: height.unit
-        };
+        var result = {};
+
+        if (width.hasOwnProperty("value")) {
+            result.width = width.value;
+        }
+
+        if (width.hasOwnProperty("unit")) {
+            result.widthUnit = width.unit;
+        }
+
+        if (height.hasOwnProperty("value")) {
+            result.height = height.value;
+        }
+
+        if (height.hasOwnProperty("unit")) {
+            result.heightUnit = height.unit;
+        }
+
+        return result;
     }
 
 abscomp "Absolute scale component"
     = value:number unit:unit? {
-        return {
+        var result = {
             value: value,
-            unit: unit
         };
+
+        if (unit) {
+            result.unit = unit;
+        }
+
+        return result;
     }
     / "?" { // wildcard component
         return {
@@ -137,11 +160,10 @@ goodchars "A sequence of characters, excluding dots"
     }
 
 char "A character, including dots"
-    = goodchar
-    / "."
+    = [^,+]
 
 goodchar "A character, excluding dots and other weird things"
-    = [^\.\+,"\\\0-\x1F\x7f]
+    = [^+,."/*<>?!:\\\0-\x1F\x7f]
 
 number "A nonnegative number, which may or may not have leading zeros"
     = parts:$(digits ("." digits)?) { return parseFloat(parts); } // e.g., 123 or 1.23

@@ -161,16 +161,17 @@
 
     /**
      * Parse a layer name into a non-empty array of file specification parts.
-     * If a given layer specification part can be parsed into a file specification,
-     * then the resulting object has at least "file" and "extension" properties,
-     * and possibly also "quality", "width", "height", "widthUnit" and "heightUnit"
-     * properties as well. Otherwise, if a given layer name part (or the entire
-     * layer name) can't be parsed into a file specification, then the resulting
-     * object just has a single "name" property, which is the same as the input
-     * string.
+     * Each layer name part always results in an object with at least a "name"
+     * property, which is the raw input to the parser. If a given layer name
+     * part is successfully parsed into a file specification, then the resulting
+     * object always additionally has "file" and "extension" properties, and
+     * possibly also "scale", "width", "height", "widthUnit", "heightUnit" and
+     * "quality" properties as well.
      * 
      * @param {string} layerName
-     * @returns {Array.<{name: string} | {file: string, extension: string}>}
+     * @returns {Array.<{name: !string, file: string=, extension: string=,
+     *      scale: string=, width: number=, widthUnit: string, height: number=,
+     *      heightUnit: string=, quality: string=}>}
      */
     function parseLayerName(layerName) {
         try {
@@ -1019,7 +1020,7 @@
         function createComponentImage(component, exactBounds) {
             // SVGs use a different code path from the pixel-based formats
             if (component.extension === "svg") {
-                console.log("Creating SVG for layer " + layer.id + " (" + component.file + ")");
+                console.log("Creating SVG for layer " + layer.id + " (" + component.name + ")");
                 var svgPromise = _generator.getSVG(layer.id, component.scale || 1);
                 return svgPromise.then(
                     function (svgJSON) {
@@ -1220,7 +1221,7 @@
                         results.forEach(function (result, i) {
                             if (result.state === "rejected") {
                                 var error = result.reason ? (result.reason.stack || result.reason) : "Unknown reason";
-                                errors.push(components[i].file + ": " + error);
+                                errors.push(components[i].name + ": " + error);
                             }
                         });
 
