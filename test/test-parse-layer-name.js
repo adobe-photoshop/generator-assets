@@ -293,6 +293,73 @@
         test.done();
     };
 
+    exports.badChars = function (test) {
+        var spec = {
+            // + is a separator
+            "foo+bar.jpg": [
+                { name: "foo" },
+                { name: "bar.jpg", file: "bar.jpg", extension: "jpg" }
+            ],
+            // , is a separator
+            "foo,bar.jpg": [
+                { name: "foo" },
+                { name: "bar.jpg", file: "bar.jpg", extension: "jpg" }
+            ],
+            // . is allowed
+            "foo.bar.jpg": [
+                { name: "foo.bar.jpg", file: "foo.bar.jpg", extension: "jpg" }
+            ],
+            // ' is allowed
+            "foo'bar.jpg": [
+                { name: "foo'bar.jpg", file: "foo'bar.jpg", extension: "jpg" }
+            ],
+            // % is allowed
+            "foo%bar.jpg": [
+                { name: "foo%bar.jpg", file: "foo%bar.jpg", extension: "jpg" }
+            ],
+            // " is not allowed
+            "foo\"bar.jpg": [
+                { name: "foo\"bar.jpg" }
+            ],
+            // / is not allowed
+            "foo/bar.jpg": [
+                { name: "foo/bar.jpg" }
+            ],
+            // * is not allowed
+            "foo*bar.jpg": [
+                { name: "foo*bar.jpg" }
+            ],
+            // < is not allowed
+            "foo<bar.jpg": [
+                { name: "foo<bar.jpg" }
+            ],
+            // > is not allowed
+            "foo>bar.jpg": [
+                { name: "foo>bar.jpg" }
+            ],
+            // ? is not allowed
+            "foo?bar.jpg": [
+                { name: "foo?bar.jpg" }
+            ],
+            // ! is not allowed
+            "foo!bar.jpg": [
+                { name: "foo!bar.jpg" }
+            ],
+            // : is not allowed
+            "foo:bar.jpg": [
+                { name: "foo:bar.jpg" }
+            ],
+            // | is not allowed
+            "foo|bar.jpg": [
+                { name: "foo|bar.jpg" }
+            ]
+        };
+        
+        test.expect(Object.keys(spec).length + 1);
+        test.callsMatchSpecification(test, main._parseLayerName, spec);
+        test.done();
+    };
+
     exports.testUltimate = function (test) {
         var spec = {
             // Putting it all together
