@@ -21,8 +21,6 @@
  * 
  */
 
-/*jshint unused: false */
-
 (function () {
     "use strict";
 
@@ -41,7 +39,8 @@
         _gotChangeWhileWaiting = {};
 
     var utils = require("./lib/utils"),
-        validation = require("./lib/validation");
+        validation = require("./lib/validation"),
+        layerNameParser = require("./lib/parser");
 
     var PLUGIN_ID = require("./package.json").name,
         MENU_ID = "assets",
@@ -70,7 +69,6 @@
         _fallbackBaseDirectory = null,
         _contextPerDocument = {},
         _changeContextPerLayer = {},
-        _photoshopPath = null,
         _currentDocumentId,
         _documentIdsWithMenuClicks = {},
         _pendingUpdates = [],
@@ -161,67 +159,28 @@
         });
     }
 
+    /**
+     * Parse a layer name into a non-empty array of file specification parts.
+     * Each layer name part always results in an object with at least a "name"
+     * property, which is the raw input to the parser. If a given layer name
+     * part is successfully parsed into a file specification, then the resulting
+     * object always additionally has "file" and "extension" properties, and
+     * possibly also "scale", "width", "height", "widthUnit", "heightUnit" and
+     * "quality" properties as well.
+     * 
+     * @param {string} layerName
+     * @returns {Array.<{name: !string, file: string=, extension: string=,
+     *      scale: string=, width: number=, widthUnit: string, height: number=,
+     *      heightUnit: string=, quality: string=}>}
+     */
     function parseLayerName(layerName) {
-        var parts = layerName.split(/[,\+]/).map(function (layerName) {
-            return layerName.trim();
-        });
-        return parts.map(parseFileSpec);
-    }
-
-    function parseFileSpec(fileSpec) {
-        var result = {
-            name: fileSpec
-        };
-        
-        /* jshint maxlen: 160 */
-        var exp = /^((((\d+|\d*\.\d+)(?:([a-z]{2}) )?|\?) *x *((\d+|\d*\.\d+)(?:([a-z]{2}) *)?|\?) +)|((\d+)% *))?(.+\.([a-z0-9]*[a-z]))(\-?(\d+%?))?$/i;
-        
-        /* jshint maxlen: 120 */
-        
-        var match = fileSpec.match(exp);
-        // match items
-        // 0 - matching string
-        // 1 - matching part of the scaling (if both abs and rel, second one)
-        // 2 - absolute scaling match string
-        // 3 - absolute scaling width string (may be ?)
-        // 4 - absolute scaling width number (undefined for ?)
-        // 5 - absolute scaling width unit (if undefined - pixels)
-        // 6 - absolute scaling height string (may be ?)
-        // 7 - absolute scaling height number (undefined for ?)
-        // 8 - absolute scaling height unit (if undefined - pixels)
-        // 9 - relative scaling match string
-        // 10 - relative scaling match number
-        // 11 - file name
-        // 12 - file extension
-        // 13 - quality match string
-        // 14 - quality number
-
-        if (match) {
-            result.file      = match[11];
-            result.extension = match[12].toLowerCase();
-            if (typeof match[13] !== "undefined") {
-                result.quality = match[14];
-            }
-            if (typeof match[9] !== "undefined") {
-                result.scale = parseInt(match[10], 10) / 100;
-            }
-            if (typeof match[2] !== "undefined") {
-                if (match[3] !== "?") {
-                    result.width = parseFloat(match[4]);
-                    if (typeof match[5] !== "undefined") {
-                        result.widthUnit = match[5];
-                    }
-                }
-                if (match[6] !== "?") {
-                    result.height = parseFloat(match[7]);
-                    if (typeof match[8] !== "undefined") {
-                        result.heightUnit = match[8];
-                    }
-                }
-            }
+        try {
+            return layerNameParser.parse(layerName);
+        } catch (e) {
+            return [{
+                name: layerName
+            }];
         }
-
-        return result;
     }
     
     function analyzeComponent(component, reportError) {
@@ -1310,17 +1269,6 @@
         }
     }
 
-    function initPhotoshopPath() {
-        return _generator.getPhotoshopPath().then(
-            function (path) {
-                _photoshopPath = path;
-            },
-            function (err) {
-                console.error("[Assets] Error in init: Could not get photoshop path:", err);
-            }
-        );
-    }
-
     function initFallbackBaseDirectory() {
         // First, check whether we can retrieve the user's home directory
         var homeDirectory = getUserHomeDirectory();
@@ -1368,11 +1316,10 @@
             _generator.onPhotoshopEvent("currentDocumentChanged", handleCurrentDocumentChanged);
 
             initFallbackBaseDirectory();
-            initPhotoshopPath().then(function () {
-                _generator.onPhotoshopEvent("imageChanged", handleImageChanged);
 
-                requestEntireDocument();
-            }).done();
+            _generator.onPhotoshopEvent("imageChanged", handleImageChanged);
+
+            requestEntireDocument();
         }
         
         process.nextTick(initLater);

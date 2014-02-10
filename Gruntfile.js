@@ -47,14 +47,26 @@ module.exports = function (grunt) {
  
         nodeunit : {
             all : ["test/test-*.js"]
-        }
+        },
        
+        peg : {
+            layernames : {
+                src : "etc/layernames.pegjs",
+                dest : "lib/parser.js",
+                options : {
+                    cache: true
+                }
+            }
+        }
     });
 
     grunt.loadNpmTasks("grunt-contrib-jshint");
     grunt.loadNpmTasks("grunt-contrib-nodeunit");
+    grunt.loadNpmTasks("grunt-peg");
 
     grunt.registerTask("test", ["jshint", "nodeunit"]);
+
+    grunt.registerTask("build", ["peg"]);
 
     grunt.registerTask("default", ["test"]);
 
