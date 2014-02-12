@@ -293,7 +293,7 @@
         test.done();
     };
 
-    exports.badChars = function (test) {
+    exports.testBadChars = function (test) {
         var spec = {
             // + is a separator
             "foo+bar.jpg": [
@@ -321,9 +321,9 @@
             "foo\"bar.jpg": [
                 { name: "foo\"bar.jpg" }
             ],
-            // / is not allowed
-            "foo/bar.jpg": [
-                { name: "foo/bar.jpg" }
+            // / is not allowed, unless it is used to demarcate a subfolder
+            "/foobar.jpg": [
+                { name: "/foobar.jpg" }
             ],
             // * is not allowed
             "foo*bar.jpg": [
@@ -352,6 +352,71 @@
             // | is not allowed
             "foo|bar.jpg": [
                 { name: "foo|bar.jpg" }
+            ]
+        };
+        
+        test.expect(Object.keys(spec).length + 1);
+        test.callsMatchSpecification(test, analysis._parseLayerName, spec);
+        test.done();
+    };
+
+    exports.testSubfolders = function (test) {
+        var spec = {
+            "folder/file.png": [
+                { name: "folder/file.png", file: "file.png", extension: "png", folder: "folder" }
+            ],
+            "folder/subfolder/file.png": [
+                { name: "folder/subfolder/file.png", file: "file.png", extension: "png", folder: "folder/subfolder" }
+            ],
+            "folder/subfolder/subsubfolder/file.png": [
+                { name: "folder/subfolder/subsubfolder/file.png", file: "file.png", extension: "png",
+                folder: "folder/subfolder/subsubfolder" }
+            ],
+            "300% folder/file.png": [
+                { name: "300% folder/file.png", file: "file.png", extension: "png", folder: "folder", "scale": 3.0 }
+            ],
+            "100x200cm folder/file.png": [
+                { name: "100x200cm folder/file.png", file: "file.png", extension: "png", folder: "folder",
+                width: 100, height: 200, heightUnit: "cm" }
+            ],
+            "300% folder/file.png-8": [
+                { name: "300% folder/file.png-8", file: "file.png", extension: "png", folder: "folder",
+                quality: "8", scale: 3.0 }
+            ],
+            "100x200cm folder/file.png-8": [
+                { name: "100x200cm folder/file.png-8", file: "file.png", extension: "png", folder: "folder",
+                quality: "8", width: 100, height: 200, heightUnit: "cm" }
+            ],
+            "folder.foo/bar.png": [
+                { name: "folder.foo/bar.png", file: "bar.png", extension: "png", folder: "folder.foo" }
+            ],
+            // Bad slash positions
+            "file/.png": [
+                { name: "file/.png" }
+            ],
+            "/file.png": [
+                { name: "/file.png" }
+            ],
+            "/folder/file.png": [
+                { name: "/folder/file.png" }
+            ],
+            // No . allowed
+            "./file.png": [
+                { name: "./file.png" }
+            ],
+            "folder/./file.png": [
+                { name: "folder/./file.png" }
+            ],
+            // No .. allowed
+            "../file.png": [
+                { name: "../file.png" }
+            ],
+            "folder/../file.png": [
+                { name: "folder/../file.png" }
+            ],
+            // No // allowed
+            "folder//file.png": [
+                { name: "folder//file.png" }
             ]
         };
         
