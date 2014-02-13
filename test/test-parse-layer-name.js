@@ -390,6 +390,10 @@
             "folder.foo/bar.png": [
                 { name: "folder.foo/bar.png", file: "bar.png", extension: "png", folder: "folder.foo" }
             ],
+            "50% lo-res/bar.png + hi-res/bar.png": [
+                { name: "50% lo-res/bar.png", file: "bar.png", extension: "png", folder: "lo-res", scale: 0.5 },
+                { name: "hi-res/bar.png", file: "bar.png", extension: "png", folder: "hi-res" }
+            ],
             // Bad slash positions
             "file/.png": [
                 { name: "file/.png" }
