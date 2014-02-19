@@ -26,35 +26,35 @@
 
     require("./assertions");
     
-    var validateFileName = require("../lib/analysis")._validateFileName;
+    // var validateFileName = require("../lib/analysis")._validateFileName;
 
-    exports.test = function (test) {
-        test.functionReportsErrors(test, validateFileName,
-            ["foo.jpg"], []);
-        test.functionReportsErrors(test, validateFileName,
-            ["fo=o.jpg"], ["File name contains invalid character \"=\""]);
-        test.functionReportsErrors(test, validateFileName,
-            ["fo<o.jpg"], ["File name contains invalid character \"<\""]);
-        test.functionReportsErrors(test, validateFileName,
-            ["fo>o.jpg"], ["File name contains invalid character \">\""]);
-        test.functionReportsErrors(test, validateFileName,
-            ["fo:o.jpg"], ["File name contains invalid character \":\""]);
-        test.functionReportsErrors(test, validateFileName,
-            ["fo\"o.jpg"], ["File name contains invalid character \"\\\"\""]);
-        test.functionReportsErrors(test, validateFileName,
-            ["fo/o.jpg"], ["File name contains invalid character \"/\""]);
-        test.functionReportsErrors(test, validateFileName,
-            ["fo\\o.jpg"], ["File name contains invalid character \"\\\\\""]);
-        test.functionReportsErrors(test, validateFileName,
-            ["fo|o.jpg"], ["File name contains invalid character \"|\""]);
-        test.functionReportsErrors(test, validateFileName,
-            ["fo?o.jpg"], ["File name contains invalid character \"?\""]);
-        test.functionReportsErrors(test, validateFileName,
-            ["fo*o.jpg"], ["File name contains invalid character \"*\""]);
-        test.functionReportsErrors(test, validateFileName,
-            ["fo\0o.jpg"], ["File name contains invalid character \"\\u0000\""]);
+    // exports.test = function (test) {
+    //     test.functionReportsErrors(test, validateFileName,
+    //         ["foo.jpg"], []);
+    //     test.functionReportsErrors(test, validateFileName,
+    //         ["fo=o.jpg"], ["File name contains invalid character \"=\""]);
+    //     test.functionReportsErrors(test, validateFileName,
+    //         ["fo<o.jpg"], ["File name contains invalid character \"<\""]);
+    //     test.functionReportsErrors(test, validateFileName,
+    //         ["fo>o.jpg"], ["File name contains invalid character \">\""]);
+    //     test.functionReportsErrors(test, validateFileName,
+    //         ["fo:o.jpg"], ["File name contains invalid character \":\""]);
+    //     test.functionReportsErrors(test, validateFileName,
+    //         ["fo\"o.jpg"], ["File name contains invalid character \"\\\"\""]);
+    //     test.functionReportsErrors(test, validateFileName,
+    //         ["fo/o.jpg"], ["File name contains invalid character \"/\""]);
+    //     test.functionReportsErrors(test, validateFileName,
+    //         ["fo\\o.jpg"], ["File name contains invalid character \"\\\\\""]);
+    //     test.functionReportsErrors(test, validateFileName,
+    //         ["fo|o.jpg"], ["File name contains invalid character \"|\""]);
+    //     test.functionReportsErrors(test, validateFileName,
+    //         ["fo?o.jpg"], ["File name contains invalid character \"?\""]);
+    //     test.functionReportsErrors(test, validateFileName,
+    //         ["fo*o.jpg"], ["File name contains invalid character \"*\""]);
+    //     test.functionReportsErrors(test, validateFileName,
+    //         ["fo\0o.jpg"], ["File name contains invalid character \"\\u0000\""]);
 
-        test.done();
-    };
+    //     test.done();
+    // };
 
 }());

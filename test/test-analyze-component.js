@@ -26,123 +26,115 @@
 
     require("./assertions");
 
-    var utils = require("../lib/utils"),
-        analysis = require("../lib/analysis");
+    // var analysis = require("../lib/analysis");
 
-    var _config = {
-        "svg-enabled": true,
-        "webp-enabled": true
-    };
+    // var analyzeComponent = function (component, reportError) {
+    //     analysis._analyzeComponent(component, reportError);
+    // };
 
-    utils.config = _config;
+    // exports.testOnlyCheckPresentValues = function (test) {
+    //     test.functionReportsErrors(test, analyzeComponent, [{}], []);
 
-    var analyzeComponent = function (component, reportError) {
-        analysis._analyzeComponent(component, reportError);
-    };
+    //     test.done();
+    // };
 
-    exports.testOnlyCheckPresentValues = function (test) {
-        test.functionReportsErrors(test, analyzeComponent, [{}], []);
+    // exports.testScalingChecks = function (test) {
+    //     // Correct values
+    //     test.functionReportsErrors(test, analyzeComponent,
+    //         [{ scale: 0.5 }], []);
+    //     test.functionReportsErrors(test, analyzeComponent,
+    //         [{ width: 300, height: 200, widthUnit: "px", heightUnit: "in" }], []);
 
-        test.done();
-    };
-
-    exports.testScalingChecks = function (test) {
-        // Correct values
-        test.functionReportsErrors(test, analyzeComponent,
-            [{ scale: 0.5 }], []);
-        test.functionReportsErrors(test, analyzeComponent,
-            [{ width: 300, height: 200, widthUnit: "px", heightUnit: "in" }], []);
-
-        // Incorrect values
-        test.functionReportsErrors(test, analyzeComponent,
-            [{ scale:  0 }], ["Cannot scale an image to 0%"]);
+    //     // Incorrect values
+    //     test.functionReportsErrors(test, analyzeComponent,
+    //         [{ scale:  0 }], ["Cannot scale an image to 0%"]);
         
-        test.functionReportsErrors(test, analyzeComponent,
-            [{ width:  0 }], ["Cannot set an image width to 0"]);
-        test.functionReportsErrors(test, analyzeComponent,
-            [{ height: 0 }], ["Cannot set an image height to 0"]);
+    //     test.functionReportsErrors(test, analyzeComponent,
+    //         [{ width:  0 }], ["Cannot set an image width to 0"]);
+    //     test.functionReportsErrors(test, analyzeComponent,
+    //         [{ height: 0 }], ["Cannot set an image height to 0"]);
         
-        test.functionReportsErrors(test, analyzeComponent,
-            [{ widthUnit: "foo" }], ["Unsupported image width unit \"foo\""]);
-        test.functionReportsErrors(test, analyzeComponent,
-            [{ heightUnit: "bar" }], ["Unsupported image height unit \"bar\""]);
+    //     test.functionReportsErrors(test, analyzeComponent,
+    //         [{ widthUnit: "foo" }], ["Unsupported image width unit \"foo\""]);
+    //     test.functionReportsErrors(test, analyzeComponent,
+    //         [{ heightUnit: "bar" }], ["Unsupported image height unit \"bar\""]);
 
-        test.done();
-    };
+    //     test.done();
+    // };
 
-    exports.testFileExtensionChecks = function (test) {
-        // Correct values
-        test.functionReportsErrors(test, analyzeComponent,
-            [{ extension: "jpg" }], []);
+    // exports.testFileExtensionChecks = function (test) {
+    //     // Correct values
+    //     test.functionReportsErrors(test, analyzeComponent,
+    //         [{ extension: "jpg" }], []);
         
-        // Incorrect values: No message should be sent, but an error reported nonetheless
-        test.functionReportsErrors(test, analyzeComponent,
-            [{ extension: "foo" }], [undefined]);
+    //     // Incorrect values: No message should be sent, but an error reported nonetheless
+    //     test.functionReportsErrors(test, analyzeComponent,
+    //         [{ extension: "foo" }], [undefined]);
 
-        test.done();
-    };
+    //     test.done();
+    // };
 
-    exports.testQualityChecks = function (test) {
-        // Correct values
-        test.functionReportsErrors(test, analyzeComponent,
-            [{ extension: "jpg", quality: "5" }], []);
-        test.functionReportsErrors(test, analyzeComponent,
-            [{ extension: "jpg", quality: "50%" }], []);
+    // exports.testQualityChecks = function (test) {
+    //     // Correct values
+    //     test.functionReportsErrors(test, analyzeComponent,
+    //         [{ extension: "jpg", quality: "5" }], []);
+    //     test.functionReportsErrors(test, analyzeComponent,
+    //         [{ extension: "jpg", quality: "50%" }], []);
         
-        test.functionReportsErrors(test, analyzeComponent,
-            [{ extension: "webp", quality: "5" }], []);
-        test.functionReportsErrors(test, analyzeComponent,
-            [{ extension: "webp", quality: "50%" }], []);
+    //     test.functionReportsErrors(test, analyzeComponent,
+    //         [{ extension: "webp", quality: "5" }], []);
+    //     test.functionReportsErrors(test, analyzeComponent,
+    //         [{ extension: "webp", quality: "50%" }], []);
         
-        test.functionReportsErrors(test, analyzeComponent,
-            [{ extension: "png", quality: "32" }], []);
+    //     test.functionReportsErrors(test, analyzeComponent,
+    //         [{ extension: "png", quality: "32" }], []);
         
-        // Incorrect values
-        test.functionReportsErrors(test, analyzeComponent, [{ extension: "jpg", quality: "0" }],
-            ["Quality must be between 1 and 10 (is \"0\")"]);
-        test.functionReportsErrors(test, analyzeComponent, [{ extension: "jpg", quality: "11" }],
-            ["Quality must be between 1 and 10 (is \"11\")"]);
-        test.functionReportsErrors(test, analyzeComponent, [{ extension: "jpg", quality: "0%" }],
-            ["Quality must be between 1% and 100% (is \"0%\")"]);
-        test.functionReportsErrors(test, analyzeComponent, [{ extension: "jpg", quality: "101%" }],
-            ["Quality must be between 1% and 100% (is \"101%\")"]);
+    //     // Incorrect values
+    //     test.functionReportsErrors(test, analyzeComponent, [{ extension: "jpg", quality: "0" }],
+    //         ["Quality must be between 1 and 10 (is \"0\")"]);
+    //     test.functionReportsErrors(test, analyzeComponent, [{ extension: "jpg", quality: "11" }],
+    //         ["Quality must be between 1 and 10 (is \"11\")"]);
+    //     test.functionReportsErrors(test, analyzeComponent, [{ extension: "jpg", quality: "0%" }],
+    //         ["Quality must be between 1% and 100% (is \"0%\")"]);
+    //     test.functionReportsErrors(test, analyzeComponent, [{ extension: "jpg", quality: "101%" }],
+    //         ["Quality must be between 1% and 100% (is \"101%\")"]);
         
-        test.functionReportsErrors(test, analyzeComponent, [{ extension: "webp", quality: "0" }],
-            ["Quality must be between 1 and 10 (is \"0\")"]);
-        test.functionReportsErrors(test, analyzeComponent, [{ extension: "webp", quality: "11" }],
-            ["Quality must be between 1 and 10 (is \"11\")"]);
-        test.functionReportsErrors(test, analyzeComponent, [{ extension: "webp", quality: "0%" }],
-            ["Quality must be between 1% and 100% (is \"0%\")"]);
-        test.functionReportsErrors(test, analyzeComponent, [{ extension: "webp", quality: "101%" }],
-            ["Quality must be between 1% and 100% (is \"101%\")"]);
+    //     test.functionReportsErrors(test, analyzeComponent, [{ extension: "webp", quality: "0" }],
+    //         ["Quality must be between 1 and 10 (is \"0\")"]);
+    //     test.functionReportsErrors(test, analyzeComponent, [{ extension: "webp", quality: "11" }],
+    //         ["Quality must be between 1 and 10 (is \"11\")"]);
+    //     test.functionReportsErrors(test, analyzeComponent, [{ extension: "webp", quality: "0%" }],
+    //         ["Quality must be between 1% and 100% (is \"0%\")"]);
+    //     test.functionReportsErrors(test, analyzeComponent, [{ extension: "webp", quality: "101%" }],
+    //         ["Quality must be between 1% and 100% (is \"101%\")"]);
 
-        test.functionReportsErrors(test, analyzeComponent, [{ extension: "png", quality: "13" }],
-            ["PNG quality must be 8, 24 or 32 (is \"13\")"]);
-        test.functionReportsErrors(test, analyzeComponent, [{ extension: "png", quality: "13%" }],
-            ["PNG quality must be 8, 24 or 32 (is \"13%\")"]);
+    //     test.functionReportsErrors(test, analyzeComponent, [{ extension: "png", quality: "13" }],
+    //         ["PNG quality must be 8, 24 or 32 (is \"13\")"]);
+    //     test.functionReportsErrors(test, analyzeComponent, [{ extension: "png", quality: "13%" }],
+    //         ["PNG quality must be 8, 24 or 32 (is \"13%\")"]);
 
-        test.functionReportsErrors(test, analyzeComponent, [{ extension: "gif", quality: "23" }],
-            ["There should not be a quality setting for files with the extension \"gif\""]);
-        test.functionReportsErrors(test, analyzeComponent, [{ extension: "gif", quality: "23%" }],
-            ["There should not be a quality setting for files with the extension \"gif\""]);
+    //     test.functionReportsErrors(test, analyzeComponent, [{ extension: "gif", quality: "23" }],
+    //         ["There should not be a quality setting for files with the extension \"gif\""]);
+    //     test.functionReportsErrors(test, analyzeComponent, [{ extension: "gif", quality: "23%" }],
+    //         ["There should not be a quality setting for files with the extension \"gif\""]);
 
-        test.functionReportsErrors(test, analyzeComponent, [{ extension: "gif", quality: "23" }],
-            ["There should not be a quality setting for files with the extension \"gif\""]);
-        test.functionReportsErrors(test, analyzeComponent, [{ extension: "gif", quality: "23%" }],
-            ["There should not be a quality setting for files with the extension \"gif\""]);
+    //     test.functionReportsErrors(test, analyzeComponent, [{ extension: "gif", quality: "23" }],
+    //         ["There should not be a quality setting for files with the extension \"gif\""]);
+    //     test.functionReportsErrors(test, analyzeComponent, [{ extension: "gif", quality: "23%" }],
+    //         ["There should not be a quality setting for files with the extension \"gif\""]);
 
-        test.done();
-    };
+    //     test.done();
+    // };
 
-    exports.testFileNames = function (test) {
-        // Only test here if file name checking is done at all.
-        // Detailed testing of file name checking is done in test-valid-file-name.js
-        test.functionReportsErrors(test, analyzeComponent, [{ file: "foo.jpg" }],
-            []);
-        test.functionReportsErrors(test, analyzeComponent, [{ file: "fo:o.jpg" }],
-            ["File name contains invalid character \":\""]);
+    // exports.testFileNames = function (test) {
+    //     // Only test here if file name checking is done at all.
+    //     // Detailed testing of file name checking is done in test-valid-file-name.js
+    //     test.functionReportsErrors(test, analyzeComponent, [{ file: "foo.jpg" }],
+    //         []);
+    //     test.functionReportsErrors(test, analyzeComponent, [{ file: "fo:o.jpg" }],
+    //         ["File name contains invalid character \":\""]);
 
-        test.done();
-    };
+    //     test.done();
+    // };
 
 }());

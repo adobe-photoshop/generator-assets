@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2013 Adobe Systems Incorporated. All rights reserved.
+ * Copyright (c) 2014 Adobe Systems Incorporated. All rights reserved.
  *  
  * Permission is hereby granted, free of charge, to any person obtaining a
  * copy of this software and associated documentation files (the "Software"), 
@@ -24,38 +24,108 @@
 (function () {
     "use strict";
 
-    var menus = require("./lib/menus"),
-        documents = require("./lib/documents"),
-        utils = require("./lib/utils");
+    var DocumentManager = require("./lib/documentmanager"),
+        StateManager = require("./lib/statemanager"),
+        RenderManager = require("./lib/rendermanager"),
+        AssetManager = require("./lib/assetmanager");
 
-    function init(generator, config) {
-        utils.generator = generator;
-        utils.config = config;
+    var _generator,
+        _config,
+        _logger,
+        _documentManager,
+        _stateManager,
+        _renderManager;
 
-        console.log("initializing generator-assets plugin with config %j", config);
+    var _assetManagers = {};
 
-        // TODO: Much of this initialization is currently temporary. Once
-        // we have storage of assets in the correct location implemented, we
-        // should rewrite this to be more structured. The steps of init should
-        // be something like:
-        //
-        // 0. Add menu item
-        // 1. Get PS path
-        // 2. Register for PS events we care about
-        // 3. Get document info on current document, set menu state
-        // 4. Initiate asset generation on current document if enabled
-        //
-        menus.init();
+    var _waitingDocuments = {},
+        _canceledDocuments = {};
 
-        // Plugins should do as little as possible synchronously in init(). That way, all plugins get a
-        // chance to put "fast" operations (e.g. menu registration) into the photoshop communication
-        // pipe before slower startup stuff gets put in the pipe. Photoshop processes requests one at
-        // a time in FIFO order.
-        function initLater() {
-            documents.init();
+    /**
+     * Enable asset generation for the given Document ID, causing all annotated
+     * assets in the given document to be regenerated.
+     * 
+     * @param {!number} id The document ID for which asset generation should be enabled.
+     */
+    function _startAssetGeneration(id) {
+        if (_waitingDocuments.hasOwnProperty(id)) {
+            return;
         }
+
+        var documentPromise = _documentManager.getDocument(id);
         
-        process.nextTick(initLater);
+        _waitingDocuments[id] = documentPromise;
+
+        documentPromise.done(function (document) {
+            delete _waitingDocuments[id];
+
+            if (_canceledDocuments.hasOwnProperty(id)) {
+                delete _canceledDocuments[id];
+            } else {
+                if (!_assetManagers.hasOwnProperty(id)) {
+                    _assetManagers[id] = new AssetManager(_generator, _config, _logger, document, _renderManager);
+
+                    document.on("closed", _stopAssetGeneration.bind(undefined, id));
+                    document.on("end", _restartAssetGeneration.bind(undefined, id));
+                    document.on("file", _handleFileChange.bind(undefined, id));
+                }
+                _assetManagers[id].start();
+            }
+        });
+    }
+
+    /**
+     * Disable asset generation for the given Document ID, halting any asset
+     * rending in progress.
+     * 
+     * @param {!number} id The document ID for which asset generation should be disabled.
+     */
+    function _pauseAssetGeneration(id) {
+        if (_waitingDocuments.hasOwnProperty(id)) {
+            _canceledDocuments[id] = true;
+        } else if (_assetManagers.hasOwnProperty(id)) {
+            _assetManagers[id].stop();
+        }
+    }
+
+    function _stopAssetGeneration(id) {
+        _pauseAssetGeneration(id);
+
+        if (_assetManagers.hasOwnProperty(id)) {
+            delete _assetManagers[id];
+        }
+    }
+
+    function _restartAssetGeneration(id) {
+        _stopAssetGeneration(id);
+        _startAssetGeneration(id);
+    }
+
+    function _handleFileChange(id, change) {
+        // If the filename changed but the saved state didn't change, then the file must have been renamed
+        if (change.previous && !change.hasOwnProperty("previousSaved")) {
+            _stopAssetGeneration(id);
+            _stateManager.deactivate(id);
+        }
+    }
+
+    /**
+     * Initialize the Assets plugin.
+     * 
+     * @param {Generator} generator The Generator instance for this plugin.
+     * @param {object} config Configuration options for this plugin.
+     */
+    function init(generator, config, logger) {
+        _generator = generator;
+        _config = config;
+        _logger = logger;
+
+        _documentManager = new DocumentManager(generator, config, logger);
+        _stateManager = new StateManager(generator, config, logger);
+        _renderManager = new RenderManager(generator, config, logger);
+
+        _stateManager.on("active", _startAssetGeneration);
+        _stateManager.on("inactive", _pauseAssetGeneration);
     }
 
     exports.init = init;

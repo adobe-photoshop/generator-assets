@@ -26,7 +26,9 @@
 
     require("./assertions");
     
-    var analysis = require("../lib/analysis");
+    var ParserManager = require("../lib/parserManager");
+
+    var _parserManager = new ParserManager();
 
     exports.testExtensions = function (test) {
         var spec = {
@@ -41,7 +43,7 @@
         };
 
         test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, analysis._parseLayerName, spec);
+        test.callsMatchSpecification(test, _parserManager._parseLayerName, spec);
         test.done();
     };
 
@@ -63,7 +65,7 @@
         };
         
         test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, analysis._parseLayerName, spec);
+        test.callsMatchSpecification(test, _parserManager._parseLayerName, spec);
         test.done();
     };
 
@@ -79,7 +81,7 @@
         };
         
         test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, analysis._parseLayerName, spec);
+        test.callsMatchSpecification(test, _parserManager._parseLayerName, spec);
         test.done();
     };
 
@@ -101,7 +103,7 @@
         };
         
         test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, analysis._parseLayerName, spec);
+        test.callsMatchSpecification(test, _parserManager._parseLayerName, spec);
         test.done();
     };
 
@@ -119,7 +121,7 @@
         };
         
         test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, analysis._parseLayerName, spec);
+        test.callsMatchSpecification(test, _parserManager._parseLayerName, spec);
         test.done();
     };
 
@@ -193,7 +195,7 @@
         };
 
         test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, analysis._parseLayerName, spec);
+        test.callsMatchSpecification(test, _parserManager._parseLayerName, spec);
         test.done();
     };
 
@@ -215,7 +217,7 @@
         };
         
         test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, analysis._parseLayerName, spec);
+        test.callsMatchSpecification(test, _parserManager._parseLayerName, spec);
         test.done();
     };
 
@@ -228,7 +230,7 @@
         };
         
         test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, analysis._parseLayerName, spec);
+        test.callsMatchSpecification(test, _parserManager._parseLayerName, spec);
         test.done();
     };
 
@@ -289,7 +291,7 @@
         };
         
         test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, analysis._parseLayerName, spec);
+        test.callsMatchSpecification(test, _parserManager._parseLayerName, spec);
         test.done();
     };
 
@@ -360,43 +362,45 @@
         };
         
         test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, analysis._parseLayerName, spec);
+        test.callsMatchSpecification(test, _parserManager._parseLayerName, spec);
         test.done();
     };
 
     exports.testSubfolders = function (test) {
         var spec = {
             "folder/file.png": [
-                { name: "folder/file.png", file: "file.png", extension: "png", folder: "folder" }
+                { name: "folder/file.png", file: "file.png", extension: "png", folder: ["folder"] }
             ],
             "folder/subfolder/file.png": [
-                { name: "folder/subfolder/file.png", file: "file.png", extension: "png", folder: "folder/subfolder" }
+                { name: "folder/subfolder/file.png", file: "file.png", extension: "png",
+                folder: ["folder", "subfolder"] }
             ],
             "folder/subfolder/subsubfolder/file.png": [
                 { name: "folder/subfolder/subsubfolder/file.png", file: "file.png", extension: "png",
-                folder: "folder/subfolder/subsubfolder" }
+                folder: ["folder", "subfolder", "subsubfolder"] }
             ],
             "300% folder/file.png": [
-                { name: "300% folder/file.png", file: "file.png", extension: "png", folder: "folder", "scale": 3.0 }
+                { name: "300% folder/file.png", file: "file.png", extension: "png", folder: ["folder"],
+                "scale": 3.0 }
             ],
             "100x200cm folder/file.png": [
-                { name: "100x200cm folder/file.png", file: "file.png", extension: "png", folder: "folder",
+                { name: "100x200cm folder/file.png", file: "file.png", extension: "png", folder: ["folder"],
                 width: 100, height: 200, heightUnit: "cm" }
             ],
             "300% folder/file.png-8": [
-                { name: "300% folder/file.png-8", file: "file.png", extension: "png", folder: "folder",
+                { name: "300% folder/file.png-8", file: "file.png", extension: "png", folder: ["folder"],
                 quality: "8", scale: 3.0 }
             ],
             "100x200cm folder/file.png-8": [
-                { name: "100x200cm folder/file.png-8", file: "file.png", extension: "png", folder: "folder",
+                { name: "100x200cm folder/file.png-8", file: "file.png", extension: "png", folder: ["folder"],
                 quality: "8", width: 100, height: 200, heightUnit: "cm" }
             ],
             "folder.foo/bar.png": [
-                { name: "folder.foo/bar.png", file: "bar.png", extension: "png", folder: "folder.foo" }
+                { name: "folder.foo/bar.png", file: "bar.png", extension: "png", folder: ["folder.foo"] }
             ],
             "50% lo-res/bar.png + hi-res/bar.png": [
-                { name: "50% lo-res/bar.png", file: "bar.png", extension: "png", folder: "lo-res", scale: 0.5 },
-                { name: "hi-res/bar.png", file: "bar.png", extension: "png", folder: "hi-res" }
+                { name: "50% lo-res/bar.png", file: "bar.png", extension: "png", folder: ["lo-res"], scale: 0.5 },
+                { name: "hi-res/bar.png", file: "bar.png", extension: "png", folder: ["hi-res"] }
             ],
             // Bad slash positions
             "file/.png": [
@@ -433,7 +437,7 @@
         };
         
         test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, analysis._parseLayerName, spec);
+        test.callsMatchSpecification(test, _parserManager._parseLayerName, spec);
         test.done();
     };
 
@@ -450,7 +454,47 @@
         };
         
         test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, analysis._parseLayerName, spec);
+        test.callsMatchSpecification(test, _parserManager._parseLayerName, spec);
+        test.done();
+    };
+
+    exports.testDefault = function (test) {
+        var spec = {
+            "default 50% lo-res/ + 100% hi-res/@2x": [
+                { "default": true, name: "50% lo-res/", folder: ["lo-res"], scale: 0.5 },
+                { "default": true, name: "100% hi-res/@2x", folder: ["hi-res"], suffix: "@2x", scale: 1.0 }
+            ],
+            "default 25% lo-res/, 50% med-res/@2x, hi-res/@4x": [
+                { "default": true, name: "25% lo-res/", folder: ["lo-res"], scale: 0.25 },
+                { "default": true, name: "50% med-res/@2x", folder: ["med-res"], suffix: "@2x", scale: 0.5 },
+                { "default": true, name: "hi-res/@4x", folder: ["hi-res"], suffix: "@4x" }
+            ],
+            "default 50% lo-res/ + hi-res/@2x": [
+                { "default": true, name: "50% lo-res/", folder: ["lo-res"], scale: 0.5 },
+                { "default": true, name: "hi-res/@2x", folder: ["hi-res"], suffix: "@2x" }
+            ],
+            "default 50% lo-res/ + hi/res/@2x": [
+                { "default": true, name: "50% lo-res/", folder: ["lo-res"], scale: 0.5 },
+                { "default": true, name: "hi/res/@2x", folder: ["hi", "res"], suffix: "@2x" }
+            ],
+            "default 1000x1000cm mongo": [
+                { "default": true, name: "1000x1000cm mongo", suffix: "mongo", width: 1000, height: 1000,
+                    heightUnit: "cm" }
+            ],
+            "default 1000x1000cm mongo/": [
+                { "default": true, name: "1000x1000cm mongo/", folder: ["mongo"], width: 1000, height: 1000,
+                    heightUnit: "cm" }
+            ],
+            "default": [ // at least one default spec is require
+                { name: "default" }
+            ],
+            "default.png": [ // doesn't conflict with existing filenames
+                { name: "default.png", file: "default.png", extension: "png" }
+            ]
+        };
+
+        test.expect(Object.keys(spec).length + 1);
+        test.callsMatchSpecification(test, _parserManager._parseLayerName, spec);
         test.done();
     };
 }());
