@@ -1,45 +1,8 @@
-start
-    = speclist
-
-speclist "List of layer specifications"
-    = first:spec [+,] rest:speclist {
-        rest.unshift(first); 
-        return rest; 
-    }
-    / only:spec {
-        return [only];
-    }
-
-spec "Layer specification"
-    = filespec
-    / _ layername:chars _ { // Unparsed layer name part
-        return {
-            name: layername.trim()
-        };
-    }
-
-folder "A single folder name that ends with a slash and does not begin with a dot"
-    = chars:goodcharsanddots "/" 
-    ! { return chars[0] == "."; } {
-        return chars
-    }
-
-filespec 
-    = _ size:scale? _ folders:folder* filepart:filename _ { // Parsed layer name part
-        var result = {
-            name: text().trim(),
-            file: filepart.filename,
-            extension: filepart.extension,
-        }
-
-        if (folders.length > 0) {
-            result.folder = folders.join("/");
-        }
-
-        if (filepart.hasOwnProperty("quality")) {
-            result.quality = filepart.quality;
-        }
-
+{
+    /*
+     * Merge a size object into a results object, taking care to only copy defined values.
+     */
+    function mergeSize(size, result) {
         if (size) {
             if (size.hasOwnProperty("scale")) {
                 result.scale = size.scale;
@@ -61,6 +24,91 @@ filespec
                 result.heightUnit = size.heightUnit;
             }
         }
+    }
+}
+
+start "Either a default asset specification or a layer asset specification"
+    = defaults
+    / speclist
+
+defaults "A document defaults specification"
+    = "default" defaults:defaultspeclist {
+        return defaults;
+    }
+
+defaultspeclist "List of default specification components"
+    = first:defaultspec [+,] rest:defaultspeclist {
+        rest.unshift(first);
+        return rest;
+    }
+    / only:defaultspec {
+        return [only];
+    }
+
+defaultspec "A single default specification component"
+    = whitespace+ size:scale? _ folders:folder* suffix:goodcharsanddots? _ 
+    & { return size || folders.length > 0 || (suffix && suffix.trim().length > 0)} { // require at least one spec
+        var result = {
+            "default": true,
+            name: text().trim()
+        };
+
+        if (folders.length > 0) {
+            result.folder = folders.join("/");
+        }
+
+        if (suffix) {
+            suffix = suffix.trim();
+            if (suffix.length > 0) {
+                result.suffix = suffix;
+            }            
+        }
+
+        mergeSize(size, result);
+
+        return result;
+    }
+
+speclist "List of layer specifications"
+    = first:spec [+,] rest:speclist {
+        rest.unshift(first); 
+        return rest; 
+    }
+    / only:spec {
+        return [only];
+    }
+
+spec "Layer specification"
+    = filespec
+    / _ layername:chars _ { // Unparsed layer name part
+        return {
+            name: layername.trim()
+        };
+    }
+
+folder "A single folder name that ends with a slash and does not begin with a dot"
+    = chars:goodcharsanddots "/" 
+    ! { return chars[0] == "."; } {
+        return chars;
+    }
+
+filespec "A size-and-file specification"
+    = _ size:scale? _ folders:folder* filepart:filename _ { // Parsed layer name part
+        var result = {
+            name: text().trim(),
+            file: filepart.filename,
+            extension: filepart.extension,
+        }
+
+        if (folders.length > 0) {
+            result.folder = folders.join("/");
+        }
+
+        if (filepart.hasOwnProperty("quality")) {
+            result.quality = filepart.quality;
+        }
+
+        mergeSize(size, result);
         
         return result;
     }
@@ -100,14 +148,14 @@ scale "Relative or absolute scale"
         return abs;
     }
 
-relscale
+relscale "Relative scale, like 0.3"
     = scale:percent {
         return {
             scale: scale
         };
     }
 
-absscale "Absolute scale"
+absscale "Absolute scale, like 50x100cm"
     = width:abscomp _ "x"i _ height:abscomp {
         var result = {};
 
@@ -130,7 +178,7 @@ absscale "Absolute scale"
         return result;
     }
 
-abscomp "Absolute scale component"
+abscomp "Absolute scale component, like 100cm"
     = value:number unit:unit? {
         var result = {
             value: value,
@@ -153,7 +201,7 @@ unit "Unit abbreviation"
         return first + second;
     }
 
-percent
+percent "A percentage, like 30%"
     = num:digit* "%" {
         return parseInt(num.join("")) / 100;
     }
@@ -163,7 +211,7 @@ goodcharsanddots
         return chars.join("")
     }
 
-goodcharanddot
+goodcharanddot "A good character or a dot"
     = goodchar
     / "."
 
