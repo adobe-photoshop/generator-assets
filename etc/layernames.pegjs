@@ -19,7 +19,7 @@ spec "Layer specification"
     }
 
 folder "A single folder name that ends with a slash and does not begin with a dot"
-    = chars:goodcharanddots "/" 
+    = chars:goodcharsanddots "/" 
     ! { return chars[0] == "."; } {
         return chars
     }
@@ -158,7 +158,7 @@ percent
         return parseInt(num.join("")) / 100;
     }
 
-goodcharanddots 
+goodcharsanddots 
     = chars:goodcharanddot+ {
         return chars.join("")
     }
