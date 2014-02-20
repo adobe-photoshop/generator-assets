@@ -18,8 +18,9 @@ spec "Layer specification"
         };
     }
 
-folder
-    = !".." !"." chars:goodcharanddots "/" {
+folder "A single folder name that ends with a slash and does not begin with a dot"
+    = chars:goodcharanddots "/" 
+    ! { return chars[0] == "."; } {
         return chars
     }
 

@@ -305,9 +305,13 @@
                 { name: "foo" },
                 { name: "bar.jpg", file: "bar.jpg", extension: "jpg" }
             ],
-            // . is allowed
+            // . is allowed...
             "foo.bar.jpg": [
                 { name: "foo.bar.jpg", file: "foo.bar.jpg", extension: "jpg" }
+            ],
+            // ... unless it's at the beginning of the filename
+            ".foobar.jpg": [
+                { name: ".foobar.jpg" }
             ],
             // ' is allowed
             "foo'bar.jpg": [
@@ -410,6 +414,10 @@
             ],
             "folder/./file.png": [
                 { name: "folder/./file.png" }
+            ],
+            // No . allowed at the beginning of the folder name
+            ".git/file.png": [
+                { name: ".git/file.png" }
             ],
             // No .. allowed
             "../file.png": [
