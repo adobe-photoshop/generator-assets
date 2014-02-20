@@ -11,11 +11,29 @@ speclist "List of layer specifications"
     }
 
 spec "Layer specification"
-    = _ size:scale? _ filepart:filename _ { // Parsed layer name part
+    = filespec
+    / _ layername:chars _ { // Unparsed layer name part
+        return {
+            name: layername.trim()
+        };
+    }
+
+folder "A single folder name that ends with a slash and does not begin with a dot"
+    = chars:goodcharsanddots "/" 
+    ! { return chars[0] == "."; } {
+        return chars
+    }
+
+filespec 
+    = _ size:scale? _ folders:folder* filepart:filename _ { // Parsed layer name part
         var result = {
             name: text().trim(),
             file: filepart.filename,
             extension: filepart.extension,
+        }
+
+        if (folders.length > 0) {
+            result.folder = folders.join("/");
         }
 
         if (filepart.hasOwnProperty("quality")) {
@@ -46,11 +64,7 @@ spec "Layer specification"
         
         return result;
     }
-    / _ layername:chars _ { // Unparsed layer name part
-        return {
-            name: layername.trim()
-        };
-    }
+
 
 filename "Filename and quality suffix"
     = nameparts:goodcharsthendot+ suffix:fileext {
@@ -143,6 +157,15 @@ percent
     = num:digit* "%" {
         return parseInt(num.join("")) / 100;
     }
+
+goodcharsanddots 
+    = chars:goodcharanddot+ {
+        return chars.join("")
+    }
+
+goodcharanddot
+    = goodchar
+    / "."
 
 goodcharsthendot "A sequence of characters that ends with a dot"
     = chars:goodchars "." {

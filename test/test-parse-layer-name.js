@@ -26,7 +26,7 @@
 
     require("./assertions");
     
-    var main = require("../main.js");
+    var analysis = require("../lib/analysis");
 
     exports.testExtensions = function (test) {
         var spec = {
@@ -41,7 +41,7 @@
         };
 
         test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, main._parseLayerName, spec);
+        test.callsMatchSpecification(test, analysis._parseLayerName, spec);
         test.done();
     };
 
@@ -63,7 +63,7 @@
         };
         
         test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, main._parseLayerName, spec);
+        test.callsMatchSpecification(test, analysis._parseLayerName, spec);
         test.done();
     };
 
@@ -79,7 +79,7 @@
         };
         
         test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, main._parseLayerName, spec);
+        test.callsMatchSpecification(test, analysis._parseLayerName, spec);
         test.done();
     };
 
@@ -101,7 +101,7 @@
         };
         
         test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, main._parseLayerName, spec);
+        test.callsMatchSpecification(test, analysis._parseLayerName, spec);
         test.done();
     };
 
@@ -119,7 +119,7 @@
         };
         
         test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, main._parseLayerName, spec);
+        test.callsMatchSpecification(test, analysis._parseLayerName, spec);
         test.done();
     };
 
@@ -193,7 +193,7 @@
         };
 
         test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, main._parseLayerName, spec);
+        test.callsMatchSpecification(test, analysis._parseLayerName, spec);
         test.done();
     };
 
@@ -215,7 +215,7 @@
         };
         
         test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, main._parseLayerName, spec);
+        test.callsMatchSpecification(test, analysis._parseLayerName, spec);
         test.done();
     };
 
@@ -228,7 +228,7 @@
         };
         
         test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, main._parseLayerName, spec);
+        test.callsMatchSpecification(test, analysis._parseLayerName, spec);
         test.done();
     };
 
@@ -289,11 +289,11 @@
         };
         
         test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, main._parseLayerName, spec);
+        test.callsMatchSpecification(test, analysis._parseLayerName, spec);
         test.done();
     };
 
-    exports.badChars = function (test) {
+    exports.testBadChars = function (test) {
         var spec = {
             // + is a separator
             "foo+bar.jpg": [
@@ -305,9 +305,13 @@
                 { name: "foo" },
                 { name: "bar.jpg", file: "bar.jpg", extension: "jpg" }
             ],
-            // . is allowed
+            // . is allowed...
             "foo.bar.jpg": [
                 { name: "foo.bar.jpg", file: "foo.bar.jpg", extension: "jpg" }
+            ],
+            // ... unless it's at the beginning of the filename
+            ".foobar.jpg": [
+                { name: ".foobar.jpg" }
             ],
             // ' is allowed
             "foo'bar.jpg": [
@@ -321,9 +325,9 @@
             "foo\"bar.jpg": [
                 { name: "foo\"bar.jpg" }
             ],
-            // / is not allowed
-            "foo/bar.jpg": [
-                { name: "foo/bar.jpg" }
+            // / is not allowed, unless it is used to demarcate a subfolder
+            "/foobar.jpg": [
+                { name: "/foobar.jpg" }
             ],
             // * is not allowed
             "foo*bar.jpg": [
@@ -356,7 +360,80 @@
         };
         
         test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, main._parseLayerName, spec);
+        test.callsMatchSpecification(test, analysis._parseLayerName, spec);
+        test.done();
+    };
+
+    exports.testSubfolders = function (test) {
+        var spec = {
+            "folder/file.png": [
+                { name: "folder/file.png", file: "file.png", extension: "png", folder: "folder" }
+            ],
+            "folder/subfolder/file.png": [
+                { name: "folder/subfolder/file.png", file: "file.png", extension: "png", folder: "folder/subfolder" }
+            ],
+            "folder/subfolder/subsubfolder/file.png": [
+                { name: "folder/subfolder/subsubfolder/file.png", file: "file.png", extension: "png",
+                folder: "folder/subfolder/subsubfolder" }
+            ],
+            "300% folder/file.png": [
+                { name: "300% folder/file.png", file: "file.png", extension: "png", folder: "folder", "scale": 3.0 }
+            ],
+            "100x200cm folder/file.png": [
+                { name: "100x200cm folder/file.png", file: "file.png", extension: "png", folder: "folder",
+                width: 100, height: 200, heightUnit: "cm" }
+            ],
+            "300% folder/file.png-8": [
+                { name: "300% folder/file.png-8", file: "file.png", extension: "png", folder: "folder",
+                quality: "8", scale: 3.0 }
+            ],
+            "100x200cm folder/file.png-8": [
+                { name: "100x200cm folder/file.png-8", file: "file.png", extension: "png", folder: "folder",
+                quality: "8", width: 100, height: 200, heightUnit: "cm" }
+            ],
+            "folder.foo/bar.png": [
+                { name: "folder.foo/bar.png", file: "bar.png", extension: "png", folder: "folder.foo" }
+            ],
+            "50% lo-res/bar.png + hi-res/bar.png": [
+                { name: "50% lo-res/bar.png", file: "bar.png", extension: "png", folder: "lo-res", scale: 0.5 },
+                { name: "hi-res/bar.png", file: "bar.png", extension: "png", folder: "hi-res" }
+            ],
+            // Bad slash positions
+            "file/.png": [
+                { name: "file/.png" }
+            ],
+            "/file.png": [
+                { name: "/file.png" }
+            ],
+            "/folder/file.png": [
+                { name: "/folder/file.png" }
+            ],
+            // No . allowed
+            "./file.png": [
+                { name: "./file.png" }
+            ],
+            "folder/./file.png": [
+                { name: "folder/./file.png" }
+            ],
+            // No . allowed at the beginning of the folder name
+            ".git/file.png": [
+                { name: ".git/file.png" }
+            ],
+            // No .. allowed
+            "../file.png": [
+                { name: "../file.png" }
+            ],
+            "folder/../file.png": [
+                { name: "folder/../file.png" }
+            ],
+            // No // allowed
+            "folder//file.png": [
+                { name: "folder//file.png" }
+            ]
+        };
+        
+        test.expect(Object.keys(spec).length + 1);
+        test.callsMatchSpecification(test, analysis._parseLayerName, spec);
         test.done();
     };
 
@@ -373,7 +450,7 @@
         };
         
         test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, main._parseLayerName, spec);
+        test.callsMatchSpecification(test, analysis._parseLayerName, spec);
         test.done();
     };
 }());

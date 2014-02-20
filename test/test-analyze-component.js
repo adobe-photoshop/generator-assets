@@ -26,13 +26,19 @@
 
     require("./assertions");
 
-    var main = require("../main");
-    main._setConfig({
+    var utils = require("../lib/utils"),
+        analysis = require("../lib/analysis");
+
+    var _config = {
         "svg-enabled": true,
         "webp-enabled": true
-    });
+    };
 
-    var analyzeComponent = main._analyzeComponent;
+    utils.config = _config;
+
+    var analyzeComponent = function (component, reportError) {
+        analysis._analyzeComponent(component, reportError);
+    };
 
     exports.testOnlyCheckPresentValues = function (test) {
         test.functionReportsErrors(test, analyzeComponent, [{}], []);
