@@ -1,18 +1,19 @@
 {
   "name": "generator-assets",
-  "version": "1.0.0",
+  "version": "1.0.3-dev",
   "dependencies": {
     "mkdirp": {
       "version": "0.3.5",
-      "from": "mkdirp@~0.3.5"
+      "from": "mkdirp@~0.3"
     },
     "q": {
-      "version": "0.9.6",
-      "from": "q@0.9.6"
+      "version": "1.0.0",
+      "from": "q@~1.0"
     },
     "tmp": {
-      "version": "0.0.21",
-      "from": "tmp@~0.0.20"
+      "version": "0.0.23",
+      "from": "tmp@~0.0.23",
+      "resolved": "https://registry.npmjs.org/tmp/-/tmp-0.0.23.tgz"
     }
   }
 }
