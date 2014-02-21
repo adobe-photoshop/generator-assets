@@ -32,8 +32,6 @@
         utils.generator = generator;
         utils.config = config;
 
-        console.log("initializing generator-assets plugin with config %j", config);
-
         // TODO: Much of this initialization is currently temporary. Once
         // we have storage of assets in the correct location implemented, we
         // should rewrite this to be more structured. The steps of init should
