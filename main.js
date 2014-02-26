@@ -24,36 +24,12 @@
 (function () {
     "use strict";
 
-    var menus = require("./lib/menus"),
-        documents = require("./lib/documents"),
-        utils = require("./lib/utils");
+    var DocumentManager = require("./lib/documentmanager");
 
-    function init(generator, config) {
-        utils.generator = generator;
-        utils.config = config;
+    var _documentManager;
 
-        // TODO: Much of this initialization is currently temporary. Once
-        // we have storage of assets in the correct location implemented, we
-        // should rewrite this to be more structured. The steps of init should
-        // be something like:
-        //
-        // 0. Add menu item
-        // 1. Get PS path
-        // 2. Register for PS events we care about
-        // 3. Get document info on current document, set menu state
-        // 4. Initiate asset generation on current document if enabled
-        //
-        menus.init();
-
-        // Plugins should do as little as possible synchronously in init(). That way, all plugins get a
-        // chance to put "fast" operations (e.g. menu registration) into the photoshop communication
-        // pipe before slower startup stuff gets put in the pipe. Photoshop processes requests one at
-        // a time in FIFO order.
-        function initLater() {
-            documents.init();
-        }
-        
-        process.nextTick(initLater);
+    function init(generator) {
+        _documentManager = new DocumentManager(generator);
     }
 
     exports.init = init;
