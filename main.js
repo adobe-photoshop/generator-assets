@@ -24,12 +24,23 @@
 (function () {
     "use strict";
 
-    var DocumentManager = require("./lib/documentmanager");
+    var DocumentManager = require("./lib/documentmanager"),
+        StateManager = require("./lib/statemanager");
 
-    var _documentManager;
+    var _documentManager,
+        _stateManager;
 
     function init(generator) {
         _documentManager = new DocumentManager(generator);
+        _stateManager = new StateManager(generator);
+
+        _stateManager.on("active", function (id) {
+            console.log("Document %d active.", id);
+        });
+
+        _stateManager.on("inactive", function (id) {
+            console.log("Document %d inactive.", id);
+        });
     }
 
     exports.init = init;
