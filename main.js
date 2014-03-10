@@ -29,7 +29,8 @@
         RenderManager = require("./lib/rendermanager");
 
     var _documentManager,
-        _stateManager;
+        _stateManager,
+        _renderManager;
 
     var _activeDocuments = {};
 
