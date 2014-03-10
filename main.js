@@ -25,20 +25,55 @@
     "use strict";
 
     var DocumentManager = require("./lib/documentmanager"),
-        StateManager = require("./lib/statemanager");
+        StateManager = require("./lib/statemanager"),
+        RenderManager = require("./lib/rendermanager");
 
     var _documentManager,
         _stateManager;
 
+    var _activeDocuments = {};
+
+    var _waitingDocuments = {};
+
     function init(generator) {
         _documentManager = new DocumentManager(generator);
         _stateManager = new StateManager(generator);
+        _renderManager = new RenderManager(generator);
 
         _stateManager.on("active", function (id) {
-            console.log("Document %d active.", id);
+            if (_waitingDocuments.hasOwnProperty(id) || _activeDocuments.hasOwnProperty(id)) {
+                return;
+            }
+
+            var documentPromise = _documentManager.getDocument(id);
+            
+            _waitingDocuments[id] = documentPromise;
+
+            documentPromise.then(function (document) {
+                delete _waitingDocuments[id];
+                _activeDocuments[id] = document;
+
+                _renderManager.renderDocument(document).then(function () {
+                    document.on("change", function (change) {
+                        _renderManager.renderDocumentChange(change);
+                    });
+                });
+            });
         });
 
         _stateManager.on("inactive", function (id) {
+            if (_waitingDocuments.hasOwnProperty(id)) {
+                _waitingDocuments[id].then(function (document) {
+                    document.off("change");
+                    delete _activeDocuments[id];
+                });
+                return;
+            }
+
+            if (_activeDocuments.hasOwnProperty(id)) {
+                _activeDocuments[id].off("change");
+                delete _activeDocuments[id];
+            }
             console.log("Document %d inactive.", id);
         });
     }
