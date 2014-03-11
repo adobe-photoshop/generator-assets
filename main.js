@@ -28,6 +28,8 @@
         StateManager = require("./lib/statemanager"),
         RenderManager = require("./lib/rendermanager");
 
+    var Q = require("q");
+
     var _documentManager,
         _stateManager,
         _renderManager;
@@ -50,32 +52,30 @@
             
             _waitingDocuments[id] = documentPromise;
 
-            documentPromise.then(function (document) {
+            documentPromise.done(function (document) {
                 delete _waitingDocuments[id];
                 _activeDocuments[id] = document;
 
-                _renderManager.renderDocument(document).then(function () {
+                _renderManager.renderDocument(document).done(function () {
                     document.on("change", function (change) {
-                        _renderManager.renderDocumentChange(change);
+                        _renderManager.renderChange(change);
                     });
                 });
             });
         });
 
         _stateManager.on("inactive", function (id) {
-            if (_waitingDocuments.hasOwnProperty(id)) {
-                _waitingDocuments[id].then(function (document) {
-                    document.off("change");
-                    delete _activeDocuments[id];
-                });
-                return;
+            var documentPromise = _waitingDocuments[id];
+            if (!documentPromise) {
+                documentPromise = new Q(_activeDocuments[id]);
             }
 
-            if (_activeDocuments.hasOwnProperty(id)) {
-                _activeDocuments[id].off("change");
-                delete _activeDocuments[id];
-            }
-            console.log("Document %d inactive.", id);
+            documentPromise.done(function (document) {
+                if (document) {
+                    document.off("change");
+                    delete _activeDocuments[id];
+                }
+            });
         });
     }
 
