@@ -27,24 +27,23 @@
     var DocumentManager = require("./lib/documentmanager"),
         StateManager = require("./lib/statemanager"),
         RenderManager = require("./lib/rendermanager");
-
-    var Q = require("q");
+        // AssetManager = require("./lib/assetmanager");
 
     var _documentManager,
-        _stateManager,
-        _renderManager;
+        _stateManager;
 
-    var _activeDocuments = {};
+    var _renderManagers = {};
+        // _assetManagers = {};
 
-    var _waitingDocuments = {};
+    var _waitingDocuments = {},
+        _canceledDocuments = {};
 
     function init(generator) {
         _documentManager = new DocumentManager(generator);
         _stateManager = new StateManager(generator);
-        _renderManager = new RenderManager(generator);
 
         _stateManager.on("active", function (id) {
-            if (_waitingDocuments.hasOwnProperty(id) || _activeDocuments.hasOwnProperty(id)) {
+            if (_waitingDocuments.hasOwnProperty(id)) {
                 return;
             }
 
@@ -54,28 +53,47 @@
 
             documentPromise.done(function (document) {
                 delete _waitingDocuments[id];
-                _activeDocuments[id] = document;
 
-                _renderManager.renderDocument(document).done(function () {
-                    document.on("change", function (change) {
-                        _renderManager.renderChange(change);
-                    });
-                });
+                if (_canceledDocuments.hasOwnProperty(id)) {
+                    delete _canceledDocuments[id];
+                } else {
+                    _renderManagers[id] = new RenderManager(generator, document);
+                    // _assetManagers[id] = new AssetManager(generator, document);
+
+                    // _renderManagers[id].on("add", function (id, source, target) {
+                    //     _assetManagers[id].add(id, source, target);
+                    // });
+
+                    // _renderManagers[id].on("rename", function (idd, oldTarget, newTarget) {
+                    //     _assetManagers[id].rename(id, oldTarget, newTarget);
+                    // });
+
+                    // _renderManagers[id].on("remove", function (id, target) {
+                    //     _assetManagers[id].remove(id, target);
+                    // });
+
+                    // _renderManagers[id].on("resetLayer", function (id) {
+                    //     _assetManagers[id].resetLayer(id);
+                    // });
+
+                    // _renderManagers[id].on("resetDocument", function () {
+                    //     _assetManagers[id].resetDocument();
+                    // });
+
+                }
             });
         });
 
         _stateManager.on("inactive", function (id) {
-            var documentPromise = _waitingDocuments[id];
-            if (!documentPromise) {
-                documentPromise = new Q(_activeDocuments[id]);
-            }
+            if (_waitingDocuments.hasOwnProperty(id)) {
+                _canceledDocuments[id] = true;
+            } else {
+                _renderManagers[id].finish();
+                // _assetManagers[id].finish();
 
-            documentPromise.done(function (document) {
-                if (document) {
-                    document.off("change");
-                    delete _activeDocuments[id];
-                }
-            });
+                delete _renderManagers[id];
+                // delete _assetManagers[id];
+            }
         });
     }
 
