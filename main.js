@@ -58,6 +58,14 @@
                     delete _canceledDocuments[id];
                 } else {
                     _renderManagers[id] = new RenderManager(generator, document);
+
+                    _renderManagers[id].on("assetAdded", function (id, path, folder, file) {
+                        console.log("assetAdded: ", id, path, [folder, file].join("/"));
+                    });
+
+                    _renderManagers[id].on("layerRemoved", function (id) {
+                        console.log("layerRemoved: ", id);
+                    });
                     // _assetManagers[id] = new AssetManager(generator, document);
 
                     // _renderManagers[id].on("add", function (id, source, target) {
