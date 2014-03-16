@@ -26,14 +26,14 @@
 
     var DocumentManager = require("./lib/documentmanager"),
         StateManager = require("./lib/statemanager"),
-        RenderManager = require("./lib/rendermanager");
-        // AssetManager = require("./lib/assetmanager");
+        RenderManager = require("./lib/rendermanager"),
+        AssetManager = require("./lib/assetmanager");
 
     var _documentManager,
-        _stateManager;
+        _stateManager,
+        _renderManager;
 
-    var _renderManagers = {};
-        // _assetManagers = {};
+    var _assetManagers = {};
 
     var _waitingDocuments = {},
         _canceledDocuments = {};
@@ -41,6 +41,7 @@
     function init(generator) {
         _documentManager = new DocumentManager(generator);
         _stateManager = new StateManager(generator);
+        _renderManager = new RenderManager(generator);
 
         _stateManager.on("active", function (id) {
             if (_waitingDocuments.hasOwnProperty(id)) {
@@ -57,37 +58,16 @@
                 if (_canceledDocuments.hasOwnProperty(id)) {
                     delete _canceledDocuments[id];
                 } else {
-                    _renderManagers[id] = new RenderManager(generator, document);
+                    if (!_assetManagers.hasOwnProperty(id)) {
+                        _assetManagers[id] = new AssetManager(generator, document, _renderManager);
 
-                    _renderManagers[id].on("assetAdded", function (id, path, folder, file) {
-                        console.log("assetAdded: ", id, path, [folder, file].join("/"));
-                    });
+                        document.on("close", function () {
+                            _assetManagers[id].pause();
+                            delete _assetManagers[id];
+                        }.bind(this));
+                    }
 
-                    _renderManagers[id].on("layerRemoved", function (id) {
-                        console.log("layerRemoved: ", id);
-                    });
-                    // _assetManagers[id] = new AssetManager(generator, document);
-
-                    // _renderManagers[id].on("add", function (id, source, target) {
-                    //     _assetManagers[id].add(id, source, target);
-                    // });
-
-                    // _renderManagers[id].on("rename", function (idd, oldTarget, newTarget) {
-                    //     _assetManagers[id].rename(id, oldTarget, newTarget);
-                    // });
-
-                    // _renderManagers[id].on("remove", function (id, target) {
-                    //     _assetManagers[id].remove(id, target);
-                    // });
-
-                    // _renderManagers[id].on("resetLayer", function (id) {
-                    //     _assetManagers[id].resetLayer(id);
-                    // });
-
-                    // _renderManagers[id].on("resetDocument", function () {
-                    //     _assetManagers[id].resetDocument();
-                    // });
-
+                    _assetManagers[id].unpause();
                 }
             });
         });
@@ -96,11 +76,7 @@
             if (_waitingDocuments.hasOwnProperty(id)) {
                 _canceledDocuments[id] = true;
             } else {
-                _renderManagers[id].finish();
-                // _assetManagers[id].finish();
-
-                delete _renderManagers[id];
-                // delete _assetManagers[id];
+                _assetManagers[id].pause();
             }
         });
     }
