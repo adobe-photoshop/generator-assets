@@ -14,9 +14,9 @@
     "test": "node node_modules/.bin/nodeunit test"
   },
   "dependencies": {
-    "mkdirp": "~0.3",
     "q": "~1.0",
-    "tmp": "~0.0.23"
+    "tmp": "~0.0.23",
+    "fs-extra": "~0.8.1"
   },
   "devDependencies": {
     "grunt": "~0.4",
