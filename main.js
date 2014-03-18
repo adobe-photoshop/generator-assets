@@ -38,10 +38,10 @@
     var _waitingDocuments = {},
         _canceledDocuments = {};
 
-    function init(generator) {
-        _documentManager = new DocumentManager(generator);
-        _stateManager = new StateManager(generator);
-        _renderManager = new RenderManager(generator);
+    function init(generator, config) {
+        _documentManager = new DocumentManager(generator, config);
+        _stateManager = new StateManager(generator, config);
+        _renderManager = new RenderManager(generator, config);
 
         _stateManager.on("active", function (id) {
             if (_waitingDocuments.hasOwnProperty(id)) {
@@ -59,7 +59,7 @@
                     delete _canceledDocuments[id];
                 } else {
                     if (!_assetManagers.hasOwnProperty(id)) {
-                        _assetManagers[id] = new AssetManager(generator, document, _renderManager);
+                        _assetManagers[id] = new AssetManager(generator, config, document, _renderManager);
 
                         document.on("close", function () {
                             _assetManagers[id].pause();
