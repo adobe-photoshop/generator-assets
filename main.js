@@ -66,8 +66,6 @@
                             delete _assetManagers[id];
                         }.bind(this));
                     }
-
-                    _assetManagers[id].unpause();
                 }
             });
         });
