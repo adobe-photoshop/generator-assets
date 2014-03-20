@@ -154,8 +154,8 @@ unit "Unit abbreviation"
     }
 
 percent
-    = num:digit* "%" {
-        return parseInt(num.join("")) / 100;
+    = num:number "%" {
+        return num / 100;
     }
 
 goodcharsanddots 
