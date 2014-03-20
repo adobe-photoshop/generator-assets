@@ -29,10 +29,6 @@
         RenderManager = require("./lib/rendermanager"),
         AssetManager = require("./lib/assetmanager");
 
-    var Q = require("q");
-
-    Q.longStackSupport = true;
-
     var _documentManager,
         _stateManager,
         _renderManager;
