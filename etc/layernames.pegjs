@@ -202,8 +202,8 @@ unit "Unit abbreviation"
     }
 
 percent "A percentage, like 30%"
-    = num:digit* "%" {
-        return parseInt(num.join("")) / 100;
+    = num:number "%" {
+        return num / 100;
     }
 
 goodcharsanddots 
