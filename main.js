@@ -40,13 +40,14 @@
     var _waitingDocuments = {},
         _canceledDocuments = {};
 
+
     /**
      * Enable asset generation for the given Document ID, causing all annotated
      * assets in the given document to be regenerated.
      * 
      * @param {!number} id The document ID for which asset generation should be enabled.
      */
-    function _enableAssetGeneration(id) {
+    function _startAssetGeneration(id) {
         if (_waitingDocuments.hasOwnProperty(id)) {
             return;
         }
@@ -64,12 +65,10 @@
                 if (!_assetManagers.hasOwnProperty(id)) {
                     _assetManagers[id] = new AssetManager(_generator, _config, document, _renderManager);
 
-                    document.on("close", function () {
-                        _assetManagers[id].pause();
-                        delete _assetManagers[id];
-                    }.bind(this));
+                    document.on("closed", _stopAssetGeneration.bind(this, id));
+                    document.on("error", _restartAssetGeneration.bind(this, id));
                 }
-                _assetManagers[id].unpause();
+                _assetManagers[id].start();
             }
         });
     }
@@ -80,12 +79,25 @@
      * 
      * @param {!number} id The document ID for which asset generation should be disabled.
      */
-    function _disableAssetGeneration(id) {
+    function _pauseAssetGeneration(id) {
         if (_waitingDocuments.hasOwnProperty(id)) {
             _canceledDocuments[id] = true;
         } else {
-            _assetManagers[id].pause();
+            _assetManagers[id].stop();
         }
+    }
+
+    function _stopAssetGeneration(id) {
+        _pauseAssetGeneration(id);
+
+        if (_assetManagers.hasOwnProperty(id)) {
+            delete _assetManagers[id];
+        }
+    }
+
+    function _restartAssetGeneration(id) {
+        _stopAssetGeneration(id);
+        _startAssetGeneration(id);
     }
 
     /**
@@ -101,8 +113,8 @@
         _stateManager = new StateManager(generator, config);
         _renderManager = new RenderManager(generator, config);
 
-        _stateManager.on("active", _enableAssetGeneration);
-        _stateManager.on("inactive", _disableAssetGeneration);
+        _stateManager.on("active", _startAssetGeneration);
+        _stateManager.on("inactive", _pauseAssetGeneration);
     }
 
     exports.init = init;
