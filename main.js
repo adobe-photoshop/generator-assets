@@ -31,6 +31,7 @@
 
     var _generator,
         _config,
+        _logger,
         _documentManager,
         _stateManager,
         _renderManager;
@@ -63,7 +64,7 @@
                 delete _canceledDocuments[id];
             } else {
                 if (!_assetManagers.hasOwnProperty(id)) {
-                    _assetManagers[id] = new AssetManager(_generator, _config, document, _renderManager);
+                    _assetManagers[id] = new AssetManager(_generator, _config, _logger, document, _renderManager);
 
                     document.on("closed", _stopAssetGeneration.bind(this, id));
                     document.on("error", _restartAssetGeneration.bind(this, id));
@@ -106,12 +107,14 @@
      * @param {Generator} generator The Generator instance for this plugin.
      * @param {object} config Configuration options for this plugin.
      */
-    function init(generator, config) {
+    function init(generator, config, logger) {
         _generator = generator;
         _config = config;
-        _documentManager = new DocumentManager(generator, config);
-        _stateManager = new StateManager(generator, config);
-        _renderManager = new RenderManager(generator, config);
+        _logger = logger;
+
+        _documentManager = new DocumentManager(generator, config, logger);
+        _stateManager = new StateManager(generator, config, logger);
+        _renderManager = new RenderManager(generator, config, logger);
 
         _stateManager.on("active", _startAssetGeneration);
         _stateManager.on("inactive", _pauseAssetGeneration);
