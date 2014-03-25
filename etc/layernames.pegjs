@@ -54,7 +54,7 @@ defaultspec "A single default specification component"
         };
 
         if (folders.length > 0) {
-            result.folder = folders.join("/");
+            result.folder = folders;
         }
 
         if (suffix) {
@@ -101,7 +101,7 @@ filespec "A size-and-file specification"
         }
 
         if (folders.length > 0) {
-            result.folder = folders.join("/");
+            result.folder = folders;
         }
 
         if (filepart.hasOwnProperty("quality")) {
