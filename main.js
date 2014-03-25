@@ -41,7 +41,6 @@
     var _waitingDocuments = {},
         _canceledDocuments = {};
 
-
     /**
      * Enable asset generation for the given Document ID, causing all annotated
      * assets in the given document to be regenerated.
@@ -66,8 +65,9 @@
                 if (!_assetManagers.hasOwnProperty(id)) {
                     _assetManagers[id] = new AssetManager(_generator, _config, _logger, document, _renderManager);
 
-                    document.on("closed", _stopAssetGeneration.bind(this, id));
-                    document.on("error", _restartAssetGeneration.bind(this, id));
+                    document.on("closed", _stopAssetGeneration.bind(undefined, id));
+                    document.on("error", _restartAssetGeneration.bind(undefined, id));
+                    document.on("file", _handleFileChange.bind(undefined, id));
                 }
                 _assetManagers[id].start();
             }
@@ -83,7 +83,7 @@
     function _pauseAssetGeneration(id) {
         if (_waitingDocuments.hasOwnProperty(id)) {
             _canceledDocuments[id] = true;
-        } else {
+        } else if (_assetManagers.hasOwnProperty(id)) {
             _assetManagers[id].stop();
         }
     }
@@ -99,6 +99,14 @@
     function _restartAssetGeneration(id) {
         _stopAssetGeneration(id);
         _startAssetGeneration(id);
+    }
+
+    function _handleFileChange(id, change) {
+        // If the filename changed but the saved state didn't change, then the file must have been renamed
+        if (change.previous && !change.hasOwnProperty("previousSaved")) {
+            _stopAssetGeneration(id);
+            _stateManager.deactivate(id);
+        }
     }
 
     /**
