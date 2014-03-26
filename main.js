@@ -66,7 +66,7 @@
                     _assetManagers[id] = new AssetManager(_generator, _config, _logger, document, _renderManager);
 
                     document.on("closed", _stopAssetGeneration.bind(undefined, id));
-                    document.on("error", _restartAssetGeneration.bind(undefined, id));
+                    document.on("end", _restartAssetGeneration.bind(undefined, id));
                     document.on("file", _handleFileChange.bind(undefined, id));
                 }
                 _assetManagers[id].start();
