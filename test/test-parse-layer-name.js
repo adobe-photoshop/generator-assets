@@ -26,7 +26,7 @@
 
     require("./assertions");
     
-    var ParserManager = require("../lib/parserManager");
+    var ParserManager = require("../lib/parsermanager");
 
     var _parserManager = new ParserManager();
 
