@@ -24,117 +24,438 @@
 (function () {
     "use strict";
 
-    require("./assertions");
+    var ParserManager = require("../lib/parsermanager");
 
-    // var analysis = require("../lib/analysis");
+    var _parserManager = new ParserManager({
+        "svg-enabled": true,
+        "webp-enabled": true
+    });
 
-    // var analyzeComponent = function (component, reportError) {
-    //     analysis._analyzeComponent(component, reportError);
-    // };
+    exports.testNormalization = function (test) {
+        var component;
 
-    // exports.testOnlyCheckPresentValues = function (test) {
-    //     test.functionReportsErrors(test, analyzeComponent, [{}], []);
+        // Extension normalization
+        component = {
+            extension: "jpeg"
+        };
+        _parserManager._normalizeComponent(component);
+        test.equal(component.extension, "jpg", "Extension normalization");
 
-    //     test.done();
-    // };
+        component = {
+            extension: "JPG"
+        };
+        _parserManager._normalizeComponent(component);
+        test.equal(component.extension, "jpg", "Extension normalization");
 
-    // exports.testScalingChecks = function (test) {
-    //     // Correct values
-    //     test.functionReportsErrors(test, analyzeComponent,
-    //         [{ scale: 0.5 }], []);
-    //     test.functionReportsErrors(test, analyzeComponent,
-    //         [{ width: 300, height: 200, widthUnit: "px", heightUnit: "in" }], []);
+        component = {
+            extension: "JpeG"
+        };
+        _parserManager._normalizeComponent(component);
+        test.equal(component.extension, "jpg", "Extension normalization");
 
-    //     // Incorrect values
-    //     test.functionReportsErrors(test, analyzeComponent,
-    //         [{ scale:  0 }], ["Cannot scale an image to 0%"]);
+        component = {
+            extension: "pNg"
+        };
+        _parserManager._normalizeComponent(component);
+        test.equal(component.extension, "png", "Extension normalization");
+
+        component = {
+            extension: "gIF"
+        };
+        _parserManager._normalizeComponent(component);
+        test.equal(component.extension, "gif", "Extension normalization");
+
+        component = {
+            extension: "Svg"
+        };
+        _parserManager._normalizeComponent(component);
+        test.equal(component.extension, "svg", "Extension normalization");
+
+        component = {
+            extension: "webP"
+        };
+        _parserManager._normalizeComponent(component);
+        test.equal(component.extension, "webp", "Extension normalization");
+
+        // Quality normalization
+        component = {
+            extension: "jpg",
+            quality: "100%"
+        };
+        _parserManager._normalizeComponent(component);
+        test.equal(component.quality, 100, "Quality normalization");
+
+        component = {
+            extension: "jpg",
+            quality: "3%"
+        };
+        _parserManager._normalizeComponent(component);
+        test.equal(component.quality, 3, "Quality normalization");
+
+        component = {
+            extension: "jpg",
+            quality: "3"
+        };
+        _parserManager._normalizeComponent(component);
+        test.equal(component.quality, 30, "Quality normalization");
+
+        component = {
+            extension: "png",
+            quality: "3"
+        };
+        _parserManager._normalizeComponent(component);
+        test.equal(component.quality, 3, "Quality normalization");
+
+        // Unit normalization
+        component = {
+            width: 1,
+            widthUnit: "IN"
+        };
+        _parserManager._normalizeComponent(component);
+        test.equal(component.widthUnit, "in", "Width unit normalization");
+
+        component = {
+            width: 1,
+            widthUnit: "cM"
+        };
+        _parserManager._normalizeComponent(component);
+        test.equal(component.widthUnit, "cm", "Width unit normalization");
+
+        component = {
+            width: 1,
+            widthUnit: "Px"
+        };
+        _parserManager._normalizeComponent(component);
+        test.equal(component.widthUnit, "px", "Width unit normalization");
+
+        component = {
+            width: 1,
+            widthUnit: "mM"
+        };
+        _parserManager._normalizeComponent(component);
+        test.equal(component.widthUnit, "mm", "Width unit normalization");
+
+        component = {
+            height: 1,
+            heightUnit: "IN"
+        };
+        _parserManager._normalizeComponent(component);
+        test.equal(component.heightUnit, "in", "Height unit normalization");
+
+        component = {
+            height: 1,
+            heightUnit: "cM"
+        };
+        _parserManager._normalizeComponent(component);
+        test.equal(component.heightUnit, "cm", "Height unit normalization");
+
+        component = {
+            height: 1,
+            heightUnit: "Px"
+        };
+        _parserManager._normalizeComponent(component);
+        test.equal(component.heightUnit, "px", "Height unit normalization");
+
+        component = {
+            height: 1,
+            heightUnit: "mM"
+        };
+        _parserManager._normalizeComponent(component);
+        test.equal(component.heightUnit, "mm", "Height unit normalization");
+
+        test.done();
+    };
+
+
+    exports.testNormalization = function (test) {
+        function _equalSets(arr, set) {
+            set = set || {};
+            test.ok(arr.length === Object.keys(set).length, "Wrong number of errors: " + arr.length);
+
+            arr.forEach(function (err) {
+                test.ok(set.hasOwnProperty(err), "Spurious error: " + err);
+            });
+        }
+
+        var component,
+            errors;
+
+        component = {
+            name: "0% foo.png",
+            file: "foo.png",
+            extension: "png",
+            scale: 0
+        };
+        errors = _parserManager._analyzeComponent(component);
+        _equalSets(errors, { "Invalid scale: 0%": true });
+
+        component = {
+            name: "0% foo.png",
+            file: "foo.png",
+            extension: "png",
+            scale: 50
+        };
+        errors = _parserManager._analyzeComponent(component);
+        _equalSets(errors);
+
+        component = {
+            name: "0x1in foo.png",
+            file: "foo.png",
+            extension: "png",
+            width: 0,
+            height: 1,
+            heightUnit: "in"
+        };
+        errors = _parserManager._analyzeComponent(component);
+        _equalSets(errors, { "Invalid width: 0": true });
+
+        component = {
+            name: "1inx0 foo.png",
+            file: "foo.png",
+            extension: "png",
+            width: 1,
+            widthUnit: "in",
+            height: 0
+        };
+        errors = _parserManager._analyzeComponent(component);
+        _equalSets(errors, { "Invalid height: 0": true });
+
+        component = {
+            name: "1x1in foo.png",
+            file: "foo.png",
+            extension: "png",
+            width: 1,
+            height: 1,
+            heightUnit: "in"
+        };
+        errors = _parserManager._analyzeComponent(component);
+        _equalSets(errors);
+
+        component = {
+            name: "0x0 foo.png",
+            file: "foo.png",
+            extension: "png",
+            width: 0,
+            height: 0
+        };
+        errors = _parserManager._analyzeComponent(component);
+        _equalSets(errors, { "Invalid width: 0": true, "Invalid height: 0": true });
+
+        component = {
+            name: "1aax2 foo.png",
+            file: "foo.png",
+            extension: "png",
+            width: 1,
+            widthUnit: "aa",
+            height: 2
+        };
+        errors = _parserManager._analyzeComponent(component);
+        _equalSets(errors, { "Invalid width unit: aa": true });
+
+        component = {
+            name: "2x1aa foo.png",
+            file: "foo.png",
+            extension: "png",
+            width: 2,
+            height: 1,
+            heightUnit: "aa"
+        };
+        errors = _parserManager._analyzeComponent(component);
+        _equalSets(errors, { "Invalid height unit: aa": true });
+
+        component = {
+            name: "1inx2 foo.png",
+            file: "foo.png",
+            extension: "png",
+            width: 1,
+            widthUnit: "in",
+            height: 2
+        };
+        errors = _parserManager._analyzeComponent(component);
+        _equalSets(errors);
+
+        component = {
+            name: "1cmx2 foo.png",
+            file: "foo.png",
+            extension: "png",
+            width: 1,
+            widthUnit: "cm",
+            height: 2
+        };
+        errors = _parserManager._analyzeComponent(component);
+        _equalSets(errors);
+
+        component = {
+            name: "1mmx2 foo.png",
+            file: "foo.png",
+            extension: "png",
+            width: 1,
+            widthUnit: "mm",
+            height: 2
+        };
+        errors = _parserManager._analyzeComponent(component);
+        _equalSets(errors);
+
+        component = {
+            name: "1pxx2 foo.png",
+            file: "foo.png",
+            extension: "png",
+            width: 1,
+            widthUnit: "px",
+            height: 2
+        };
+        errors = _parserManager._analyzeComponent(component);
+        _equalSets(errors);
+
+        component = {
+            name: "foo.xyz",
+            file: "foo.xyz",
+            extension: "xyz"
+        };
+        errors = _parserManager._analyzeComponent(component);
+        _equalSets(errors, { "Unsupported extension: xyz": true });
         
-    //     test.functionReportsErrors(test, analyzeComponent,
-    //         [{ width:  0 }], ["Cannot set an image width to 0"]);
-    //     test.functionReportsErrors(test, analyzeComponent,
-    //         [{ height: 0 }], ["Cannot set an image height to 0"]);
-        
-    //     test.functionReportsErrors(test, analyzeComponent,
-    //         [{ widthUnit: "foo" }], ["Unsupported image width unit \"foo\""]);
-    //     test.functionReportsErrors(test, analyzeComponent,
-    //         [{ heightUnit: "bar" }], ["Unsupported image height unit \"bar\""]);
+        component = {
+            name: "foo.gif",
+            file: "foo.gif",
+            extension: "gif"
+        };
+        errors = _parserManager._analyzeComponent(component);
+        _equalSets(errors);
 
-    //     test.done();
-    // };
+        component = {
+            name: "foo.jpeg",
+            file: "foo.jpg",
+            extension: "jpg"
+        };
+        errors = _parserManager._analyzeComponent(component);
+        _equalSets(errors);
 
-    // exports.testFileExtensionChecks = function (test) {
-    //     // Correct values
-    //     test.functionReportsErrors(test, analyzeComponent,
-    //         [{ extension: "jpg" }], []);
-        
-    //     // Incorrect values: No message should be sent, but an error reported nonetheless
-    //     test.functionReportsErrors(test, analyzeComponent,
-    //         [{ extension: "foo" }], [undefined]);
+        component = {
+            name: "foo.SVG",
+            file: "foo.svg",
+            extension: "svg"
+        };
+        errors = _parserManager._analyzeComponent(component);
+        _equalSets(errors);
 
-    //     test.done();
-    // };
+        component = {
+            name: "foo.webp",
+            file: "foo.webp",
+            extension: "webp"
+        };
+        errors = _parserManager._analyzeComponent(component);
+        _equalSets(errors);
 
-    // exports.testQualityChecks = function (test) {
-    //     // Correct values
-    //     test.functionReportsErrors(test, analyzeComponent,
-    //         [{ extension: "jpg", quality: "5" }], []);
-    //     test.functionReportsErrors(test, analyzeComponent,
-    //         [{ extension: "jpg", quality: "50%" }], []);
-        
-    //     test.functionReportsErrors(test, analyzeComponent,
-    //         [{ extension: "webp", quality: "5" }], []);
-    //     test.functionReportsErrors(test, analyzeComponent,
-    //         [{ extension: "webp", quality: "50%" }], []);
-        
-    //     test.functionReportsErrors(test, analyzeComponent,
-    //         [{ extension: "png", quality: "32" }], []);
-        
-    //     // Incorrect values
-    //     test.functionReportsErrors(test, analyzeComponent, [{ extension: "jpg", quality: "0" }],
-    //         ["Quality must be between 1 and 10 (is \"0\")"]);
-    //     test.functionReportsErrors(test, analyzeComponent, [{ extension: "jpg", quality: "11" }],
-    //         ["Quality must be between 1 and 10 (is \"11\")"]);
-    //     test.functionReportsErrors(test, analyzeComponent, [{ extension: "jpg", quality: "0%" }],
-    //         ["Quality must be between 1% and 100% (is \"0%\")"]);
-    //     test.functionReportsErrors(test, analyzeComponent, [{ extension: "jpg", quality: "101%" }],
-    //         ["Quality must be between 1% and 100% (is \"101%\")"]);
-        
-    //     test.functionReportsErrors(test, analyzeComponent, [{ extension: "webp", quality: "0" }],
-    //         ["Quality must be between 1 and 10 (is \"0\")"]);
-    //     test.functionReportsErrors(test, analyzeComponent, [{ extension: "webp", quality: "11" }],
-    //         ["Quality must be between 1 and 10 (is \"11\")"]);
-    //     test.functionReportsErrors(test, analyzeComponent, [{ extension: "webp", quality: "0%" }],
-    //         ["Quality must be between 1% and 100% (is \"0%\")"]);
-    //     test.functionReportsErrors(test, analyzeComponent, [{ extension: "webp", quality: "101%" }],
-    //         ["Quality must be between 1% and 100% (is \"101%\")"]);
+        component = {
+            name: "foo.jpg0",
+            file: "foo.jpg",
+            extension: "jpg",
+            quality: 0
+        };
+        errors = _parserManager._analyzeComponent(component);
+        _equalSets(errors, { "Invalid quality: 0": true });
 
-    //     test.functionReportsErrors(test, analyzeComponent, [{ extension: "png", quality: "13" }],
-    //         ["PNG quality must be 8, 24 or 32 (is \"13\")"]);
-    //     test.functionReportsErrors(test, analyzeComponent, [{ extension: "png", quality: "13%" }],
-    //         ["PNG quality must be 8, 24 or 32 (is \"13%\")"]);
+        component = {
+            name: "foo.jpg11",
+            file: "foo.jpg",
+            extension: "jpg",
+            quality: 110
+        };
+        errors = _parserManager._analyzeComponent(component);
+        _equalSets(errors, { "Invalid quality: 110": true });
 
-    //     test.functionReportsErrors(test, analyzeComponent, [{ extension: "gif", quality: "23" }],
-    //         ["There should not be a quality setting for files with the extension \"gif\""]);
-    //     test.functionReportsErrors(test, analyzeComponent, [{ extension: "gif", quality: "23%" }],
-    //         ["There should not be a quality setting for files with the extension \"gif\""]);
+        component = {
+            name: "foo.jpg10",
+            file: "foo.jpg",
+            extension: "jpg",
+            quality: 100
+        };
+        errors = _parserManager._analyzeComponent(component);
+        _equalSets(errors);
 
-    //     test.functionReportsErrors(test, analyzeComponent, [{ extension: "gif", quality: "23" }],
-    //         ["There should not be a quality setting for files with the extension \"gif\""]);
-    //     test.functionReportsErrors(test, analyzeComponent, [{ extension: "gif", quality: "23%" }],
-    //         ["There should not be a quality setting for files with the extension \"gif\""]);
+        component = {
+            name: "foo.webp0",
+            file: "foo.webp",
+            extension: "webp",
+            quality: 0
+        };
+        errors = _parserManager._analyzeComponent(component);
+        _equalSets(errors, { "Invalid quality: 0": true });
 
-    //     test.done();
-    // };
+        component = {
+            name: "foo.webp11",
+            file: "foo.webp",
+            extension: "webp",
+            quality: 110
+        };
+        errors = _parserManager._analyzeComponent(component);
+        _equalSets(errors, { "Invalid quality: 110": true });
 
-    // exports.testFileNames = function (test) {
-    //     // Only test here if file name checking is done at all.
-    //     // Detailed testing of file name checking is done in test-valid-file-name.js
-    //     test.functionReportsErrors(test, analyzeComponent, [{ file: "foo.jpg" }],
-    //         []);
-    //     test.functionReportsErrors(test, analyzeComponent, [{ file: "fo:o.jpg" }],
-    //         ["File name contains invalid character \":\""]);
+        component = {
+            name: "foo.webp10",
+            file: "foo.webp",
+            extension: "webp",
+            quality: 100
+        };
+        errors = _parserManager._analyzeComponent(component);
+        _equalSets(errors);
 
-    //     test.done();
-    // };
+        component = {
+            name: "foo.png0",
+            file: "foo.png",
+            extension: "png",
+            quality: 0
+        };
+        errors = _parserManager._analyzeComponent(component);
+        _equalSets(errors, { "Invalid quality: 0": true });
+
+        component = {
+            name: "foo.png7",
+            file: "foo.png",
+            extension: "png",
+            quality: 7
+        };
+        errors = _parserManager._analyzeComponent(component);
+        _equalSets(errors, { "Invalid quality: 7": true });
+
+        component = {
+            name: "foo.png8",
+            file: "foo.png",
+            extension: "png",
+            quality: 8
+        };
+        errors = _parserManager._analyzeComponent(component);
+        _equalSets(errors);
+
+        component = {
+            name: "foo.png24",
+            file: "foo.png",
+            extension: "png",
+            quality: 24
+        };
+        errors = _parserManager._analyzeComponent(component);
+        _equalSets(errors);
+
+        component = {
+            name: "foo.png32",
+            file: "foo.png",
+            extension: "png",
+            quality: 32
+        };
+        errors = _parserManager._analyzeComponent(component);
+        _equalSets(errors);
+
+        component = {
+            name: "foo.gif8",
+            file: "foo.gif",
+            extension: "gif",
+            quality: 8
+        };
+        errors = _parserManager._analyzeComponent(component);
+        _equalSets(errors, { "Invalid quality: 8": true });
+
+        test.done();
+    };
 
 }());

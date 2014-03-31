@@ -23,12 +23,21 @@
 
 (function () {
     "use strict";
-
-    require("./assertions");
     
     var ParserManager = require("../lib/parsermanager");
 
     var _parserManager = new ParserManager();
+
+    var assert = require("nodeunit").assert;
+
+    assert.callsMatchSpecification = function (test, callback, spec) {
+        Object.keys(spec).forEach(function (argument) {
+            var actual   = JSON.stringify(callback(argument)),
+                expected = JSON.stringify(spec[argument]);
+            
+            test.equal(actual, expected, "Analysis of " + argument);
+        });
+    };
 
     exports.testExtensions = function (test) {
         var spec = {
