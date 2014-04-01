@@ -124,8 +124,12 @@
         _stateManager = new StateManager(generator, config, logger);
         _renderManager = new RenderManager(generator, config, logger);
 
-        _stateManager.on("active", _startAssetGeneration);
-        _stateManager.on("inactive", _pauseAssetGeneration);
+        // For automated tests
+        exports._renderManager = _renderManager;
+        exports._stateManager = _stateManager;
+
+        _stateManager.on("enabled", _startAssetGeneration);
+        _stateManager.on("disabled", _pauseAssetGeneration);
     }
 
     exports.init = init;
