@@ -26,7 +26,8 @@
 
     var menus = require("./lib/menus"),
         documents = require("./lib/documents"),
-        utils = require("./lib/utils");
+        utils = require("./lib/utils"),
+        status = require("./lib/status");
 
     function init(generator, config) {
         utils.generator = generator;
@@ -59,4 +60,8 @@
     }
 
     exports.init = init;
+
+    // for automated testing
+    exports._status = status;
+    exports._toggleActiveDocument = menus.toggleActiveDocument;
 }());
