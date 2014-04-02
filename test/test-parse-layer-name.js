@@ -71,6 +71,7 @@
             "foo.jpg-11":         [{ name: "foo.jpg-11",   file: "foo.jpg",  extension: "jpg", quality: "11" }],
             "foo.jpg-0%":         [{ name: "foo.jpg-0%",   file: "foo.jpg",  extension: "jpg", quality: "0%" }],
             "foo.jpg-101%":       [{ name: "foo.jpg-101%", file: "foo.jpg",  extension: "jpg", quality: "101%" }],
+            "foo.jpg-33.33%":     [{ name: "foo.jpg-33.33%" }],
         };
         
         test.expect(Object.keys(spec).length + 1);
@@ -87,6 +88,7 @@
 
             // Bad example for a PNG with a quality parameter
             "foo.png-42":                 [{ name: "foo.png-42",   file: "foo.png",  extension: "png", quality: "42" }],
+            "foo.png-42.22":              [{ name: "foo.png-42.22" }],
         };
         
         test.expect(Object.keys(spec).length + 1);
@@ -109,6 +111,7 @@
             "foo.webp-11":         [{ name: "foo.webp-11",   file: "foo.webp",  extension: "webp", quality: "11" }],
             "foo.webp-0%":         [{ name: "foo.webp-0%",   file: "foo.webp",  extension: "webp", quality: "0%" }],
             "foo.webp-101%":       [{ name: "foo.webp-101%", file: "foo.webp",  extension: "webp", quality: "101%" }],
+            "foo.webp-33.33%":     [{ name: "foo.webp-33.33%" }],
         };
         
         test.expect(Object.keys(spec).length + 1);
@@ -125,8 +128,13 @@
             "142% foo.png":               [{ name: "142% foo.png", file: "foo.png",  extension: "png", scale: 1.42 }],
             "05% foo.png":                [{ name: "05% foo.png",  file: "foo.png",  extension: "png", scale: 0.05}],
             "1%foo.png":                  [{ name: "1%foo.png",    file: "foo.png",  extension: "png", scale: 0.01 }],
+            "33.33%foo.png":              [{ name: "33.33%foo.png",
+                file: "foo.png",  extension: "png", scale: 0.3333 }],
+            "0.99% foo.png":              [{ name: "0.99% foo.png",
+                file: "foo.png",  extension: "png", scale: 0.009899999999999999 }],
             // Parses correctly, but analyze will throw error (0% scaling not allowed)
             "0% foo.png":                 [{ name: "0% foo.png",   file: "foo.png",  extension: "png", scale: 0}],
+            "0.00% foo.png":              [{ name: "0.00% foo.png",   file: "foo.png",  extension: "png", scale: 0}]
         };
         
         test.expect(Object.keys(spec).length + 1);
@@ -453,9 +461,9 @@
     exports.testUltimate = function (test) {
         var spec = {
             // Putting it all together
-            "100% Delicious, 42%Layer 1.png24  + 100x100 Layer.jpg-90% , 250% Foo Bar Baz.gif": [
+            "100% Delicious, 33.33%Layer 1.png24  + 100x100 Layer.jpg-90% , 250% Foo Bar Baz.gif": [
                 { name: "100% Delicious" },
-                { name: "42%Layer 1.png24", file: "Layer 1.png", extension: "png", quality: "24", scale: 0.42 },
+                { name: "33.33%Layer 1.png24", file: "Layer 1.png", extension: "png", quality: "24", scale: 0.3333 },
                 { name: "100x100 Layer.jpg-90%", file: "Layer.jpg", extension: "jpg", quality: "90%",
                         width: 100, height: 100 },
                 { name: "250% Foo Bar Baz.gif", file: "Foo Bar Baz.gif", extension: "gif", scale: 2.5 },
