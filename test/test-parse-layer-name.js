@@ -84,6 +84,8 @@
             // Good examples for PNGs with a quality parameter
             "foo.png-8":                  [{ name: "foo.png-8",    file: "foo.png",  extension: "png", quality: "8" }],
             "foo.png24":                  [{ name: "foo.png24",    file: "foo.png",  extension: "png", quality: "24" }],
+            "foo.png24a":                 [{ name: "foo.png24a",   file: "foo.png",  extension: "png", quality: "24a"}],
+            "foo.png24 ":                 [{ name: "foo.png24",    file: "foo.png",  extension: "png", quality: "24" }],
             "foo.png-32":                 [{ name: "foo.png-32",   file: "foo.png",  extension: "png", quality: "32" }],
 
             // Bad example for a PNG with a quality parameter
