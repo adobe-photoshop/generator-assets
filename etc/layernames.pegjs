@@ -130,16 +130,21 @@ filename "Filename and quality suffix"
     } 
 
 fileext "File extension and quality suffix"
-    = extension:[a-zA-Z]+ "-"? quality:digit* pct:"%"? {
+    = extension:[a-zA-Z]+ quality:quality? {
         var result = {
             extension: extension.join(""),
         };
 
-        if (quality.length > 0 || pct) {
-            result.quality = quality.join("") + (pct ? pct : "");
+        if (quality) {
+            result.quality = quality;
         }
 
         return result;
+    }
+
+quality "Quality parameter that follows a file extension"
+    = "-"? param:digits ext:([a-z] / "%")? {
+        return param.join("") + (ext || "");
     }
 
 scale "Relative or absolute scale"

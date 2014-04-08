@@ -101,10 +101,17 @@
 
         component = {
             extension: "png",
-            quality: "3"
+            quality: "32"
         };
         _parserManager._normalizeComponent(component);
-        test.equal(component.quality, 3, "Quality normalization");
+        test.equal(component.quality, 32, "Quality normalization");
+
+        component = {
+            extension: "png",
+            quality: "24a"
+        };
+        _parserManager._normalizeComponent(component);
+        test.equal(component.quality, 32, "Quality normalization");
 
         // Unit normalization
         component = {
@@ -167,7 +174,7 @@
     };
 
 
-    exports.testNormalization = function (test) {
+    exports.testAnalysis = function (test) {
         function _equalSets(arr, set) {
             set = set || {};
             test.ok(arr.length === Object.keys(set).length, "Wrong number of errors: " + arr.length);

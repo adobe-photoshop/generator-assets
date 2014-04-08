@@ -127,6 +127,7 @@
         // For automated tests
         exports._renderManager = _renderManager;
         exports._stateManager = _stateManager;
+        exports._assetManagers = _assetManagers;
 
         _stateManager.on("enabled", _startAssetGeneration);
         _stateManager.on("disabled", _pauseAssetGeneration);
