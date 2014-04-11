@@ -121,7 +121,7 @@
         _logger = logger;
 
         _documentManager = new DocumentManager(generator, config, logger);
-        _stateManager = new StateManager(generator, config, logger);
+        _stateManager = new StateManager(generator, config, logger, _documentManager);
         _renderManager = new RenderManager(generator, config, logger);
 
         // For automated tests
