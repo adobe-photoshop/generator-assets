@@ -27,7 +27,8 @@
     var DocumentManager = require("./lib/documentmanager"),
         StateManager = require("./lib/statemanager"),
         RenderManager = require("./lib/rendermanager"),
-        AssetManager = require("./lib/assetmanager");
+        AssetManager = require("./lib/assetmanager"),
+        Headlights = require("./lib/headlights");
 
     var _generator,
         _config,
@@ -121,7 +122,7 @@
         _logger = logger;
 
         _documentManager = new DocumentManager(generator, config, logger);
-        _stateManager = new StateManager(generator, config, logger);
+        _stateManager = new StateManager(generator, config, logger, _documentManager);
         _renderManager = new RenderManager(generator, config, logger);
 
         // For automated tests
@@ -131,6 +132,8 @@
 
         _stateManager.on("enabled", _startAssetGeneration);
         _stateManager.on("disabled", _pauseAssetGeneration);
+
+        Headlights.init(generator, logger, _stateManager, _renderManager);
     }
 
     exports.init = init;
