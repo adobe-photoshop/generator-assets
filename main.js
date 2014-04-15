@@ -133,7 +133,7 @@
         _stateManager.on("enabled", _startAssetGeneration);
         _stateManager.on("disabled", _pauseAssetGeneration);
 
-        Headlights.init(generator, _stateManager, _renderManager, logger);
+        Headlights.init(generator, logger, _stateManager, _renderManager);
     }
 
     exports.init = init;
