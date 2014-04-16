@@ -43,9 +43,57 @@
         _canceledDocuments = {};
 
     /**
+     * Disable asset generation for the given Document ID, halting any asset
+     * rending in progress.
+     * 
+     * @private
+     * @param {!number} id The document ID for which asset generation should be disabled.
+     */
+    function _pauseAssetGeneration(id) {
+        if (_waitingDocuments.hasOwnProperty(id)) {
+            _canceledDocuments[id] = true;
+        } else if (_assetManagers.hasOwnProperty(id)) {
+            _assetManagers[id].stop();
+        }
+    }
+
+    /**
+     * Completely stop asset generation for the given Document ID and collect
+     * its AssetManager instance.
+     * 
+     * @private
+     * @param {!number} id The document ID for which asset generation should be disabled.
+     */
+    function _stopAssetGeneration(id) {
+        _pauseAssetGeneration(id);
+
+        if (_assetManagers.hasOwnProperty(id)) {
+            delete _assetManagers[id];
+        }
+    }
+
+    /**
+     * Handler for a the "file" change event fired by Document objects. Disables
+     * asset generation after Save As is performed on an an already-saved file.
+     * 
+     * @private
+     * @param {number} id The ID of the Document that changed
+     * @param {{previous: string=, previousSaved: boolean=}}} change The file
+     *      change event emitted by the Document
+     */
+    function _handleFileChange(id, change) {
+        // If the filename changed but the saved state didn't change, then the file must have been renamed
+        if (change.previous && !change.hasOwnProperty("previousSaved")) {
+            _stopAssetGeneration(id);
+            _stateManager.deactivate(id);
+        }
+    }
+
+    /**
      * Enable asset generation for the given Document ID, causing all annotated
      * assets in the given document to be regenerated.
      * 
+     * @private
      * @param {!number} id The document ID for which asset generation should be enabled.
      */
     function _startAssetGeneration(id) {
@@ -76,38 +124,16 @@
     }
 
     /**
-     * Disable asset generation for the given Document ID, halting any asset
-     * rending in progress.
+     * Restart asset generation for the given Document ID. This is called when
+     * a Document emits an "end" event, indicating that there was an error
+     * updating its internal state as from Photoshop's change events.
      * 
-     * @param {!number} id The document ID for which asset generation should be disabled.
+     * @private
+     * @param {!number} id The document ID for which asset generation should be enabled.
      */
-    function _pauseAssetGeneration(id) {
-        if (_waitingDocuments.hasOwnProperty(id)) {
-            _canceledDocuments[id] = true;
-        } else if (_assetManagers.hasOwnProperty(id)) {
-            _assetManagers[id].stop();
-        }
-    }
-
-    function _stopAssetGeneration(id) {
-        _pauseAssetGeneration(id);
-
-        if (_assetManagers.hasOwnProperty(id)) {
-            delete _assetManagers[id];
-        }
-    }
-
     function _restartAssetGeneration(id) {
         _stopAssetGeneration(id);
         _startAssetGeneration(id);
-    }
-
-    function _handleFileChange(id, change) {
-        // If the filename changed but the saved state didn't change, then the file must have been renamed
-        if (change.previous && !change.hasOwnProperty("previousSaved")) {
-            _stopAssetGeneration(id);
-            _stateManager.deactivate(id);
-        }
     }
 
     /**
@@ -115,6 +141,7 @@
      * 
      * @param {Generator} generator The Generator instance for this plugin.
      * @param {object} config Configuration options for this plugin.
+     * @param {Logger} logger The Logger instance for this plugin.
      */
     function init(generator, config, logger) {
         _generator = generator;
