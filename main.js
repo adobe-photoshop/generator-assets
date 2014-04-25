@@ -137,6 +137,50 @@
     }
 
     /**
+     * Get a copy of the plugin's config object. For automated testing only.
+     * 
+     * @private
+     * @return {object}
+     */
+    function _getConfig() {
+        var copy = {},
+            property;
+
+        for (property in _config) {
+            if (_config.hasOwnProperty(property)) {
+                copy[property] = _config[property];
+            }
+        }
+ 
+        return copy;
+    }
+
+    /**
+     * Set the plugin's config object. This mutates the referenced object, not the
+     * reference. For automated testing only.
+     * 
+     * @private
+     * @param {object}
+     */
+    function _setConfig(config) {
+        var property;
+
+        // clear out the existing properties
+        for (property in _config) {
+            if (_config.hasOwnProperty(property)) {
+                delete _config[property];
+            }
+        }
+
+        // add in the new properties
+        for (property in config) {
+            if (config.hasOwnProperty(property)) {
+                _config[property] = config[property];
+            }
+        }
+    }
+
+    /**
      * Initialize the Assets plugin.
      * 
      * @param {Generator} generator The Generator instance for this plugin.
@@ -163,5 +207,10 @@
         Headlights.init(generator, logger, _stateManager, _renderManager);
     }
 
+
     exports.init = init;
+
+    // For automated tests
+    exports._getConfig = _getConfig;
+    exports._setConfig = _setConfig;
 }());
