@@ -17,6 +17,10 @@ For the brave, this plug-in supports a number of experimental configuration opti
 
 For details on how to create a configuration file, please see the documentation here: https://github.com/adobe-photoshop/generator-core/wiki/Generator-Configuration-File-Format
 
+### Development
+
+We :heart: pull requests! If you submit one, please also sign our [Contributor License Agreement](https://secure.echosign.com/public/hostedForm?formid=8IWLQL2I3V7F6R).
+
 ### License
 
 (MIT License)
