@@ -2,18 +2,35 @@
   "name": "generator-assets",
   "version": "1.0.3-dev",
   "dependencies": {
-    "mkdirp": {
-      "version": "0.3.5",
-      "from": "mkdirp@~0.3"
-    },
     "q": {
       "version": "1.0.0",
       "from": "q@~1.0"
     },
     "tmp": {
       "version": "0.0.23",
-      "from": "tmp@~0.0.23",
-      "resolved": "https://registry.npmjs.org/tmp/-/tmp-0.0.23.tgz"
+      "from": "tmp@~0.0.23"
+    },
+    "fs-extra": {
+      "version": "0.8.1",
+      "from": "fs-extra@~0.8",
+      "dependencies": {
+        "ncp": {
+          "version": "0.4.2",
+          "from": "ncp@~0.4.2"
+        },
+        "mkdirp": {
+          "version": "0.3.5",
+          "from": "mkdirp@0.3.x"
+        },
+        "jsonfile": {
+          "version": "1.1.1",
+          "from": "jsonfile@~1.1.0"
+        },
+        "rimraf": {
+          "version": "2.2.6",
+          "from": "rimraf@~2.2.0"
+        }
+      }
     }
   }
 }
