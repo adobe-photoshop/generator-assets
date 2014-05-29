@@ -41,8 +41,15 @@ module.exports = function (grunt) {
                 ".jshintrc",
                 "lib/**/*.js",
                 "lib/jsx/**/*.jsx",
-                "test/**/*.js"
+                "test/**/*.js",
+                "!lib/parser.js"
             ]
+        },
+        jscs: {
+            src: "<%= jshint.all %>",
+            options: {
+                config: ".jscsrc"
+            }
         },
  
         nodeunit : {
@@ -61,10 +68,11 @@ module.exports = function (grunt) {
     });
 
     grunt.loadNpmTasks("grunt-contrib-jshint");
+    grunt.loadNpmTasks("grunt-jscs-checker");
     grunt.loadNpmTasks("grunt-contrib-nodeunit");
     grunt.loadNpmTasks("grunt-peg");
 
-    grunt.registerTask("test", ["jshint", "nodeunit"]);
+    grunt.registerTask("test", ["jshint", "jscs", "nodeunit"]);
 
     grunt.registerTask("build", ["peg"]);
 
