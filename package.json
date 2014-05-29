@@ -25,6 +25,7 @@
     "grunt-jscs-checker": "^0.4.4",
     "grunt-peg": "~1.2",
     "nodeunit": "~0.8",
-    "pegjs": "~0.8"
+    "pegjs": "~0.8",
+    "jscs-trailing-whitespace-in-source": "0.0.1"
   }
 }
