@@ -160,7 +160,7 @@
      * reference. For automated testing only.
      * 
      * @private
-     * @param {object}
+     * @param {object} config
      */
     function _setConfig(config) {
         var property;

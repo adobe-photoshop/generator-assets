@@ -20,10 +20,11 @@
   },
   "devDependencies": {
     "grunt": "~0.4",
-    "grunt-contrib-jshint": "~0.8",
-    "nodeunit": "~0.8",
+    "grunt-contrib-jshint": "~0.10",
     "grunt-contrib-nodeunit": "~0.3",
-    "pegjs": "~0.8",
-    "grunt-peg": "~1.2"
+    "grunt-jscs-checker": "^0.4.4",
+    "grunt-peg": "~1.2",
+    "nodeunit": "~0.8",
+    "pegjs": "~0.8"
   }
 }

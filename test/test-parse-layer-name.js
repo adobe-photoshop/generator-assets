@@ -48,7 +48,7 @@
             "Foo.JpG":                    [{ name: "Foo.JpG",      file: "Foo.JpG",  extension: "jpg" }],
             "Foo.JpEg":                   [{ name: "Foo.JpEg",     file: "Foo.JpEg", extension: "jpeg" }],
             "Foo.PnG":                    [{ name: "Foo.PnG",      file: "Foo.PnG",  extension: "png" }],
-            "Foo.WeBp":                   [{ name: "Foo.WeBp",     file: "Foo.WeBp", extension: "webp" }],
+            "Foo.WeBp":                   [{ name: "Foo.WeBp",     file: "Foo.WeBp", extension: "webp" }]
         };
 
         test.expect(Object.keys(spec).length + 1);
@@ -71,7 +71,7 @@
             "foo.jpg-11":         [{ name: "foo.jpg-11",   file: "foo.jpg",  extension: "jpg", quality: "11" }],
             "foo.jpg-0%":         [{ name: "foo.jpg-0%",   file: "foo.jpg",  extension: "jpg", quality: "0%" }],
             "foo.jpg-101%":       [{ name: "foo.jpg-101%", file: "foo.jpg",  extension: "jpg", quality: "101%" }],
-            "foo.jpg-33.33%":     [{ name: "foo.jpg-33.33%" }],
+            "foo.jpg-33.33%":     [{ name: "foo.jpg-33.33%" }]
         };
         
         test.expect(Object.keys(spec).length + 1);
@@ -90,7 +90,7 @@
 
             // Bad example for a PNG with a quality parameter
             "foo.png-42":                 [{ name: "foo.png-42",   file: "foo.png",  extension: "png", quality: "42" }],
-            "foo.png-42.22":              [{ name: "foo.png-42.22" }],
+            "foo.png-42.22":              [{ name: "foo.png-42.22" }]
         };
         
         test.expect(Object.keys(spec).length + 1);
@@ -113,7 +113,7 @@
             "foo.webp-11":         [{ name: "foo.webp-11",   file: "foo.webp",  extension: "webp", quality: "11" }],
             "foo.webp-0%":         [{ name: "foo.webp-0%",   file: "foo.webp",  extension: "webp", quality: "0%" }],
             "foo.webp-101%":       [{ name: "foo.webp-101%", file: "foo.webp",  extension: "webp", quality: "101%" }],
-            "foo.webp-33.33%":     [{ name: "foo.webp-33.33%" }],
+            "foo.webp-33.33%":     [{ name: "foo.webp-33.33%" }]
         };
         
         test.expect(Object.keys(spec).length + 1);
@@ -131,9 +131,9 @@
             "05% foo.png":                [{ name: "05% foo.png",  file: "foo.png",  extension: "png", scale: 0.05}],
             "1%foo.png":                  [{ name: "1%foo.png",    file: "foo.png",  extension: "png", scale: 0.01 }],
             "33.33%foo.png":              [{ name: "33.33%foo.png",
-                file: "foo.png",  extension: "png", scale: 0.3333 }],
+            file: "foo.png",  extension: "png", scale: 0.3333 }],
             "0.99% foo.png":              [{ name: "0.99% foo.png",
-                file: "foo.png",  extension: "png", scale: 0.009899999999999999 }],
+            file: "foo.png",  extension: "png", scale: 0.009899999999999999 }],
             // Parses correctly, but analyze will throw error (0% scaling not allowed)
             "0% foo.png":                 [{ name: "0% foo.png",   file: "foo.png",  extension: "png", scale: 0}],
             "0.00% foo.png":              [{ name: "0.00% foo.png",   file: "foo.png",  extension: "png", scale: 0}]
@@ -149,19 +149,19 @@
             // Good examples of absolute scaling
             "100x80 foo.png":
                 [{ name: "100x80 foo.png", file: "foo.png", extension: "png",
-                        width: 100, height: 80 }],
+                width: 100, height: 80 }],
             // spaces between lengths
             "80 x 100px foo.png":
                 [{ name: "80 x 100px foo.png", file: "foo.png", extension: "png",
-                        width: 80, height: 100, heightUnit: "px" }],
+                width: 80, height: 100, heightUnit: "px" }],
             // mix of units and no units
             "4in x100  foo.png":
                 [{ name: "4in x100  foo.png", file: "foo.png", extension: "png",
-                        width: 4, widthUnit: "in", height: 100 }],
+                width: 4, widthUnit: "in", height: 100 }],
             // mix of units
             "90mm x120cm foo.png":
                 [{ name: "90mm x120cm foo.png", file: "foo.png", extension: "png",
-                        width: 90, widthUnit: "mm", height: 120, heightUnit: "cm"}],
+                width: 90, widthUnit: "mm", height: 120, heightUnit: "cm"}],
             // wild card
             "100x? foo.png":
                 [{ name: "100x? foo.png", file: "foo.png", extension: "png", width: 100 }],
@@ -171,14 +171,14 @@
             // fractional sizes
             "5.5in x 6.3cm foo.png":
                 [{ name: "5.5in x 6.3cm foo.png", file: "foo.png", extension: "png",
-                        width: 5.5, widthUnit: "in", height: 6.3, heightUnit: "cm"}],
+                width: 5.5, widthUnit: "in", height: 6.3, heightUnit: "cm"}],
             "5.0cm x .3mm foo.png":
                 [{ name: "5.0cm x .3mm foo.png", file: "foo.png", extension: "png",
-                        width: 5, widthUnit: "cm", height: 0.3, heightUnit: "mm"}],
+                width: 5, widthUnit: "cm", height: 0.3, heightUnit: "mm"}],
             // fractional pixels are (currently) okay, too - the other units require rounding support anyway
             "5.5 x 6.3px foo.png":
                 [{ name: "5.5 x 6.3px foo.png", file: "foo.png", extension: "png",
-                        width: 5.5, height: 6.3, heightUnit: "px"}],
+                width: 5.5, height: 6.3, heightUnit: "px"}],
 
             // Bad examples of absolute scaling
             // no space before file name
@@ -187,7 +187,7 @@
             // mix of scaling
             "80x100 60% foo.png":
                 [{ name: "80x100 60% foo.png", file: "60% foo.png", extension: "png",
-                        width: 80, height: 100 }],
+                width: 80, height: 100 }],
             // mix of scaling with relative first
             "50% 80x100 foo.png":
                 [{ name: "50% 80x100 foo.png", file: "80x100 foo.png", extension: "png", scale: 0.50 }],
@@ -197,7 +197,7 @@
             // invalid unit, will not fail, but analyze will throw errors
             "30nm x20 nano.png":
                 [{ name: "30nm x20 nano.png", file: "nano.png", extension: "png",
-                        width: 30, widthUnit: "nm", height: 20 }],
+                width: 30, widthUnit: "nm", height: 20 }],
             // Multiple decimal points
             "3.4.5in x 6.7in foo.png":
                 [{ name: "3.4.5in x 6.7in foo.png", file: "3.4.5in x 6.7in foo.png", extension: "png" }],
@@ -207,10 +207,11 @@
                 [{ name: "3.4in x 5.6.7in foo.png", file: "3.4in x 5.6.7in foo.png", extension: "png" }],
 
             // Comma used as place value separator
-            "3,4in x 5,6in foo.png":
-                [{ name: "3" },
-                 { name: "4in x 5"},
-                 { name: "6in foo.png", file: "6in foo.png", extension: "png" }]
+            "3,4in x 5,6in foo.png": [
+                { name: "3" },
+                { name: "4in x 5"},
+                { name: "6in foo.png", file: "6in foo.png", extension: "png" }
+            ]
         };
 
         test.expect(Object.keys(spec).length + 1);
@@ -232,7 +233,7 @@
             
             // Plus as separator
             "Layer 1.png+Layer 2.jpg":    [layer1PNG, layer2JPG],
-            "Layer 1.png  + Layer 2.jpg": [layer1PNG, layer2JPG],
+            "Layer 1.png  + Layer 2.jpg": [layer1PNG, layer2JPG]
         };
         
         test.expect(Object.keys(spec).length + 1);
@@ -245,7 +246,7 @@
             "  foo.jpg   ,    bar     ": [
                 { name: "foo.jpg", file: "foo.jpg", extension: "jpg" },
                 { name: "bar" }
-            ],
+            ]
         };
         
         test.expect(Object.keys(spec).length + 1);
@@ -467,9 +468,9 @@
                 { name: "100% Delicious" },
                 { name: "33.33%Layer 1.png24", file: "Layer 1.png", extension: "png", quality: "24", scale: 0.3333 },
                 { name: "100x100 Layer.jpg-90%", file: "Layer.jpg", extension: "jpg", quality: "90%",
-                        width: 100, height: 100 },
-                { name: "250% Foo Bar Baz.gif", file: "Foo Bar Baz.gif", extension: "gif", scale: 2.5 },
-            ],
+                width: 100, height: 100 },
+                { name: "250% Foo Bar Baz.gif", file: "Foo Bar Baz.gif", extension: "gif", scale: 2.5 }
+            ]
         };
         
         test.expect(Object.keys(spec).length + 1);
@@ -498,11 +499,11 @@
             ],
             "default 1000x1000cm mongo": [
                 { "default": true, name: "1000x1000cm mongo", suffix: "mongo", width: 1000, height: 1000,
-                    heightUnit: "cm" }
+                heightUnit: "cm" }
             ],
             "default 1000x1000cm mongo/": [
                 { "default": true, name: "1000x1000cm mongo/", folder: ["mongo"], width: 1000, height: 1000,
-                    heightUnit: "cm" }
+                heightUnit: "cm" }
             ],
             "default": [ // at least one default spec is require
                 { name: "default" }
