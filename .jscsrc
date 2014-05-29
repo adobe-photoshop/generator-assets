@@ -1,4 +1,6 @@
 {
+    "additionalRules": [ "etc/jscs/disallow-trailing-whitespace-in-source.js" ],
+    "disallowTrailingWhitespaceInSource": true,
     "maximumLineLength": 120,
     "validateLineBreaks": "LF",
     "validateIndentation": 4,
