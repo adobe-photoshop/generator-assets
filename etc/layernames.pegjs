@@ -116,8 +116,12 @@ filespec "A size-and-file specification"
 
 filename "Filename and quality suffix"
     = nameparts:goodcharsthendot+ suffix:fileext {
-        var filename = String.prototype.concat.apply("", nameparts) + suffix.extension,
-            result = {
+        var filename = String.prototype.concat.apply("", nameparts) + suffix.extension;
+        if (filename[0] == " ") {
+            error("Space before filename", filename);
+        }
+
+        var result = {
                 filename: filename.trim(),
                 extension: suffix.extension.toLowerCase()
             };

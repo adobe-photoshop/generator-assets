@@ -52,7 +52,7 @@
         };
 
         test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, _parserManager._parseLayerName, spec);
+        test.callsMatchSpecification(test, _parserManager._parseLayerNameForUnitTest, spec);
         test.done();
     };
 
@@ -75,7 +75,7 @@
         };
         
         test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, _parserManager._parseLayerName, spec);
+        test.callsMatchSpecification(test, _parserManager._parseLayerNameForUnitTest, spec);
         test.done();
     };
 
@@ -94,7 +94,7 @@
         };
         
         test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, _parserManager._parseLayerName, spec);
+        test.callsMatchSpecification(test, _parserManager._parseLayerNameForUnitTest, spec);
         test.done();
     };
 
@@ -117,7 +117,7 @@
         };
         
         test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, _parserManager._parseLayerName, spec);
+        test.callsMatchSpecification(test, _parserManager._parseLayerNameForUnitTest, spec);
         test.done();
     };
 
@@ -140,7 +140,7 @@
         };
         
         test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, _parserManager._parseLayerName, spec);
+        test.callsMatchSpecification(test, _parserManager._parseLayerNameForUnitTest, spec);
         test.done();
     };
 
@@ -215,7 +215,7 @@
         };
 
         test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, _parserManager._parseLayerName, spec);
+        test.callsMatchSpecification(test, _parserManager._parseLayerNameForUnitTest, spec);
         test.done();
     };
 
@@ -237,7 +237,7 @@
         };
         
         test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, _parserManager._parseLayerName, spec);
+        test.callsMatchSpecification(test, _parserManager._parseLayerNameForUnitTest, spec);
         test.done();
     };
 
@@ -250,7 +250,7 @@
         };
         
         test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, _parserManager._parseLayerName, spec);
+        test.callsMatchSpecification(test, _parserManager._parseLayerNameForUnitTest, spec);
         test.done();
     };
 
@@ -311,7 +311,7 @@
         };
         
         test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, _parserManager._parseLayerName, spec);
+        test.callsMatchSpecification(test, _parserManager._parseLayerNameForUnitTest, spec);
         test.done();
     };
 
@@ -378,11 +378,15 @@
             // | is not allowed
             "foo|bar.jpg": [
                 { name: "foo|bar.jpg" }
+            ],
+            // space before filename when folders are specificed is not allowed
+            "folder/ test.jpg": [
+                { error: "Space before filename" }
             ]
         };
         
         test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, _parserManager._parseLayerName, spec);
+        test.callsMatchSpecification(test, _parserManager._parseLayerNameForUnitTest, spec);
         test.done();
     };
 
@@ -457,7 +461,7 @@
         };
         
         test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, _parserManager._parseLayerName, spec);
+        test.callsMatchSpecification(test, _parserManager._parseLayerNameForUnitTest, spec);
         test.done();
     };
 
@@ -474,7 +478,7 @@
         };
         
         test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, _parserManager._parseLayerName, spec);
+        test.callsMatchSpecification(test, _parserManager._parseLayerNameForUnitTest, spec);
         test.done();
     };
 
@@ -514,7 +518,7 @@
         };
 
         test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, _parserManager._parseLayerName, spec);
+        test.callsMatchSpecification(test, _parserManager._parseLayerNameForUnitTest, spec);
         test.done();
     };
 }());
