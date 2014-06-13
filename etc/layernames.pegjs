@@ -117,8 +117,8 @@ filespec "A size-and-file specification"
 filename "Filename and quality suffix"
     = nameparts:goodcharsthendot+ suffix:fileext {
         var filename = String.prototype.concat.apply("", nameparts) + suffix.extension;
-        if (filename[0] == " ") {
-            error("Space before filename", filename);
+        if (filename.match(/^\s/)) {
+            error("Filename begins with whitespace", filename);
         }
 
         var result = {
