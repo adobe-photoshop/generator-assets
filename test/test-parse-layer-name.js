@@ -36,7 +36,7 @@
      * 
      * @private
      * @param {string} layerName
-     * @returns {Array.<{name: string} | {file: string, extension: string}>}
+     * @returns {Array.<{name: string, file: string=, extension: string=} | {error: string}>} 
      */
     var _parseTest = function (layerName) {
         try {

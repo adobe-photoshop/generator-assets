@@ -118,7 +118,7 @@ filename "Filename and quality suffix"
     = nameparts:goodcharsthendot+ suffix:fileext {
         var filename = String.prototype.concat.apply("", nameparts) + suffix.extension;
         if (filename.match(/^\s/)) {
-            error("Filename begins with whitespace", filename);
+            error("Filename begins with whitespace");
         }
 
         var result = {
