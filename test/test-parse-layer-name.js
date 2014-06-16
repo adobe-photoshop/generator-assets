@@ -30,6 +30,22 @@
 
     var assert = require("nodeunit").assert;
 
+    /**
+     * Calls parser on a given layername
+     *  and returns the error message if parser throws
+     * 
+     * @private
+     * @param {string} layerName
+     * @returns {Array.<{name: string, file: string=, extension: string=} | {error: string}>} 
+     */
+    var _parseTest = function (layerName) {
+        try {
+            return _parserManager._parseLayerName(layerName);
+        } catch (parseError) {
+            return [{error: parseError.message}];
+        }
+    };
+
     assert.callsMatchSpecification = function (test, callback, spec) {
         Object.keys(spec).forEach(function (argument) {
             var actual   = JSON.stringify(callback(argument)),
@@ -52,7 +68,7 @@
         };
 
         test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, _parserManager._parseLayerName, spec);
+        test.callsMatchSpecification(test, _parseTest, spec);
         test.done();
     };
 
@@ -75,7 +91,7 @@
         };
         
         test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, _parserManager._parseLayerName, spec);
+        test.callsMatchSpecification(test, _parseTest, spec);
         test.done();
     };
 
@@ -94,7 +110,7 @@
         };
         
         test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, _parserManager._parseLayerName, spec);
+        test.callsMatchSpecification(test, _parseTest, spec);
         test.done();
     };
 
@@ -117,7 +133,7 @@
         };
         
         test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, _parserManager._parseLayerName, spec);
+        test.callsMatchSpecification(test, _parseTest, spec);
         test.done();
     };
 
@@ -140,7 +156,7 @@
         };
         
         test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, _parserManager._parseLayerName, spec);
+        test.callsMatchSpecification(test, _parseTest, spec);
         test.done();
     };
 
@@ -215,7 +231,7 @@
         };
 
         test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, _parserManager._parseLayerName, spec);
+        test.callsMatchSpecification(test, _parseTest, spec);
         test.done();
     };
 
@@ -237,7 +253,7 @@
         };
         
         test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, _parserManager._parseLayerName, spec);
+        test.callsMatchSpecification(test, _parseTest, spec);
         test.done();
     };
 
@@ -250,7 +266,7 @@
         };
         
         test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, _parserManager._parseLayerName, spec);
+        test.callsMatchSpecification(test, _parseTest, spec);
         test.done();
     };
 
@@ -311,7 +327,7 @@
         };
         
         test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, _parserManager._parseLayerName, spec);
+        test.callsMatchSpecification(test, _parseTest, spec);
         test.done();
     };
 
@@ -378,11 +394,15 @@
             // | is not allowed
             "foo|bar.jpg": [
                 { name: "foo|bar.jpg" }
+            ],
+            // space before filename when folders are specificed is not allowed
+            "folder/ test.jpg": [
+                { error: "Filename begins with whitespace" }
             ]
         };
         
         test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, _parserManager._parseLayerName, spec);
+        test.callsMatchSpecification(test, _parseTest, spec);
         test.done();
     };
 
@@ -457,7 +477,7 @@
         };
         
         test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, _parserManager._parseLayerName, spec);
+        test.callsMatchSpecification(test, _parseTest, spec);
         test.done();
     };
 
@@ -474,7 +494,7 @@
         };
         
         test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, _parserManager._parseLayerName, spec);
+        test.callsMatchSpecification(test, _parseTest, spec);
         test.done();
     };
 
@@ -514,7 +534,7 @@
         };
 
         test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, _parserManager._parseLayerName, spec);
+        test.callsMatchSpecification(test, _parseTest, spec);
         test.done();
     };
 }());
