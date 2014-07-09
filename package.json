@@ -1,6 +1,6 @@
 {
   "name": "generator-assets",
-  "version": "2.0.0-dev",
+  "version": "2.0.1",
   "description": "Asset generation plug-in for Photoshop Generator",
   "main": "main.js",
   "generator-core-version": "~3",
