@@ -1,36 +1,50 @@
 {
   "name": "generator-assets",
-  "version": "1.0.3-dev",
+  "version": "2.0.2-dev",
   "dependencies": {
-    "q": {
-      "version": "1.0.0",
-      "from": "q@~1.0"
-    },
-    "tmp": {
-      "version": "0.0.23",
-      "from": "tmp@~0.0.23"
-    },
     "fs-extra": {
-      "version": "0.8.1",
-      "from": "fs-extra@~0.8",
+      "version": "0.10.0",
+      "from": "fs-extra@~0.10",
+      "resolved": "https://registry.npmjs.org/fs-extra/-/fs-extra-0.10.0.tgz",
       "dependencies": {
         "ncp": {
-          "version": "0.4.2",
-          "from": "ncp@~0.4.2"
+          "version": "0.5.1",
+          "from": "ncp@^0.5.1",
+          "resolved": "https://registry.npmjs.org/ncp/-/ncp-0.5.1.tgz"
         },
         "mkdirp": {
-          "version": "0.3.5",
-          "from": "mkdirp@0.3.x"
+          "version": "0.5.0",
+          "from": "mkdirp@^0.5.0",
+          "resolved": "https://registry.npmjs.org/mkdirp/-/mkdirp-0.5.0.tgz",
+          "dependencies": {
+            "minimist": {
+              "version": "0.0.8",
+              "from": "minimist@0.0.8",
+              "resolved": "https://registry.npmjs.org/minimist/-/minimist-0.0.8.tgz"
+            }
+          }
         },
         "jsonfile": {
-          "version": "1.1.1",
-          "from": "jsonfile@~1.1.0"
+          "version": "1.2.0",
+          "from": "jsonfile@^1.2.0",
+          "resolved": "https://registry.npmjs.org/jsonfile/-/jsonfile-1.2.0.tgz"
         },
         "rimraf": {
-          "version": "2.2.6",
-          "from": "rimraf@~2.2.0"
+          "version": "2.2.8",
+          "from": "rimraf@~2.2.8",
+          "resolved": "https://registry.npmjs.org/rimraf/-/rimraf-2.2.8.tgz"
         }
       }
+    },
+    "q": {
+      "version": "1.0.1",
+      "from": "q@~1.0",
+      "resolved": "https://registry.npmjs.org/q/-/q-1.0.1.tgz"
+    },
+    "tmp": {
+      "version": "0.0.24",
+      "from": "tmp@~0.0.24",
+      "resolved": "https://registry.npmjs.org/tmp/-/tmp-0.0.24.tgz"
     }
   }
 }
