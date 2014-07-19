@@ -89,7 +89,7 @@
             _stateManager.deactivate(id);
         }
     }
-
+    
     /**
      * Enable asset generation for the given Document ID, causing all annotated
      * assets in the given document to be regenerated.
