@@ -89,6 +89,19 @@
         }
     }
 
+    function _bindDoc(doc) {
+        var id = doc.id;
+        if (!_assetManagers.hasOwnProperty(id)) {
+            _assetManagers[id] = new AssetManager(_generator, _config, _logger, doc, _renderManager);
+
+            doc.on("closed", _stopAssetGeneration.bind(undefined, id));
+            doc.on("end", _restartAssetGeneration.bind(undefined, id));
+            doc.on("file", _handleFileChange.bind(undefined, id));
+            
+            _assetManagers[id].start();
+        }
+    };
+    
     /**
      * Enable asset generation for the given Document ID, causing all annotated
      * assets in the given document to be regenerated.
@@ -111,16 +124,9 @@
             if (_canceledDocuments.hasOwnProperty(id)) {
                 delete _canceledDocuments[id];
             } else {
-                if (!_assetManagers.hasOwnProperty(id)) {
-                    _assetManagers[id] = new AssetManager(_generator, _config, _logger, document, _renderManager);
-
-                    document.on("closed", _stopAssetGeneration.bind(undefined, id));
-                    document.on("end", _restartAssetGeneration.bind(undefined, id));
-                    document.on("file", _handleFileChange.bind(undefined, id));
-                }
-                _assetManagers[id].start();
+                _bindDoc(document);
             }
-        });
+        }.bind(this));
     }
 
     /**
@@ -204,6 +210,10 @@
         _stateManager.on("enabled", _startAssetGeneration);
         _stateManager.on("disabled", _pauseAssetGeneration);
 
+        _documentManager.on("bindDoc", function (doc) {
+            _bindDoc(doc);
+        }.bind(this));
+        
         Headlights.init(generator, logger, _stateManager, _renderManager);
     }
 
