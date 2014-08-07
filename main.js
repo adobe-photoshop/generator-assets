@@ -28,14 +28,16 @@
         StateManager = require("./lib/statemanager"),
         RenderManager = require("./lib/rendermanager"),
         AssetManager = require("./lib/assetmanager"),
-        Headlights = require("./lib/headlights");
+        Headlights = require("./lib/headlights"),
+        SONToCSS = require("./lib/css/sontocss.js");
 
     var _generator,
         _config,
         _logger,
         _documentManager,
         _stateManager,
-        _renderManager;
+        _renderManager,
+        _SONToCSSConvertor;
 
     var _assetManagers = {};
 
@@ -180,6 +182,7 @@
         }
     }
 
+
     /**
      * Initialize the Assets plugin.
      * 
@@ -195,6 +198,8 @@
         _documentManager = new DocumentManager(generator, config, logger);
         _stateManager = new StateManager(generator, config, logger, _documentManager);
         _renderManager = new RenderManager(generator, config, logger);
+        _renderManager = new RenderManager(generator, config, logger);
+        _SONToCSSConvertor = new SONToCSS(generator, config, logger);
 
         // For automated tests
         exports._renderManager = _renderManager;
