@@ -29,7 +29,7 @@
         RenderManager = require("./lib/rendermanager"),
         AssetManager = require("./lib/assetmanager"),
         Headlights = require("./lib/headlights"),
-        SONToCSS = require("./lib/css/sontocss.js");
+        SONToCSS; // This is loaded by a config check during init
 
     var _generator,
         _config,
@@ -199,7 +199,11 @@
         _stateManager = new StateManager(generator, config, logger, _documentManager);
         _renderManager = new RenderManager(generator, config, logger);
         _renderManager = new RenderManager(generator, config, logger);
-        _SONToCSSConvertor = new SONToCSS(generator, config, logger);
+
+        if (!!_config["css-enabled"]) {
+            SONToCSS = require("./lib/css/sontocss.js");
+            _SONToCSSConvertor = new SONToCSS(generator, config, logger);
+        }
 
         // For automated tests
         exports._renderManager = _renderManager;

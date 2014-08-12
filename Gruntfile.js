@@ -41,6 +41,9 @@ module.exports = function (grunt) {
                 "test/**/*.js",
                 "!lib/parser.js"
             ],
+            jsx : [
+                "lib/**/*.jsx"
+            ],
             json : [
                 "package.json",
                 ".jshintrc",
@@ -50,6 +53,9 @@ module.exports = function (grunt) {
         
         jscs: {
             js: "<%= jshint.js %>",
+            jsx: [
+                "<%= jshint.jsx %>"
+            ],
             options: {
                 config: ".jscsrc"
             }
