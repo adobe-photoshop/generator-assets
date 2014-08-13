@@ -359,41 +359,45 @@
             "foo%bar.jpg": [
                 { name: "foo%bar.jpg", file: "foo%bar.jpg", extension: "jpg" }
             ],
-            // " is not allowed
+            // " is not allowed and gets converted to _
             "foo\"bar.jpg": [
-                { name: "foo\"bar.jpg" }
+                { name: "foo\"bar.jpg" , file: "foo_bar.jpg", extension: "jpg" }
             ],
             // / is not allowed, unless it is used to demarcate a subfolder
             "/foobar.jpg": [
                 { name: "/foobar.jpg" }
             ],
-            // * is not allowed
+            // \ is not allowed and gets converted to _
+            "foo\\bar.jpg": [
+                { name: "foo\\bar.jpg", file: "foo_bar.jpg", extension: "jpg" }
+            ],
+            // * is not allowed and gets converted to _
             "foo*bar.jpg": [
-                { name: "foo*bar.jpg" }
+                { name: "foo*bar.jpg", file: "foo_bar.jpg", extension: "jpg" }
             ],
-            // < is not allowed
+            // < is not allowed and gets converted to _
             "foo<bar.jpg": [
-                { name: "foo<bar.jpg" }
+                { name: "foo<bar.jpg" , file: "foo_bar.jpg", extension: "jpg" }
             ],
-            // > is not allowed
+            // > is not allowed and gets converted to _
             "foo>bar.jpg": [
-                { name: "foo>bar.jpg" }
+                { name: "foo>bar.jpg" , file: "foo_bar.jpg", extension: "jpg" }
             ],
-            // ? is not allowed
+            // ? is not allowed and gets converted to _
             "foo?bar.jpg": [
-                { name: "foo?bar.jpg" }
+                { name: "foo?bar.jpg" , file: "foo_bar.jpg", extension: "jpg" }
             ],
-            // ! is not allowed
+            // ! is not allowed and gets converted to _
             "foo!bar.jpg": [
-                { name: "foo!bar.jpg" }
+                { name: "foo!bar.jpg" , file: "foo_bar.jpg", extension: "jpg" }
             ],
-            // : is not allowed
+            // : is not allowed and gets converted to _
             "foo:bar.jpg": [
-                { name: "foo:bar.jpg" }
+                { name: "foo:bar.jpg" , file: "foo_bar.jpg", extension: "jpg" }
             ],
-            // | is not allowed
+            // | is not allowed and gets converted to _
             "foo|bar.jpg": [
-                { name: "foo|bar.jpg" }
+                { name: "foo|bar.jpg" , file: "foo_bar.jpg", extension: "jpg" }
             ],
             // space before filename when folders are specificed is not allowed
             "folder/ test.jpg": [
