@@ -96,7 +96,7 @@ filespec "A size-and-file specification"
     = _ size:scale? _ folders:folder* filepart:filename _ { // Parsed layer name part
         var result = {
             name: text().trim(),
-            file: filepart.filename,
+            file: filepart.filename.replace(/[\\":*?<>!|]/g,'_'),
             extension: filepart.extension,
         }
 
@@ -243,7 +243,7 @@ char "A character, including dots"
     = [^,+]
 
 goodchar "A character, excluding dots and other weird things"
-    = [^+,."/*<>?!:|\\\0-\x1F\x7f]
+    = [^+,./\0-\x1F\x7f]
 
 number "A nonnegative number, which may or may not have leading zeros"
     = parts:$(digits ("." digits)?) { return parseFloat(parts); } // e.g., 123 or 1.23
