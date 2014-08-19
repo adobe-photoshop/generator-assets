@@ -35,7 +35,8 @@
         _logger,
         _documentManager,
         _stateManager,
-        _renderManager;
+        _renderManager,
+        _SONToCSSConverter;
 
     var _assetManagers = {};
 
@@ -180,6 +181,7 @@
         }
     }
 
+
     /**
      * Initialize the Assets plugin.
      * 
@@ -195,6 +197,12 @@
         _documentManager = new DocumentManager(generator, config, logger);
         _stateManager = new StateManager(generator, config, logger, _documentManager);
         _renderManager = new RenderManager(generator, config, logger);
+        _renderManager = new RenderManager(generator, config, logger);
+
+        if (!!_config["css-enabled"]) {
+            var SONToCSS = require("./lib/css/sontocss.js");
+            _SONToCSSConverter = new SONToCSS(generator, config, logger, _documentManager);
+        }
 
         // For automated tests
         exports._renderManager = _renderManager;
