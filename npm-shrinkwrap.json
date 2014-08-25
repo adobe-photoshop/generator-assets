@@ -2,20 +2,30 @@
   "name": "generator-assets",
   "version": "2.0.2-dev",
   "dependencies": {
+    "svgobjectmodelgenerator": {
+      "version": "0.0.1",
+      "from": "svgobjectmodelgenerator@git+https://github.com/adobe-research/svgObjectModelGenerator.git#generator-assets",
+      "resolved": "git+https://github.com/adobe-research/svgObjectModelGenerator.git#3f8dcf1942dae7621f0b0dab6655bb6d4c769770"
+    },
+    "q": {
+      "version": "1.0.1",
+      "from": "q@~1.0"
+    },
+    "tmp": {
+      "version": "0.0.24",
+      "from": "tmp@~0.0.24"
+    },
     "fs-extra": {
       "version": "0.10.0",
       "from": "fs-extra@~0.10",
-      "resolved": "https://registry.npmjs.org/fs-extra/-/fs-extra-0.10.0.tgz",
       "dependencies": {
         "ncp": {
           "version": "0.5.1",
-          "from": "ncp@^0.5.1",
-          "resolved": "https://registry.npmjs.org/ncp/-/ncp-0.5.1.tgz"
+          "from": "ncp@^0.5.1"
         },
         "mkdirp": {
           "version": "0.5.0",
           "from": "mkdirp@^0.5.0",
-          "resolved": "https://registry.npmjs.org/mkdirp/-/mkdirp-0.5.0.tgz",
           "dependencies": {
             "minimist": {
               "version": "0.0.8",
@@ -26,25 +36,13 @@
         },
         "jsonfile": {
           "version": "1.2.0",
-          "from": "jsonfile@^1.2.0",
-          "resolved": "https://registry.npmjs.org/jsonfile/-/jsonfile-1.2.0.tgz"
+          "from": "jsonfile@^1.2.0"
         },
         "rimraf": {
           "version": "2.2.8",
-          "from": "rimraf@~2.2.8",
-          "resolved": "https://registry.npmjs.org/rimraf/-/rimraf-2.2.8.tgz"
+          "from": "rimraf@^2.2.8"
         }
       }
-    },
-    "q": {
-      "version": "1.0.1",
-      "from": "q@~1.0",
-      "resolved": "https://registry.npmjs.org/q/-/q-1.0.1.tgz"
-    },
-    "tmp": {
-      "version": "0.0.24",
-      "from": "tmp@~0.0.24",
-      "resolved": "https://registry.npmjs.org/tmp/-/tmp-0.0.24.tgz"
     }
   }
 }
