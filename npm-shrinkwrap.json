@@ -9,13 +9,11 @@
       "dependencies": {
         "ncp": {
           "version": "0.5.1",
-          "from": "ncp@^0.5.1",
-          "resolved": "https://registry.npmjs.org/ncp/-/ncp-0.5.1.tgz"
+          "from": "ncp@^0.5.1"
         },
         "mkdirp": {
           "version": "0.5.0",
           "from": "mkdirp@^0.5.0",
-          "resolved": "https://registry.npmjs.org/mkdirp/-/mkdirp-0.5.0.tgz",
           "dependencies": {
             "minimist": {
               "version": "0.0.8",
@@ -26,20 +24,17 @@
         },
         "jsonfile": {
           "version": "1.2.0",
-          "from": "jsonfile@^1.2.0",
-          "resolved": "https://registry.npmjs.org/jsonfile/-/jsonfile-1.2.0.tgz"
+          "from": "jsonfile@^1.2.0"
         },
         "rimraf": {
           "version": "2.2.8",
-          "from": "rimraf@^2.2.8",
-          "resolved": "https://registry.npmjs.org/rimraf/-/rimraf-2.2.8.tgz"
+          "from": "rimraf@^2.2.8"
         }
       }
     },
     "q": {
       "version": "1.0.1",
-      "from": "q@~1.0",
-      "resolved": "https://registry.npmjs.org/q/-/q-1.0.1.tgz"
+      "from": "q@~1.0"
     },
     "svgobjectmodelgenerator": {
       "version": "0.0.1",
@@ -48,8 +43,7 @@
     },
     "tmp": {
       "version": "0.0.24",
-      "from": "tmp@~0.0.24",
-      "resolved": "https://registry.npmjs.org/tmp/-/tmp-0.0.24.tgz"
+      "from": "tmp@~0.0.24"
     }
   }
 }
