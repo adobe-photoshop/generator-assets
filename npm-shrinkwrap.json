@@ -9,11 +9,13 @@
       "dependencies": {
         "ncp": {
           "version": "0.5.1",
-          "from": "ncp@^0.5.1"
+          "from": "ncp@^0.5.1",
+          "resolved": "https://registry.npmjs.org/ncp/-/ncp-0.5.1.tgz"
         },
         "mkdirp": {
           "version": "0.5.0",
           "from": "mkdirp@^0.5.0",
+          "resolved": "https://registry.npmjs.org/mkdirp/-/mkdirp-0.5.0.tgz",
           "dependencies": {
             "minimist": {
               "version": "0.0.8",
@@ -24,26 +26,30 @@
         },
         "jsonfile": {
           "version": "1.2.0",
-          "from": "jsonfile@^1.2.0"
+          "from": "jsonfile@^1.2.0",
+          "resolved": "https://registry.npmjs.org/jsonfile/-/jsonfile-1.2.0.tgz"
         },
         "rimraf": {
           "version": "2.2.8",
-          "from": "rimraf@^2.2.8"
+          "from": "rimraf@^2.2.8",
+          "resolved": "https://registry.npmjs.org/rimraf/-/rimraf-2.2.8.tgz"
         }
       }
     },
     "q": {
       "version": "1.0.1",
-      "from": "q@~1.0"
+      "from": "q@~1.0",
+      "resolved": "https://registry.npmjs.org/q/-/q-1.0.1.tgz"
     },
     "svgobjectmodelgenerator": {
       "version": "0.0.1",
       "from": "svgobjectmodelgenerator@git+https://github.com/adobe-research/svgObjectModelGenerator.git#generator-assets",
-      "resolved": "git+https://github.com/adobe-research/svgObjectModelGenerator.git#898783200435ca48baf66fd19bdea93c0d15c160"
+      "resolved": "git+https://github.com/adobe-research/svgObjectModelGenerator.git#d8710f87eafe31b0dde1e5efd817405fb8f55f87"
     },
     "tmp": {
       "version": "0.0.24",
-      "from": "tmp@~0.0.24"
+      "from": "tmp@~0.0.24",
+      "resolved": "https://registry.npmjs.org/tmp/-/tmp-0.0.24.tgz"
     }
   }
 }
