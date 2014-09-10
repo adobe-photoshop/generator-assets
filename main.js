@@ -104,7 +104,7 @@
         var open = opened || all;
 
         open.forEach(function (id) {
-            _documentManager.getDocument(id).then(function (document) {
+            _documentManager.getDocument(id).done(function (document) {
                 document.on("generatorSettings", _handleDocGeneratorSettingsChange.bind(undefined, id));
             });
         });
