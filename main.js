@@ -29,6 +29,8 @@
         RenderManager = require("./lib/rendermanager"),
         AssetManager = require("./lib/assetmanager"),
         Headlights = require("./lib/headlights");
+    
+    var PLUGIN_ID = require("./package.json").name;
 
     var _generator,
         _config,
@@ -87,6 +89,51 @@
         if (change.previous && !change.hasOwnProperty("previousSaved")) {
             _stopAssetGeneration(id);
             _stateManager.deactivate(id);
+        }
+    }
+    
+    /**
+     * Handler for a the "openDocumentsChanged" event emitted by the DocumentManager.
+     * Registers a generatorSettings change to update the StateManager appropiately
+     * 
+     * @private
+     * @param {Array.<number>} all The complete set of open document IDs
+     * @param {Array.<number>=} opened The set of newly opened document IDs
+     */
+    function _handleOpenDocumentsChanged(all, opened) {
+        var open = opened || all;
+
+        open.forEach(function (id) {
+            _documentManager.getDocument(id).done(function (document) {
+                document.on("generatorSettings", _handleDocGeneratorSettingsChange.bind(undefined, id));
+            });
+        });
+    }
+    
+    /**
+     * Handler for a the "generatorSettings" change event fired by Document objects. Updates
+     * the state manger based on the current doc setting if the enable settings actually 
+     * changed
+     * 
+     * @private
+     * @param {number} id The ID of the Document that changed
+     * @param {{previous: settings=, current: settings=}}} change The previous and current
+     *      document settings
+     */
+    function _handleDocGeneratorSettingsChange(id, change) {
+        var curSettings = _generator.extractDocumentSettings({generatorSettings: change.current},
+                                                           PLUGIN_ID),
+            prevSettings = _generator.extractDocumentSettings({generatorSettings: change.previous},
+                                                           PLUGIN_ID),
+            curEnabled = !!(curSettings && curSettings.enabled),
+            prevEnabled = !!(prevSettings && prevSettings.enabled);
+        
+        if (prevEnabled !== curEnabled) {
+            if (curEnabled) {
+                _stateManager.activate(id);
+            } else {
+                _stateManager.deactivate(id);
+            }
         }
     }
 
@@ -210,6 +257,7 @@
 
         _stateManager.on("enabled", _startAssetGeneration);
         _stateManager.on("disabled", _pauseAssetGeneration);
+        _documentManager.on("openDocumentsChanged", _handleOpenDocumentsChanged);
 
         Headlights.init(generator, logger, _stateManager, _renderManager);
     }
