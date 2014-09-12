@@ -91,7 +91,7 @@
             _stateManager.deactivate(id);
         }
     }
-    
+
     /**
      * Handler for a the "openDocumentsChanged" event emitted by the DocumentManager.
      * Registers a generatorSettings change to update the StateManager appropiately
@@ -109,7 +109,22 @@
             });
         });
     }
-    
+
+    /**
+     * Extract generator settings from the "current" or "previous" property of a generatorSettings
+     * change event. If the supplied value is not actually a settings object, returns null.
+     *
+     * @private
+     * @param {object} settings Settings json object.
+     * @return {object} Settings object from generator or null.
+     */
+    function _getChangedSettings(settings) {
+        if (settings && typeof(settings) === "object") {
+            return _generator.extractDocumentSettings({generatorSettings: settings}, PLUGIN_ID);
+        }
+        return null;
+    }
+
     /**
      * Handler for a the "generatorSettings" change event fired by Document objects. Updates
      * the state manger based on the current doc setting if the enable settings actually 
@@ -121,10 +136,8 @@
      *      document settings
      */
     function _handleDocGeneratorSettingsChange(id, change) {
-        var curSettings = _generator.extractDocumentSettings({generatorSettings: change.current},
-                                                           PLUGIN_ID),
-            prevSettings = _generator.extractDocumentSettings({generatorSettings: change.previous},
-                                                           PLUGIN_ID),
+        var curSettings = _getChangedSettings(change.current),
+            prevSettings = _getChangedSettings(change.previous),
             curEnabled = !!(curSettings && curSettings.enabled),
             prevEnabled = !!(prevSettings && prevSettings.enabled);
         
