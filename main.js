@@ -106,6 +106,9 @@
         open.forEach(function (id) {
             _documentManager.getDocument(id).done(function (document) {
                 document.on("generatorSettings", _handleDocGeneratorSettingsChange.bind(undefined, id));
+            }, function (error) {
+                _logger.warning("Error getting document during a document changed event, " +
+                    "document was likely closed.", error);
             });
         });
     }
