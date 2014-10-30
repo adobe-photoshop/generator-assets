@@ -44,7 +44,7 @@
     "svgobjectmodelgenerator": {
       "version": "0.0.1",
       "from": "svgobjectmodelgenerator@git+https://github.com/adobe-research/svgObjectModelGenerator.git#release-0.2",
-      "resolved": "git+https://github.com/adobe-research/svgObjectModelGenerator.git#fa1df4434c4a531e6bb2c408c5ecaed05556beff"
+      "resolved": "git+https://github.com/adobe-research/svgObjectModelGenerator.git#7b9de6c3b10928f9c503a4aedcdd3c4c014a5460"
     },
     "tmp": {
       "version": "0.0.24",
