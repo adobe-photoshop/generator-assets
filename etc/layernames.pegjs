@@ -46,7 +46,7 @@ defaultspeclist "List of default specification components"
     }
 
 defaultspec "A single default specification component"
-    = whitespace+ size:scale? _ folders:folder* suffix:goodcharsanddots? _ 
+    = whitespace+ tags:taglist? _ size:scale? _ folders:folder* suffix:goodcharsanddots? _ 
     & { return size || folders.length > 0 || (suffix && suffix.trim().length > 0)} { // require at least one spec
         var result = {
             "default": true,
@@ -65,6 +65,10 @@ defaultspec "A single default specification component"
         }
 
         mergeSize(size, result);
+
+        if (tags) {
+            result.tags = tags;
+        }
 
         return result;
     }
@@ -151,6 +155,101 @@ quality "Quality parameter that follows a file extension"
         return param.join("") + (ext || "");
     }
 
+taglist "List of tags"
+    = first:tag whitespace+ rest:taglist {
+        if (!rest.hasOwnProperty(first.name))
+            rest[first.name] = first
+        return rest;
+    }
+    / only:tag {
+        var result = {};
+        result[only.name] = only
+        return result;
+    }
+
+tag "A single tag, including the value if any"
+    = "#padto" tagvalstart size:twonumbersreq alignment:sephvalign? tagvalend {
+        return {
+            name: "padto",
+            size: size,
+            alignment: alignment || {}
+        }
+    }
+    / "#padmul" tagvalstart divisors:twonumbersreq alignment:sephvalign? tagvalend {
+        return {
+            name: "padmul",
+            divisors: divisors,
+            alignment: alignment || {}
+        }
+    }
+    / "#pad" tagvalstart padding:fournumbersreq tagvalend {
+        return {
+            name: "pad",
+            padding: padding
+        }
+    }
+    / "#" name:alphanumchars {
+        error("unsupported tag " + name);
+    }
+
+tagvalstart "Required start of a tag's value"
+    = "(" / { expected("value of the tag in parens") }
+tagvalend "Required end of a tag's value"
+    = ")" / { expected(")") }
+
+twonumbers "List of 1 or 2 numbers (vertical, horizontal), separated by commas or whitespace"
+    = w:number commasep h:number {
+        return [w, h];
+    }
+    / only:number {
+        return [only, only]
+    }
+twonumbersreq = twonumbers / { expected("1 or 2 numbers (vertical, horizontal), separated by commas or whitespace") }
+
+fournumbers "List 1 to 4 numbers, separated by commas or spaces"
+    = top:number commasep right:number commasep bottom:number commasep left:number {
+        return { top: top, right: right, bottom: bottom, left: left };
+    }
+    / top:number commasep horiz:number commasep bottom:number {
+        return { top: top, right: horiz, bottom: bottom, left: horiz };
+    }
+    / vert:number commasep horiz:number {
+        return { top: vert, right: horiz, bottom: vert, left: horiz };
+    }
+    / only:number {
+        return { top: only, right: only, bottom: only, left: only };
+    }
+fournumbersreq = fournumbers / { expected("1 to 4 numbers (top, right, bottom, left), separated by commas or whitespace") }
+
+commasep "Comma separator"
+    = ","
+
+halign "Horizontal alignment"
+    = ("L" / "left")    { return 'left' }
+    / ("R" / "right")   { return 'right' }
+    / ("C" / "center")  { return 'center' }
+
+valign "Vertical alignment"
+    = ("T" / "top")     { return 'top' }
+    / ("R" / "right")   { return 'right' }
+    / ("M" / "middle")  { return 'middle' }
+
+hvalign "Horizontal and vertical alignment"
+    = h:halign _ v:valign { return { horiz: h, vert: v } }
+    / v:valign _ h:halign { return { horiz: h, vert: v } }
+    / h:halign { return { horiz: h, vert: null } }
+    / v:valign { return { horiz: null, vert: v } }
+
+sephvalign "Horizontal and vertical alignment, prefixed by a colon, a comma or whitespace"
+    = commasep value:hvalign {
+        return value;
+    }
+
+tagvalue "Tag value"
+    = "(" chars:([^)]*) ")" {
+        return chars.join("")
+    }
+
 scale "Relative or absolute scale"
     = relscale
     / abs:absscale " " {
@@ -214,6 +313,14 @@ percent "A percentage, like 30%"
     = num:number "%" {
         return num / 100;
     }
+
+alphanumchars "A sequence of laten letters and digits"
+    = chars:alphanumchar+ {
+        return chars.join("")
+    }
+
+alphanumchar "Latin letter or digit"
+    = [a-zA-Z0-9]
 
 goodcharsanddots 
     = chars:goodcharanddot+ {
