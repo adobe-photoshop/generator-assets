@@ -25,6 +25,22 @@
             }
         }
     }
+    
+    /*
+     * Merge a canvasRect object into a results object, taking care to only copy defined values.
+     * Currently on width and height. Will add support of X/Y offsets in the future
+     */
+    function mergeCanvasRect(rect, result) {
+        if (rect) {
+            if (rect.hasOwnProperty("width")) {
+                result.canvasWidth = rect.width;
+            }
+            
+            if (rect.hasOwnProperty("height")) {
+                result.canvasHeight = rect.height;
+            }
+        }
+    }
 }
 
 start "Either a default asset specification or a layer asset specification"
@@ -46,7 +62,7 @@ defaultspeclist "List of default specification components"
     }
 
 defaultspec "A single default specification component"
-    = whitespace+ size:scale? _ folders:folder* suffix:goodcharsanddots? _ 
+    = whitespace+ size:scale? _ canvasrect:compcanvasrect? _ folders:folder* suffix:goodcharsanddots? _ 
     & { return size || folders.length > 0 || (suffix && suffix.trim().length > 0)} { // require at least one spec
         var result = {
             "default": true,
@@ -65,6 +81,7 @@ defaultspec "A single default specification component"
         }
 
         mergeSize(size, result);
+        mergeCanvasRect(canvasrect, result);
 
         return result;
     }
@@ -93,7 +110,7 @@ folder "A single folder name that ends with a slash and does not begin with a do
     }
 
 filespec "A size-and-file specification"
-    = _ size:scale? _ folders:folder* filepart:filename _ { // Parsed layer name part
+    = _ size:scale? _ canvasrect:compcanvasrect? _ folders:folder* filepart:filename _ { // Parsed layer name part
         var result = {
             name: text().trim(),
             file: filepart.filename.replace(/[\\":*?<>!|]/g,'_'),
@@ -109,6 +126,7 @@ filespec "A size-and-file specification"
         }
 
         mergeSize(size, result);
+        mergeCanvasRect(canvasrect, result);
         
         return result;
     }
@@ -203,6 +221,20 @@ abscomp "Absolute scale component, like 100cm"
         return {
             // no unit
         };
+    }
+
+compcanvasrect "Component canvas rect, either long or short form, offset support to get added later"
+    = longcanvasrect
+    / shortcanvasrect
+    
+longcanvasrect "Long form component canvas size, like [32x64], offset support to get added later"
+    = csize: "[" w:number "x" h:number "]" {
+        return {width: w, height: h};
+    }
+    
+shortcanvasrect "short form component canvas rect to just set a common width/height, like [32]"
+    = csize: "[" val:number "]" {
+        return {width: val, height: val};
     }
 
 unit "Unit abbreviation"
