@@ -234,6 +234,32 @@
         test.callsMatchSpecification(test, _parseTest, spec);
         test.done();
     };
+    
+    exports.testCanvasSize = function (test) {
+        var spec = {
+            "[128] foo.png":
+                [{ name: "[128] foo.png", file: "foo.png", extension: "png",
+                canvasWidth: 128, canvasHeight: 128 }],
+            "[100x80] foo.png":
+                [{ name: "[100x80] foo.png", file: "foo.png", extension: "png",
+                canvasWidth: 100, canvasHeight: 80 }],
+            "32x64 [100x80] foo.png":
+                [{ name: "32x64 [100x80] foo.png", file: "foo.png", extension: "png",
+                width: 32, height: 64, canvasWidth: 100, canvasHeight: 80 }],
+            "default [100x80] lo-res/ + [128x256] hi-res/@2x":[
+                { "default": true, name: "[100x80] lo-res/",
+                folder: ["lo-res"], canvasWidth: 100, canvasHeight: 80},
+                { "default": true, name: "[128x256] hi-res/@2x",
+                folder: ["hi-res"], suffix: "@2x", canvasWidth: 128, canvasHeight: 256}
+            ]
+   
+        };
+        
+        test.expect(Object.keys(spec).length + 1);
+        test.callsMatchSpecification(test, _parseTest, spec);
+        test.done();
+    };
+
 
     exports.testLayerGroups = function (test) {
         var layer1PNG = { name: "Layer 1.png", file: "Layer 1.png", extension: "png" };
