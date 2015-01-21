@@ -298,15 +298,15 @@
                         generator.setDocumentSettingsForPlugin({
                             metaEnabled: true,
                             scaleSettings: [{
-                                    scale: 1
-                                },{
-                                    folder: "scaled-at-25/",
-                                    scale: 0.25
-                                },{
-                                    folder: "scaled-at-200/",
-                                    suffix: "@2x",
-                                    scale: 2
-                                }]
+                                scale: 1
+                            }, {
+                                folder: "scaled-at-25/",
+                                scale: 0.25
+                            }, {
+                                folder: "scaled-at-200/",
+                                suffix: "@2x",
+                                scale: 2
+                            }]
                         }, META_PLUGIN_ID);
 
                         //apply some settings to the currently selected layer
@@ -314,11 +314,11 @@
                             layerId = findLayerIdForIndex (doc.layers, doc.selection[0]);
                             generator.setLayerSettingsForPlugin({
                                 assetSettings: [{
-                                name: "30x? layer.png-32",
-                                extension: "png",
-                                quality: 32,
-                                file: "layer.png",
-                                width: 30
+                                    name: "30x? layer.png-32",
+                                    extension: "png",
+                                    quality: 32,
+                                    file: "layer.png",
+                                    width: 30
                                 }]
                             }, layerId, META_PLUGIN_ID);
 
