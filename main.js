@@ -30,7 +30,8 @@
         AssetManager = require("./lib/assetmanager"),
         Headlights = require("./lib/headlights");
     
-    var PLUGIN_ID = require("./package.json").name;
+    var PLUGIN_ID = require("./package.json").name,
+        META_PLUGIN_ID = "crema";
 
     var _generator,
         _config,
@@ -244,7 +245,22 @@
         }
     }
 
-
+    function findLayerIdForIndex (layers, index) {
+        var i,
+            ret;
+        for (i = 0; i < layers.length; i++) {
+            if (layers[i].index === index) {
+                return layers[i].id;
+            }
+            if (layers[i].layers && layers[i].layers.length > 0) {
+                ret = findLayerIdForIndex(layers[i].layers, index);
+                if (isFinite(ret)) {
+                    return ret;
+                }
+            }
+        }
+    }
+    
     /**
      * Initialize the Assets plugin.
      * 
@@ -271,6 +287,50 @@
         exports._stateManager = _stateManager;
         exports._assetManagers = _assetManagers;
 
+        if (!!_config["meta-data-test-menu-enabled"]) {
+            
+            var onMetaDataTestMenu = function (event) {
+                if (event.generatorMenuChanged.name === "CREMA-META-DATA-TEST") {
+                    generator.getDocumentInfo(null, null).then(function (gDoc) {
+                        var doc = JSON.parse(JSON.stringify(gDoc)),
+                            layerId;
+
+                        generator.setDocumentSettingsForPlugin({
+                            metaEnabled: true,
+                            scaleSettings: [{
+                                    scale: 1
+                                },{
+                                    folder: "scaled-at-25/",
+                                    scale: 0.25
+                                },{
+                                    folder: "scaled-at-200/",
+                                    suffix: "@2x",
+                                    scale: 2
+                                }]
+                        }, META_PLUGIN_ID);
+
+                        //apply some settings to the currently selected layer
+                        if (doc.selection.length > 0) {
+                            layerId = findLayerIdForIndex (doc.layers, doc.selection[0]);
+                            generator.setLayerSettingsForPlugin({
+                                assetSettings: [{
+                                name: "30x? layer.png-32",
+                                extension: "png",
+                                quality: 32,
+                                file: "layer.png",
+                                width: 30
+                                }]
+                            }, layerId, META_PLUGIN_ID);
+
+                        }
+                    });
+                }
+            };
+            
+            generator.addMenuItem("CREMA-META-DATA-TEST", "Apply meta-data to selection", true, false);
+            generator.onPhotoshopEvent("generatorMenuChanged", onMetaDataTestMenu);
+        }
+        
         _stateManager.on("enabled", _startAssetGeneration);
         _stateManager.on("disabled", _pauseAssetGeneration);
         _documentManager.on("openDocumentsChanged", _handleOpenDocumentsChanged);
