@@ -14,7 +14,7 @@
     "test": "node node_modules/.bin/nodeunit test"
   },
   "dependencies": {
-    "svgobjectmodelgenerator": "git+https://github.com/adobe-research/svgObjectModelGenerator.git#release-0.2",
+    "svgobjectmodelgenerator": "git+https://github.com/adobe-research/svgObjectModelGenerator.git#release-0.3",
     "q": "~1.0",
     "tmp": "~0.0.24",
     "fs-extra": "~0.10"
