@@ -270,6 +270,7 @@
         exports._renderManager = _renderManager;
         exports._stateManager = _stateManager;
         exports._assetManagers = _assetManagers;
+        exports._layerNameParse = require("./lib/parser").parse;
 
         _stateManager.on("enabled", _startAssetGeneration);
         _stateManager.on("disabled", _pauseAssetGeneration);
