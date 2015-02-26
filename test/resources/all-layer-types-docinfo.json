@@ -1,0 +1,525 @@
+{
+    "bounds": {
+        "bottom": 714,
+        "left": 0,
+        "right": 1000,
+        "top": 0
+    },
+    "comps": [
+        {
+            "appearance": true,
+            "hasWarning": true,
+            "id": 619146295,
+            "layerSettings": [
+                {
+                    "enabled": true,
+                    "layerID": 1
+                },
+                {
+                    "FXRefPoint": {
+                        "horizontal": 674,
+                        "vertical": 548
+                    },
+                    "enabled": true,
+                    "layerID": 3,
+                    "vectorMask": {
+                        "offset": {
+                            "horizontal": 454,
+                            "vertical": 224
+                        }
+                    }
+                },
+                {
+                    "FXRefPoint": {
+                        "horizontal": 818,
+                        "vertical": -55
+                    },
+                    "enabled": true,
+                    "layerID": 4,
+                    "offset": {
+                        "horizontal": -243,
+                        "vertical": -19
+                    }
+                },
+                {
+                    "enabled": true,
+                    "layerID": 2
+                }
+            ],
+            "name": "Layer Comp 1.png",
+            "position": true,
+            "visibility": true
+        }
+    ],
+    "count": 46,
+    "file": "/Users/mvujovic/Code/generator/plugins/generator-assets/test/resources/all-layer-types.psd",
+    "generatorSettings": {
+        "generator_45_assets": {
+            "json": "{\"enabled\":false}"
+        },
+        "layerTime": 1423594164.467397
+    },
+    "globalLight": {
+        "altitude": 30,
+        "angle": 90
+    },
+    "id": 35,
+    "layers": [
+        {
+            "adjustment": {
+                "brightness": 25,
+                "center": 0,
+                "class": "brightnessEvent",
+                "useLegacy": false
+            },
+            "bounds": {
+                "bottom": 714,
+                "left": 0,
+                "right": 1000,
+                "top": 0
+            },
+            "clipped": false,
+            "generatorSettings": false,
+            "id": 25,
+            "index": 12,
+            "mask": {
+                "bounds": {
+                    "bottom": 714,
+                    "left": 0,
+                    "right": 1000,
+                    "top": 0
+                },
+                "extendWithWhite": true
+            },
+            "name": "adjustment layer",
+            "type": "adjustmentLayer",
+            "visible": true
+        },
+        {
+            "bounds": {
+                "bottom": 179,
+                "left": 91,
+                "right": 775,
+                "top": 70
+            },
+            "clipped": false,
+            "generatorSettings": false,
+            "id": 33,
+            "index": 11,
+            "name": "text layer",
+            "text": {
+                "boundingBox": {
+                    "bottom": {
+                        "units": "pointsUnit",
+                        "value": 0.219049
+                    },
+                    "left": {
+                        "units": "pointsUnit",
+                        "value": 2.654996
+                    },
+                    "right": {
+                        "units": "pointsUnit",
+                        "value": 166.602671
+                    },
+                    "top": {
+                        "units": "pointsUnit",
+                        "value": -25.424978
+                    }
+                },
+                "bounds": {
+                    "bottom": {
+                        "units": "pointsUnit",
+                        "value": 9
+                    },
+                    "left": {
+                        "units": "pointsUnit",
+                        "value": 0
+                    },
+                    "right": {
+                        "units": "pointsUnit",
+                        "value": 169.01751
+                    },
+                    "top": {
+                        "units": "pointsUnit",
+                        "value": -30.132202
+                    }
+                },
+                "paragraphStyleRange": [
+                    {
+                        "from": 0,
+                        "paragraphStyle": {
+                            "align": "left"
+                        },
+                        "to": 12
+                    }
+                ],
+                "textClickPoint": {
+                    "horizontal": {
+                        "units": "percentUnit",
+                        "value": 8.003125
+                    },
+                    "vertical": {
+                        "units": "percentUnit",
+                        "value": 24.808517
+                    }
+                },
+                "textKey": "hello world",
+                "textShape": [
+                    {
+                        "base": {
+                            "horizontal": 0,
+                            "vertical": 0
+                        },
+                        "char": "paint",
+                        "columnCount": 1,
+                        "columnGutter": {
+                            "units": "pointsUnit",
+                            "value": 0
+                        },
+                        "firstBaselineMinimum": {
+                            "units": "pointsUnit",
+                            "value": 0
+                        },
+                        "frameBaselineAlignment": "alignByAscent",
+                        "orientation": "horizontal",
+                        "rowCount": 1,
+                        "rowGutter": {
+                            "units": "pointsUnit",
+                            "value": 0
+                        },
+                        "rowMajorOrder": true,
+                        "spacing": {
+                            "units": "pointsUnit",
+                            "value": 0
+                        },
+                        "transform": {
+                            "tx": 0,
+                            "ty": 0,
+                            "xx": 1,
+                            "xy": 0,
+                            "yx": 0,
+                            "yy": 1
+                        }
+                    }
+                ],
+                "textStyleRange": [
+                    {
+                        "from": 0,
+                        "textStyle": {
+                            "color": {
+                                "blue": 255,
+                                "green": 255,
+                                "red": 255
+                            },
+                            "fontName": "Myriad Pro",
+                            "fontStyleName": "Regular",
+                            "size": {
+                                "units": "pointsUnit",
+                                "value": 36
+                            }
+                        },
+                        "to": 12
+                    }
+                ]
+            },
+            "type": "textLayer",
+            "visible": true
+        },
+        {
+            "bounds": {
+                "bottom": 422,
+                "left": 0,
+                "right": 633,
+                "top": 0
+            },
+            "boundsWithFX": {
+                "bottom": 425,
+                "left": -2,
+                "right": 636,
+                "top": -2
+            },
+            "clipped": false,
+            "generatorSettings": false,
+            "id": 2,
+            "index": 10,
+            "layerEffects": {
+                "bevelEmboss": {
+                    "blur": 3,
+                    "enabled": true,
+                    "pattern": {
+                        "ID": "317d596f-fddf-1177-9d5e-a62e90a74c17",
+                        "name": "$$$/Patterns/Defaults/Watercolor=Watercolor"
+                    },
+                    "scale": {
+                        "units": "percentUnit",
+                        "value": 48
+                    }
+                },
+                "chromeFX": {
+                    "blur": 38,
+                    "distance": 24,
+                    "enabled": true
+                },
+                "frameFX": {
+                    "enabled": true
+                },
+                "innerGlow": {
+                    "blur": 3,
+                    "enabled": true
+                },
+                "innerShadow": {
+                    "blur": 3,
+                    "distance": 1,
+                    "enabled": true
+                },
+                "outerGlow": {
+                    "blur": 3,
+                    "enabled": true,
+                    "transferSpec": {
+                        "name": "Linear"
+                    }
+                }
+            },
+            "name": "effects layer",
+            "pixels": true,
+            "type": "layer",
+            "visible": true
+        },
+        {
+            "bounds": {
+                "bottom": 557.875,
+                "left": 33.8125,
+                "right": 148.5625,
+                "top": 442.21875
+            },
+            "clipped": false,
+            "fill": {
+                "class": "solidColorLayer",
+                "color": {
+                    "blue": 20.190661,
+                    "green": 154.070044,
+                    "red": 198.000003
+                }
+            },
+            "generatorSettings": false,
+            "id": 27,
+            "index": 9,
+            "name": "shape layer",
+            "path": {
+                "bounds": {
+                    "bottom": 557.875,
+                    "left": 33.8125,
+                    "right": 148.5625,
+                    "top": 442.21875
+                },
+                "defaultFill": false,
+                "pathComponents": [
+                    {
+                        "origin": {
+                            "bounds": {
+                                "bottom": 557.875,
+                                "left": 33.8125,
+                                "right": 148.5625,
+                                "top": 442.21875
+                            },
+                            "type": "ellipse"
+                        }
+                    }
+                ]
+            },
+            "type": "shapeLayer",
+            "visible": true
+        },
+        {
+            "bounds": {
+                "bottom": 714,
+                "left": 0,
+                "right": 519,
+                "top": 376
+            },
+            "clipped": false,
+            "generatorSettings": false,
+            "id": 34,
+            "index": 8,
+            "name": "smart object layer",
+            "smartObject": {
+                "ID": "e9f371ef-fe70-1177-8c94-f9e829690d6b",
+                "antiAliasType": 16,
+                "comp": -1,
+                "placed": "efde706a-fe70-1177-8c94-f9e829690d6b",
+                "transform": [
+                    0,
+                    376,
+                    519,
+                    376,
+                    519,
+                    714,
+                    0,
+                    714
+                ],
+                "type": 2
+            },
+            "type": "layer",
+            "visible": true
+        },
+        {
+            "blendOptions": {
+                "mode": "passThrough"
+            },
+            "bounds": {
+                "bottom": 714,
+                "left": 454.75,
+                "right": 1278,
+                "top": -8
+            },
+            "clipped": false,
+            "generatorSettings": false,
+            "id": 17,
+            "index": 7,
+            "layers": [
+                {
+                    "bounds": {
+                        "bottom": 422,
+                        "left": 632,
+                        "right": 1278,
+                        "top": -8
+                    },
+                    "clipped": false,
+                    "generatorSettings": false,
+                    "id": 4,
+                    "index": 6,
+                    "mask": {
+                        "bounds": {
+                            "bottom": 714,
+                            "left": 0,
+                            "right": 1278,
+                            "top": -8
+                        },
+                        "extendWithWhite": true
+                    },
+                    "name": "pixel mask layer",
+                    "pixels": true,
+                    "type": "layer",
+                    "visible": true
+                },
+                {
+                    "bounds": {
+                        "bottom": 714,
+                        "left": 454.75,
+                        "right": 1000,
+                        "top": 261
+                    },
+                    "clipped": false,
+                    "generatorSettings": false,
+                    "id": 3,
+                    "index": 5,
+                    "name": "vector mask layer",
+                    "path": {
+                        "bounds": {
+                            "bottom": 788.25,
+                            "left": 454.75,
+                            "right": 1013.8125,
+                            "top": 224.6875
+                        },
+                        "defaultFill": false,
+                        "pathComponents": [
+                            {
+                                "origin": {
+                                    "bounds": {
+                                        "bottom": 788.25,
+                                        "left": 454.75,
+                                        "right": 1013.8125,
+                                        "top": 224.6875
+                                    },
+                                    "type": "unknown"
+                                }
+                            }
+                        ]
+                    },
+                    "smartObject": {
+                        "ID": "8712ff2c-fded-1177-aac9-f190cae5ffef",
+                        "antiAliasType": 16,
+                        "comp": -1,
+                        "placed": "d6ea0bba-fe6f-1177-8c94-f9e829690d6b",
+                        "transform": [
+                            321,
+                            261,
+                            1000,
+                            261,
+                            1000,
+                            714,
+                            321,
+                            714
+                        ],
+                        "type": 2
+                    },
+                    "type": "layer",
+                    "visible": true
+                }
+            ],
+            "name": "group",
+            "type": "layerSection",
+            "visible": true
+        },
+        {
+            "bounds": {
+                "bottom": 0,
+                "left": 0,
+                "right": 0,
+                "top": 0
+            },
+            "clipped": false,
+            "generatorSettings": false,
+            "id": 20,
+            "index": 3,
+            "name": "empty layer",
+            "pixels": true,
+            "type": "layer",
+            "visible": true
+        },
+        {
+            "blendOptions": {
+                "mode": "passThrough"
+            },
+            "bounds": {
+                "bottom": 0,
+                "left": 0,
+                "right": 0,
+                "top": 0
+            },
+            "clipped": false,
+            "generatorSettings": false,
+            "id": 22,
+            "index": 2,
+            "name": "empty group",
+            "type": "layerSection",
+            "visible": true
+        },
+        {
+            "bounds": {
+                "bottom": 714,
+                "left": 0,
+                "right": 1000,
+                "top": 0
+            },
+            "clipped": false,
+            "generatorSettings": false,
+            "id": 1,
+            "index": 0,
+            "name": "Background",
+            "pixels": true,
+            "protection": {
+                "position": true,
+                "transparency": true
+            },
+            "type": "backgroundLayer",
+            "visible": true
+        }
+    ],
+    "resolution": 300,
+    "selection": [
+        9
+    ],
+    "timeStamp": 1424974623.687,
+    "version": "1.3.0"
+}
