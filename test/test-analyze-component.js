@@ -358,10 +358,10 @@
             name: "foo.jpg0",
             file: "foo.jpg",
             extension: "jpg",
-            quality: 0
+            quality: -1
         };
         errors = _parserManager._analyzeComponent(component);
-        _equalSets(errors, { "Invalid quality: 0": true });
+        _equalSets(errors, { "Invalid quality: -1": true });
 
         component = {
             name: "foo.jpg11",
@@ -385,10 +385,10 @@
             name: "foo.webp0",
             file: "foo.webp",
             extension: "webp",
-            quality: 0
+            quality: -1
         };
         errors = _parserManager._analyzeComponent(component);
-        _equalSets(errors, { "Invalid quality: 0": true });
+        _equalSets(errors, { "Invalid quality: -1": true });
 
         component = {
             name: "foo.webp11",
@@ -412,10 +412,10 @@
             name: "foo.png0",
             file: "foo.png",
             extension: "png",
-            quality: 0
+            quality: -1
         };
         errors = _parserManager._analyzeComponent(component);
-        _equalSets(errors, { "Invalid quality: 0": true });
+        _equalSets(errors, { "Invalid quality: -1": true });
 
         component = {
             name: "foo.png7",
