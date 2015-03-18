@@ -251,8 +251,16 @@
                 folder: ["lo-res"], canvasWidth: 100, canvasHeight: 80},
                 { "default": true, name: "[128x256] hi-res/@2x",
                 folder: ["hi-res"], suffix: "@2x", canvasWidth: 128, canvasHeight: 256}
-            ]
-   
+            ],
+            "[321x90+12+33] bar.png":
+                [{ name: "[321x90+12+33] bar.png", file: "bar.png", extension: "png",
+                canvasWidth: 321, canvasHeight: 90, canvasOffsetX: 12, canvasOffsetY: 33 }],
+            "[234x567+11-22] baz.png":
+                [{ name: "[234x567+11-22] baz.png", file: "baz.png", extension: "png",
+                canvasWidth: 234, canvasHeight: 567, canvasOffsetX: 11, canvasOffsetY: -22 }],
+            "[444x555-99+66] baz.png":
+                [{ name: "[444x555-99+66] baz.png", file: "baz.png", extension: "png",
+                canvasWidth: 444, canvasHeight: 555, canvasOffsetX: -99, canvasOffsetY: 66 }]
         };
         
         test.expect(Object.keys(spec).length + 1);
