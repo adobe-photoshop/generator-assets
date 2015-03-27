@@ -94,7 +94,7 @@
     "svgobjectmodelgenerator": {
       "version": "0.0.1",
       "from": "svgobjectmodelgenerator@git+ssh://git@git.corp.adobe.com:WebPA/svgObjectModelGenerator.git#release-0.4",
-      "resolved": "git+ssh://git@git.corp.adobe.com:WebPA/svgObjectModelGenerator.git#5cf195846b93c8b467658ded8f2d41e336154481"
+      "resolved": "git+ssh://git@git.corp.adobe.com:WebPA/svgObjectModelGenerator.git#03e5502e79c7c9522908b8cb66a7c8c586a8db8c"
     },
     "tmp": {
       "version": "0.0.25",
