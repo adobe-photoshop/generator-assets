@@ -69,6 +69,12 @@
     "id": 35,
     "layers": [
         {
+            "adjustment": {
+                "brightness": 25,
+                "center": 0,
+                "class": "brightnessEvent",
+                "useLegacy": false
+            },
             "bounds": {
                 "bottom": 714,
                 "left": 0,
@@ -77,259 +83,19 @@
             },
             "clipped": false,
             "generatorSettings": false,
-            "id": 1,
-            "name": "Background",
-            "protection": {
-                "position": true,
-                "transparency": true
-            },
-            "type": "backgroundLayer",
-            "visible": true
-        },
-        {
-            "blendOptions": {
-                "mode": "passThrough"
-            },
-            "bounds": {
-                "bottom": 0,
-                "left": 0,
-                "right": 0,
-                "top": 0
-            },
-            "clipped": false,
-            "generatorSettings": false,
-            "id": 22,
-            "layers": [],
-            "name": "empty group",
-            "type": "layerSection",
-            "visible": true
-        },
-        {
-            "bounds": {
-                "bottom": 0,
-                "left": 0,
-                "right": 0,
-                "top": 0
-            },
-            "clipped": false,
-            "generatorSettings": false,
-            "id": 20,
-            "name": "empty layer",
-            "type": "layer",
-            "visible": true
-        },
-        {
-            "blendOptions": {
-                "mode": "passThrough"
-            },
-            "bounds": {
-                "bottom": 714,
-                "left": 454.75,
-                "right": 1278,
-                "top": -8
-            },
-            "clipped": false,
-            "generatorSettings": false,
-            "id": 17,
-            "layers": [
-                {
-                    "bounds": {
-                        "bottom": 714,
-                        "left": 454.75,
-                        "right": 1000,
-                        "top": 261
-                    },
-                    "clipped": false,
-                    "generatorSettings": false,
-                    "id": 3,
-                    "name": "vector mask layer",
-                    "path": {
-                        "bounds": {
-                            "bottom": 788.25,
-                            "left": 454.75,
-                            "right": 1013.8125,
-                            "top": 224.6875
-                        },
-                        "defaultFill": false,
-                        "enabled": true,
-                        "pathComponents": [
-                            {
-                                "origin": {
-                                    "bounds": {
-                                        "bottom": 788.25,
-                                        "left": 454.75,
-                                        "right": 1013.8125,
-                                        "top": 224.6875
-                                    },
-                                    "type": "unknown"
-                                }
-                            }
-                        ]
-                    },
-                    "smartObject": {
-                        "ID": "8712ff2c-fded-1177-aac9-f190cae5ffef",
-                        "antiAliasType": 16,
-                        "comp": -1,
-                        "placed": "d6ea0bba-fe6f-1177-8c94-f9e829690d6b",
-                        "transform": [
-                            321,
-                            261,
-                            1000,
-                            261,
-                            1000,
-                            714,
-                            321,
-                            714
-                        ],
-                        "type": 2
-                    },
-                    "type": "layer",
-                    "visible": true
-                },
-                {
-                    "bounds": {
-                        "bottom": 422,
-                        "left": 632,
-                        "right": 1278,
-                        "top": -8
-                    },
-                    "clipped": false,
-                    "generatorSettings": false,
-                    "id": 4,
-                    "mask": {
-                        "bounds": {
-                            "bottom": 714,
-                            "left": 0,
-                            "right": 1278,
-                            "top": -8
-                        },
-                        "enabled": true,
-                        "extendWithWhite": true
-                    },
-                    "name": "pixel mask layer",
-                    "type": "layer",
-                    "visible": true
-                }
-            ],
-            "name": "group",
-            "type": "layerSection",
-            "visible": true
-        },
-        {
-            "bounds": {
-                "bottom": 714,
-                "left": 0,
-                "right": 519,
-                "top": 376
-            },
-            "clipped": false,
-            "generatorSettings": false,
-            "id": 34,
-            "name": "smart object layer",
-            "smartObject": {
-                "ID": "e9f371ef-fe70-1177-8c94-f9e829690d6b",
-                "antiAliasType": 16,
-                "comp": -1,
-                "placed": "efde706a-fe70-1177-8c94-f9e829690d6b",
-                "transform": [
-                    0,
-                    376,
-                    519,
-                    376,
-                    519,
-                    714,
-                    0,
-                    714
-                ],
-                "type": 2
-            },
-            "type": "layer",
-            "visible": true
-        },
-        {
-            "bounds": {
-                "bottom": 557.875,
-                "left": 33.8125,
-                "right": 148.5625,
-                "top": 442.21875
-            },
-            "clipped": false,
-            "fill": {
-                "class": "solidColorLayer",
-                "color": {
-                    "blue": 20.190661,
-                    "green": 154.070044,
-                    "red": 198.000003
-                }
-            },
-            "generatorSettings": false,
-            "id": 27,
-            "name": "shape layer",
-            "path": {
+            "id": 25,
+            "mask": {
                 "bounds": {
-                    "bottom": 557.875,
-                    "left": 33.8125,
-                    "right": 148.5625,
-                    "top": 442.21875
-                },
-                "defaultFill": false,
-                "enabled": true,
-                "pathComponents": [
-                    {
-                        "origin": {
-                            "bounds": {
-                                "bottom": 557.875,
-                                "left": 33.8125,
-                                "right": 148.5625,
-                                "top": 442.21875
-                            },
-                            "type": "ellipse"
-                        }
-                    }
-                ]
-            },
-            "type": "shapeLayer",
-            "visible": true
-        },
-        {
-            "bounds": {
-                "bottom": 422,
-                "left": 0,
-                "right": 633,
-                "top": 0
-            },
-            "boundsWithFX": {
-                "bottom": 425,
-                "left": -2,
-                "right": 636,
-                "top": -2
-            },
-            "clipped": false,
-            "generatorSettings": false,
-            "id": 2,
-            "layerEffects": {
-                "bevelEmboss": {
-                    "enabled": true
-                },
-                "chromeFX": {
-                    "enabled": true
+                    "bottom": 714,
+                    "left": 0,
+                    "right": 1000,
+                    "top": 0
                 },
                 "enabled": true,
-                "frameFX": {
-                    "enabled": true
-                },
-                "innerGlow": {
-                    "enabled": true
-                },
-                "innerShadow": {
-                    "enabled": true
-                },
-                "outerGlow": {
-                    "enabled": true
-                }
+                "extendWithWhite": true
             },
-            "name": "effects layer",
-            "type": "layer",
+            "name": "adjustment layer",
+            "type": "adjustmentLayer",
             "visible": true
         },
         {
@@ -462,12 +228,252 @@
             "visible": true
         },
         {
-            "adjustment": {
-                "brightness": 25,
-                "center": 0,
-                "class": "brightnessEvent",
-                "useLegacy": false
+            "bounds": {
+                "bottom": 422,
+                "left": 0,
+                "right": 633,
+                "top": 0
             },
+            "boundsWithFX": {
+                "bottom": 425,
+                "left": -2,
+                "right": 636,
+                "top": -2
+            },
+            "clipped": false,
+            "generatorSettings": false,
+            "id": 2,
+            "layerEffects": {
+                "bevelEmboss": {
+                    "enabled": true
+                },
+                "chromeFX": {
+                    "enabled": true
+                },
+                "enabled": true,
+                "frameFX": {
+                    "enabled": true
+                },
+                "innerGlow": {
+                    "enabled": true
+                },
+                "innerShadow": {
+                    "enabled": true
+                },
+                "outerGlow": {
+                    "enabled": true
+                }
+            },
+            "name": "effects layer",
+            "type": "layer",
+            "visible": true
+        },
+        {
+            "bounds": {
+                "bottom": 557.875,
+                "left": 33.8125,
+                "right": 148.5625,
+                "top": 442.21875
+            },
+            "clipped": false,
+            "fill": {
+                "class": "solidColorLayer",
+                "color": {
+                    "blue": 20.190661,
+                    "green": 154.070044,
+                    "red": 198.000003
+                }
+            },
+            "generatorSettings": false,
+            "id": 27,
+            "name": "shape layer",
+            "path": {
+                "bounds": {
+                    "bottom": 557.875,
+                    "left": 33.8125,
+                    "right": 148.5625,
+                    "top": 442.21875
+                },
+                "defaultFill": false,
+                "enabled": true,
+                "pathComponents": [
+                    {
+                        "origin": {
+                            "bounds": {
+                                "bottom": 557.875,
+                                "left": 33.8125,
+                                "right": 148.5625,
+                                "top": 442.21875
+                            },
+                            "type": "ellipse"
+                        }
+                    }
+                ]
+            },
+            "type": "shapeLayer",
+            "visible": true
+        },
+        {
+            "bounds": {
+                "bottom": 714,
+                "left": 0,
+                "right": 519,
+                "top": 376
+            },
+            "clipped": false,
+            "generatorSettings": false,
+            "id": 34,
+            "name": "smart object layer",
+            "smartObject": {
+                "ID": "e9f371ef-fe70-1177-8c94-f9e829690d6b",
+                "antiAliasType": 16,
+                "comp": -1,
+                "placed": "efde706a-fe70-1177-8c94-f9e829690d6b",
+                "transform": [
+                    0,
+                    376,
+                    519,
+                    376,
+                    519,
+                    714,
+                    0,
+                    714
+                ],
+                "type": 2
+            },
+            "type": "layer",
+            "visible": true
+        },
+        {
+            "blendOptions": {
+                "mode": "passThrough"
+            },
+            "bounds": {
+                "bottom": 714,
+                "left": 454.75,
+                "right": 1278,
+                "top": -8
+            },
+            "clipped": false,
+            "generatorSettings": false,
+            "id": 17,
+            "layers": [
+                {
+                    "bounds": {
+                        "bottom": 422,
+                        "left": 632,
+                        "right": 1278,
+                        "top": -8
+                    },
+                    "clipped": false,
+                    "generatorSettings": false,
+                    "id": 4,
+                    "mask": {
+                        "bounds": {
+                            "bottom": 714,
+                            "left": 0,
+                            "right": 1278,
+                            "top": -8
+                        },
+                        "enabled": true,
+                        "extendWithWhite": true
+                    },
+                    "name": "pixel mask layer",
+                    "type": "layer",
+                    "visible": true
+                },
+                {
+                    "bounds": {
+                        "bottom": 714,
+                        "left": 454.75,
+                        "right": 1000,
+                        "top": 261
+                    },
+                    "clipped": false,
+                    "generatorSettings": false,
+                    "id": 3,
+                    "name": "vector mask layer",
+                    "path": {
+                        "bounds": {
+                            "bottom": 788.25,
+                            "left": 454.75,
+                            "right": 1013.8125,
+                            "top": 224.6875
+                        },
+                        "defaultFill": false,
+                        "enabled": true,
+                        "pathComponents": [
+                            {
+                                "origin": {
+                                    "bounds": {
+                                        "bottom": 788.25,
+                                        "left": 454.75,
+                                        "right": 1013.8125,
+                                        "top": 224.6875
+                                    },
+                                    "type": "unknown"
+                                }
+                            }
+                        ]
+                    },
+                    "smartObject": {
+                        "ID": "8712ff2c-fded-1177-aac9-f190cae5ffef",
+                        "antiAliasType": 16,
+                        "comp": -1,
+                        "placed": "d6ea0bba-fe6f-1177-8c94-f9e829690d6b",
+                        "transform": [
+                            321,
+                            261,
+                            1000,
+                            261,
+                            1000,
+                            714,
+                            321,
+                            714
+                        ],
+                        "type": 2
+                    },
+                    "type": "layer",
+                    "visible": true
+                }
+            ],
+            "name": "group",
+            "type": "layerSection",
+            "visible": true
+        },
+        {
+            "bounds": {
+                "bottom": 0,
+                "left": 0,
+                "right": 0,
+                "top": 0
+            },
+            "clipped": false,
+            "generatorSettings": false,
+            "id": 20,
+            "name": "empty layer",
+            "type": "layer",
+            "visible": true
+        },
+        {
+            "blendOptions": {
+                "mode": "passThrough"
+            },
+            "bounds": {
+                "bottom": 0,
+                "left": 0,
+                "right": 0,
+                "top": 0
+            },
+            "clipped": false,
+            "generatorSettings": false,
+            "id": 22,
+            "layers": [],
+            "name": "empty group",
+            "type": "layerSection",
+            "visible": true
+        },
+        {
             "bounds": {
                 "bottom": 714,
                 "left": 0,
@@ -476,19 +482,13 @@
             },
             "clipped": false,
             "generatorSettings": false,
-            "id": 25,
-            "mask": {
-                "bounds": {
-                    "bottom": 714,
-                    "left": 0,
-                    "right": 1000,
-                    "top": 0
-                },
-                "enabled": true,
-                "extendWithWhite": true
+            "id": 1,
+            "name": "Background",
+            "protection": {
+                "position": true,
+                "transparency": true
             },
-            "name": "adjustment layer",
-            "type": "adjustmentLayer",
+            "type": "backgroundLayer",
             "visible": true
         }
     ],
