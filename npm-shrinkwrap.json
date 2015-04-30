@@ -18,9 +18,9 @@
           "resolved": "https://registry.npmjs.org/jsonfile/-/jsonfile-2.0.0.tgz"
         },
         "rimraf": {
-          "version": "2.3.2",
+          "version": "2.3.3",
           "from": "rimraf@>=2.2.8 <3.0.0",
-          "resolved": "https://registry.npmjs.org/rimraf/-/rimraf-2.3.2.tgz",
+          "resolved": "https://registry.npmjs.org/rimraf/-/rimraf-2.3.3.tgz",
           "dependencies": {
             "glob": {
               "version": "4.5.3",
@@ -45,9 +45,9 @@
                   "resolved": "https://registry.npmjs.org/inherits/-/inherits-2.0.1.tgz"
                 },
                 "minimatch": {
-                  "version": "2.0.4",
+                  "version": "2.0.7",
                   "from": "minimatch@>=2.0.1 <3.0.0",
-                  "resolved": "https://registry.npmjs.org/minimatch/-/minimatch-2.0.4.tgz",
+                  "resolved": "https://registry.npmjs.org/minimatch/-/minimatch-2.0.7.tgz",
                   "dependencies": {
                     "brace-expansion": {
                       "version": "1.1.0",
