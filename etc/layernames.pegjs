@@ -28,7 +28,7 @@
     
     /*
      * Merge a canvasRect object into a results object, taking care to only copy defined values.
-     * Currently on width and height. Will add support of X/Y offsets in the future
+     * Currently on width and height, as well as X & Y offset.
      */
     function mergeCanvasRect(rect, result) {
         if (rect) {
@@ -38,6 +38,14 @@
             
             if (rect.hasOwnProperty("height")) {
                 result.canvasHeight = rect.height;
+            }
+
+            if (rect.hasOwnProperty("x")) {
+                result.canvasOffsetX = rect.x;
+            }
+
+            if (rect.hasOwnProperty("y")) {
+                result.canvasOffsetY = rect.y;
             }
         }
     }
@@ -223,15 +231,23 @@ abscomp "Absolute scale component, like 100cm"
         };
     }
 
-compcanvasrect "Component canvas rect, either long or short form, offset support to get added later"
+compcanvasrect "Component canvas rect, either long or short form without offsets, or long form with offsets"
     = longcanvasrect
+    / longcanvasrectwithoffsets
     / shortcanvasrect
-    
+
 longcanvasrect "Long form component canvas size, like [32x64], offset support to get added later"
     = csize: "[" w:number "x" h:number "]" {
         return {width: w, height: h};
     }
-    
+
+longcanvasrectwithoffsets "Long form component canvas size, like [32x64+11-23], with offsets"
+    = csize: "[" w:number "x" h:number xsign:[+-] x:number ysign:[+-] y:number "]" {
+        return {width: w, height: h,
+            x: xsign === "+" ? x : -1 * x,
+            y: ysign === "+" ? y : -1 * y };
+    }
+
 shortcanvasrect "short form component canvas rect to just set a common width/height, like [32]"
     = csize: "[" val:number "]" {
         return {width: val, height: val};
