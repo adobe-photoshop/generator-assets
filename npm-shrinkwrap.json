@@ -1,6 +1,6 @@
 {
   "name": "generator-assets",
-  "version": "2.3.0-dev",
+  "version": "2.4.0-dev",
   "dependencies": {
     "fs-extra": {
       "version": "0.16.5",
@@ -93,8 +93,8 @@
     },
     "svgobjectmodelgenerator": {
       "version": "0.0.1",
-      "from": "git+https://github.com/adobe-research/svgObjectModelGenerator.git#release-0.4",
-      "resolved": "git+https://github.com/adobe-research/svgObjectModelGenerator.git#46b052005f98a3267e64ed4e54296c033730958c"
+      "from": "git+https://github.com/adobe-research/svgObjectModelGenerator.git#release-0.5",
+      "resolved": "git+https://github.com/adobe-research/svgObjectModelGenerator.git#e37752d5c3daa1654a9fc5f1c84b35974b1bd28a"
     },
     "tmp": {
       "version": "0.0.25",
