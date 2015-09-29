@@ -23,9 +23,9 @@
           "resolved": "https://registry.npmjs.org/rimraf/-/rimraf-2.4.3.tgz",
           "dependencies": {
             "glob": {
-              "version": "5.0.14",
+              "version": "5.0.15",
               "from": "glob@>=5.0.14 <6.0.0",
-              "resolved": "https://registry.npmjs.org/glob/-/glob-5.0.14.tgz",
+              "resolved": "https://registry.npmjs.org/glob/-/glob-5.0.15.tgz",
               "dependencies": {
                 "inflight": {
                   "version": "1.0.4",
@@ -45,14 +45,14 @@
                   "resolved": "https://registry.npmjs.org/inherits/-/inherits-2.0.1.tgz"
                 },
                 "minimatch": {
-                  "version": "2.0.10",
-                  "from": "minimatch@>=2.0.1 <3.0.0",
-                  "resolved": "https://registry.npmjs.org/minimatch/-/minimatch-2.0.10.tgz",
+                  "version": "3.0.0",
+                  "from": "minimatch@>=2.0.0 <3.0.0||>=3.0.0 <4.0.0",
+                  "resolved": "https://registry.npmjs.org/minimatch/-/minimatch-3.0.0.tgz",
                   "dependencies": {
                     "brace-expansion": {
-                      "version": "1.1.0",
+                      "version": "1.1.1",
                       "from": "brace-expansion@>=1.0.0 <2.0.0",
-                      "resolved": "https://registry.npmjs.org/brace-expansion/-/brace-expansion-1.1.0.tgz",
+                      "resolved": "https://registry.npmjs.org/brace-expansion/-/brace-expansion-1.1.1.tgz",
                       "dependencies": {
                         "balanced-match": {
                           "version": "0.2.0",
@@ -99,16 +99,16 @@
     "svgobjectmodelgenerator": {
       "version": "0.0.1",
       "from": "git+https://github.com/adobe-research/svgObjectModelGenerator.git#release-0.6",
-      "resolved": "git+https://github.com/adobe-research/svgObjectModelGenerator.git#2cbd2eb22d2b962a5e1bde25cb94a4452a2e9574"
+      "resolved": "git+https://github.com/adobe-research/svgObjectModelGenerator.git#dcd65c0bbedeefb2ee01446979ba8e098859243c"
     },
     "tmp": {
-      "version": "0.0.27",
+      "version": "0.0.28",
       "from": "tmp@>=0.0.24 <0.1.0",
-      "resolved": "https://registry.npmjs.org/tmp/-/tmp-0.0.27.tgz",
+      "resolved": "https://registry.npmjs.org/tmp/-/tmp-0.0.28.tgz",
       "dependencies": {
         "os-tmpdir": {
           "version": "1.0.1",
-          "from": "os-tmpdir@>=1.0.0 <1.1.0",
+          "from": "os-tmpdir@>=1.0.1 <1.1.0",
           "resolved": "https://registry.npmjs.org/os-tmpdir/-/os-tmpdir-1.0.1.tgz"
         }
       }
