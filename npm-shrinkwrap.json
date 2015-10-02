@@ -97,9 +97,9 @@
       "resolved": "https://registry.npmjs.org/q/-/q-1.0.1.tgz"
     },
     "svgobjectmodelgenerator": {
-      "version": "0.0.1",
+      "version": "0.6.0",
       "from": "git+https://github.com/adobe-research/svgObjectModelGenerator.git#release-0.6",
-      "resolved": "git+https://github.com/adobe-research/svgObjectModelGenerator.git#3455be106dcaa0472df063d44f44f7168da78b04"
+      "resolved": "git+https://github.com/adobe-research/svgObjectModelGenerator.git#3653495c525e880f0430ec9cda7032c81fbd8306"
     },
     "tmp": {
       "version": "0.0.28",
