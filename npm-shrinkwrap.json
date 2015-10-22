@@ -13,9 +13,9 @@
           "resolved": "https://registry.npmjs.org/graceful-fs/-/graceful-fs-3.0.8.tgz"
         },
         "jsonfile": {
-          "version": "2.2.2",
+          "version": "2.2.3",
           "from": "jsonfile@>=2.0.0 <3.0.0",
-          "resolved": "https://registry.npmjs.org/jsonfile/-/jsonfile-2.2.2.tgz"
+          "resolved": "https://registry.npmjs.org/jsonfile/-/jsonfile-2.2.3.tgz"
         },
         "rimraf": {
           "version": "2.4.3",
@@ -55,9 +55,9 @@
                       "resolved": "https://registry.npmjs.org/brace-expansion/-/brace-expansion-1.1.1.tgz",
                       "dependencies": {
                         "balanced-match": {
-                          "version": "0.2.0",
+                          "version": "0.2.1",
                           "from": "balanced-match@>=0.2.0 <0.3.0",
-                          "resolved": "https://registry.npmjs.org/balanced-match/-/balanced-match-0.2.0.tgz"
+                          "resolved": "https://registry.npmjs.org/balanced-match/-/balanced-match-0.2.1.tgz"
                         },
                         "concat-map": {
                           "version": "0.0.1",
@@ -99,7 +99,7 @@
     "svgobjectmodelgenerator": {
       "version": "0.6.0",
       "from": "git+https://github.com/adobe-research/svgObjectModelGenerator.git#release-0.6",
-      "resolved": "git+https://github.com/adobe-research/svgObjectModelGenerator.git#3653495c525e880f0430ec9cda7032c81fbd8306"
+      "resolved": "git+https://github.com/adobe-research/svgObjectModelGenerator.git#30edac0c792d080e8a367dafb4909e3b57080d94"
     },
     "tmp": {
       "version": "0.0.28",
