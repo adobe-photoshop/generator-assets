@@ -1,6 +1,6 @@
 {
   "name": "generator-assets",
-  "version": "2.7.2",
+  "version": "2.7.3",
   "dependencies": {
     "fs-extra": {
       "version": "0.16.5",
