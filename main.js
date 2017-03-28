@@ -273,6 +273,7 @@
         exports._layerNameParse = require("./lib/parser").parse;
 
         _stateManager.on("enabled", _startAssetGeneration);
+        _stateManager.once("enabled", _documentManager.fullSteam.bind(_documentManager));
         _stateManager.on("disabled", _pauseAssetGeneration);
         _documentManager.on("openDocumentsChanged", _handleOpenDocumentsChanged);
 
