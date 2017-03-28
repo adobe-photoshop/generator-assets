@@ -272,7 +272,14 @@
         exports._assetManagers = _assetManagers;
         exports._layerNameParse = require("./lib/parser").parse;
 
-        _stateManager.on("enabled", _startAssetGeneration);
+        // Upon first enablement, bump the documentManager into full steam level
+        // which listens to the more expensive events.  For more info see: documentManager.fullSteam
+        _stateManager.once("enabled", function (id) {
+            _documentManager.fullSteam().then(function () {
+                _startAssetGeneration(id);
+                _stateManager.on("enabled", _startAssetGeneration);
+            });
+        });
         _stateManager.on("disabled", _pauseAssetGeneration);
         _documentManager.on("openDocumentsChanged", _handleOpenDocumentsChanged);
 
