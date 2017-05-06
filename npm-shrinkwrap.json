@@ -4,7 +4,7 @@
   "dependencies": {
     "fs-extra": {
       "version": "0.16.5",
-      "from": "fs-extra@>=0.16.3 <0.17.0",
+      "from": "fs-extra@0.16.5",
       "resolved": "https://registry.npmjs.org/fs-extra/-/fs-extra-0.16.5.tgz",
       "dependencies": {
         "graceful-fs": {
@@ -98,8 +98,8 @@
     },
     "svgobjectmodelgenerator": {
       "version": "0.6.0",
-      "from": "git+https://github.com/adobe-research/svgObjectModelGenerator.git#release-0.6",
-      "resolved": "git+https://github.com/adobe-research/svgObjectModelGenerator.git#b8a568dc24daa8c1bf41f83dfa9ec5b007fe46e8"
+      "from": "git+https://github.com/mcilroyc/svgObjectModelGenerator.git#mcilroy/release-0.6.1",
+      "resolved": "git+https://github.com/mcilroyc/svgObjectModelGenerator.git#02eadf29899f6d055ad34b2f214fa787d6b69dcf"
     },
     "tmp": {
       "version": "0.0.28",
