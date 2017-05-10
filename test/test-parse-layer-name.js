@@ -436,6 +436,12 @@
             // space before filename when folders are specificed is not allowed
             "folder/ test.jpg": [
                 { error: "Filename begins with whitespace" }
+            ],
+            "+foo": [
+                { name: "foo" }
+            ],
+            " +foo": [
+                { name: "foo" }
             ]
         };
         

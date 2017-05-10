@@ -95,8 +95,10 @@ defaultspec "A single default specification component"
     }
 
 speclist "List of layer specifications"
-    = first:spec [+,] rest:speclist {
-        rest.unshift(first); 
+    = first:spec? [+,] rest:speclist {
+        if (first) {
+            rest.unshift(first);
+        }
         return rest; 
     }
     / only:spec {
@@ -109,6 +111,9 @@ spec "Layer specification"
         return {
             name: layername.trim()
         };
+    }
+    / _ {
+        return;
     }
 
 folder "A single folder name that ends with a slash and does not begin with a dot"
@@ -287,7 +292,7 @@ goodchars "A sequence of characters, excluding dots"
         return chars.join("");
     }
 
-char "A character, including dots"
+char "A character, including dots, excluding delimiters [+,]"
     = [^,+]
 
 goodchar "A character, excluding dots and other weird things"
