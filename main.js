@@ -41,56 +41,90 @@
         _assetManagers,
         _SONToCSSConverter;
 
+    /**
+     * Update the menu/state if the ID matches the current document.
+     * Changes to the asset generation status of a document may occur when it is not the active document in photoshop
+     *
+     * @private
+     * @param {number} id
+     * @param {boolean} checked
+     */
     function _updateMenuIfActiveDoc(id, checked) {
         if (id === _documentManager.getActiveDocumentID()) {
             _stateManager.setState(id, checked);
         }
     }
 
-    function documentIsGenerating(id) {
+    /**
+     * Test if there an active AssetManager for the given document
+     *
+     * @private
+     * @param {number} id
+     * @return {boolean}
+     */
+    function _documentIsGenerating(id) {
         return _assetManagers.has(id);
+    }
+
+    /**
+     * Start an AssetManager and add it to the local map of managers.
+     *
+     * @private
+     * @param {Document} document
+     */
+    function _startAssetManager(document) {
+        try {
+            var id = document.id,
+                assetManager = new AssetManager(_generator, _config, _logger, document, _renderManager);
+
+            _assetManagers.set(id, assetManager);
+
+            assetManager.once("idle", function () {
+                _logger.info("Asset generation complete", id);
+                // TODO need to destroy AM first?
+                _assetManagers.delete(id);
+                _updateMenuIfActiveDoc(id, false);
+            });
+
+            _logger.info("Starting asset generation, starting asset manager", id);
+            assetManager.start();
+        } catch (err) {
+            _logger.error("Failed to start asset generation", err);
+            _updateMenuIfActiveDoc(id, false);
+        }
     }
 
     /**
      * Enable asset generation for the given Document ID, causing all annotated
      * assets in the given document to be regenerated.
-     * 
-     * @private
+     *
+     * Update menu state accordingly
+     *
      * @param {!number} id The document ID for which asset generation should be enabled.
      */
     function startAssetGeneration(id) {
-        if (documentIsGenerating(id)) {
+        if (_documentIsGenerating(id)) {
             throw new Error("Can not start asset generation, already in progress");
         }
 
-        _logger.info("Starting asset generation, retrieving document", id);
         _updateMenuIfActiveDoc(id, true);
 
-        setImmediate(function () {
-            _documentManager.getDocument(id)
-                .catch(function () {
-                    _updateMenuIfActiveDoc(id, false);
-                })
-                .then(function (document) {
-                    var assetManager = new AssetManager(_generator, _config, _logger, document, _renderManager);
+        _logger.info("Starting asset generation, retrieving document", id);
 
-                    _assetManagers.set(id, assetManager);
-
-                    assetManager.once("idle", function () {
-                        _logger.info("Asset generation complete", id);
-                        // TODO need to destroy AM first?
-                        _assetManagers.delete(id);
-                        _updateMenuIfActiveDoc(id, false);
-                    });
-
-                    _logger.info("Starting asset generation, starting asset manager", id);
-                    assetManager.start();
-                });
+        _documentManager.getDocument(id).done(_startAssetManager, function (err) {
+            _logger.error("Failed to start asset generation, could not retrieve document", err);
+            _updateMenuIfActiveDoc(id, false);
         });
     }
 
+    /**
+     * Abort generation of assets for the given document
+     *
+     * @param {!number} id
+     * @param {string=} reason
+     */
     function stopAssetGeneration(id, reason) {
-        if (documentIsGenerating(id)) {
+        if (_documentIsGenerating(id)) {
             _logger.info("Stopping asset generation", reason);
             _updateMenuIfActiveDoc(id, false);
             _assetManagers.get(id).stop();
@@ -98,6 +132,10 @@
         }
     }
 
+    /**
+     * For the current document, toggle assert generation
+     *
+     */
     function toggleAssetGeneration() {
         var id = _documentManager.getActiveDocumentID();
 
@@ -105,7 +143,7 @@
             return;
         }
 
-        if (documentIsGenerating(id)) {
+        if (_documentIsGenerating(id)) {
             _logger.debug("TOGGLE generation, current: TRUE");
             stopAssetGeneration(id, "menu toggle");
         } else {
@@ -138,6 +176,7 @@
         }
 
         // For automated tests
+        exports.startAssetGeneration = startAssetGeneration;
         exports._renderManager = _renderManager;
         exports._stateManager = _stateManager;
         exports._assetManagers = _assetManagers;
@@ -145,7 +184,7 @@
 
         _documentManager.on("activeDocumentChanged", function (id) {
             _logger.debug("Handling activeDocumentChanged", id);
-            _stateManager.setState(id, documentIsGenerating(id));
+            _stateManager.setState(id, _documentIsGenerating(id));
         });
 
         _documentManager.on("documentClosed", stopAssetGeneration);
