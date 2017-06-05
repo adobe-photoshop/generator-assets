@@ -29,8 +29,6 @@
         RenderManager = require("./lib/rendermanager"),
         AssetManager = require("./lib/assetmanager"),
         Headlights = require("./lib/headlights");
-    
-    // var PLUGIN_ID = require("./package.json").name;
 
     var _generator,
         _config,
