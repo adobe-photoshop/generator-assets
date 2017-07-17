@@ -79,7 +79,6 @@
 
             assetManager.once("idle", function () {
                 _logger.info("Asset generation complete", id);
-                // TODO need to destroy AM first?
                 _assetManagers.delete(id);
                 _updateMenuIfActiveDoc(id, false);
             });
@@ -167,7 +166,6 @@
         _renderManager = new RenderManager(generator, config, logger);
         _assetManagers = new Map();
 
-        // TOOD what to do about this?
         if (!!_config["css-enabled"]) {
             var SONToCSS = require("./lib/css/sontocss.js");
             _SONToCSSConverter = new SONToCSS(generator, config, logger, _documentManager);
