@@ -1,6 +1,6 @@
 {
   "name": "generator-assets",
-  "version": "2.9.0",
+  "version": "3.0.0-dev",
   "description": "Asset generation plug-in for Photoshop Generator",
   "main": "main.js",
   "generator-core-version": "^3.10.0",
@@ -15,7 +15,7 @@
   },
   "dependencies": {
     "fs-extra": "^0.16.3",
-    "q": "~1.0",
+    "q": "^1.5.0",
     "svgobjectmodelgenerator": "git+https://github.com/adobe-research/svgObjectModelGenerator.git#release-0.6",
     "tmp": "~0.0.24"
   },

@@ -29,8 +29,6 @@
         RenderManager = require("./lib/rendermanager"),
         AssetManager = require("./lib/assetmanager"),
         Headlights = require("./lib/headlights");
-    
-    var PLUGIN_ID = require("./package.json").name;
 
     var _generator,
         _config,
@@ -38,168 +36,164 @@
         _documentManager,
         _stateManager,
         _renderManager,
+        _assetManagers,
         _SONToCSSConverter;
 
-    var _assetManagers = {};
-
-    var _waitingDocuments = {},
-        _canceledDocuments = {};
-
     /**
-     * Disable asset generation for the given Document ID, halting any asset
-     * rending in progress.
-     * 
-     * @private
-     * @param {!number} id The document ID for which asset generation should be disabled.
-     */
-    function _pauseAssetGeneration(id) {
-        if (_waitingDocuments.hasOwnProperty(id)) {
-            _canceledDocuments[id] = true;
-        } else if (_assetManagers.hasOwnProperty(id)) {
-            _assetManagers[id].stop();
-        }
-    }
-
-    /**
-     * Completely stop asset generation for the given Document ID and collect
-     * its AssetManager instance.
-     * 
-     * @private
-     * @param {!number} id The document ID for which asset generation should be disabled.
-     */
-    function _stopAssetGeneration(id) {
-        _pauseAssetGeneration(id);
-
-        if (_assetManagers.hasOwnProperty(id)) {
-            delete _assetManagers[id];
-        }
-    }
-
-    /**
-     * Handler for a the "file" change event fired by Document objects. Disables
-     * asset generation after Save As is performed on an an already-saved file.
-     * 
-     * @private
-     * @param {number} id The ID of the Document that changed
-     * @param {{previous: string=, previousSaved: boolean=}}} change The file
-     *      change event emitted by the Document
-     */
-    function _handleFileChange(id, change) {
-        // If the filename changed but the saved state didn't change, then the file must have been renamed
-        if (change.previous && !change.hasOwnProperty("previousSaved")) {
-            _stopAssetGeneration(id);
-            _stateManager.deactivate(id);
-        }
-    }
-
-    /**
-     * Handler for a the "openDocumentsChanged" event emitted by the DocumentManager.
-     * Registers a generatorSettings change to update the StateManager appropiately
-     * 
-     * @private
-     * @param {Array.<number>} all The complete set of open document IDs
-     * @param {Array.<number>=} opened The set of newly opened document IDs
-     */
-    function _handleOpenDocumentsChanged(all, opened) {
-        var open = opened || all;
-
-        open.forEach(function (id) {
-            _documentManager.getDocument(id).done(function (document) {
-                document.on("generatorSettings", _handleDocGeneratorSettingsChange.bind(undefined, id));
-            }, function (error) {
-                _logger.warning("Error getting document during a document changed event, " +
-                    "document was likely closed.", error);
-            });
-        });
-    }
-
-    /**
-     * Extract generator settings from the "current" or "previous" property of a generatorSettings
-     * change event. If the supplied value is not actually a settings object, returns null.
+     * Update the menu/state if the ID matches the current document.
+     * Changes to the asset generation status of a document may occur when it is not the active document in photoshop
      *
      * @private
-     * @param {object} settings Settings json object.
-     * @return {object} Settings object from generator or null.
+     * @param {number} id
+     * @param {boolean} checked
      */
-    function _getChangedSettings(settings) {
-        if (settings && typeof(settings) === "object") {
-            return _generator.extractDocumentSettings({generatorSettings: settings}, PLUGIN_ID);
+    function _updateMenuIfActiveDoc(id, checked) {
+        if (id === _documentManager.getActiveDocumentID()) {
+            _stateManager.setState(id, checked);
         }
-        return null;
     }
 
     /**
-     * Handler for a the "generatorSettings" change event fired by Document objects. Updates
-     * the state manger based on the current doc setting if the enable settings actually 
-     * changed
-     * 
+     * Test if there an active AssetManager for the given document
+     *
      * @private
-     * @param {number} id The ID of the Document that changed
-     * @param {{previous: settings=, current: settings=}}} change The previous and current
-     *      document settings
+     * @param {number} id
+     * @return {boolean}
      */
-    function _handleDocGeneratorSettingsChange(id, change) {
-        var curSettings = _getChangedSettings(change.current),
-            prevSettings = _getChangedSettings(change.previous),
-            curEnabled = !!(curSettings && curSettings.enabled),
-            prevEnabled = !!(prevSettings && prevSettings.enabled);
-        
-        if (prevEnabled !== curEnabled) {
-            if (curEnabled) {
-                _stateManager.activate(id);
-            } else {
-                _stateManager.deactivate(id);
-            }
+    function _documentIsGenerating(id) {
+        return _assetManagers.has(id);
+    }
+
+    /**
+     * Start an AssetManager and add it to the local map of managers.
+     *
+     * @private
+     * @param {Document} document
+     */
+    function _startAssetManager(document) {
+        try {
+            var id = document.id,
+                assetManager = new AssetManager(_generator, _config, _logger, document, _renderManager);
+
+            _assetManagers.set(id, assetManager);
+
+            assetManager.once("idle", function () {
+                _logger.info("Asset generation complete", id);
+                _assetManagers.delete(id);
+                _updateMenuIfActiveDoc(id, false);
+            });
+
+            _logger.info("Starting asset generation, starting asset manager", id);
+            assetManager.start();
+        } catch (err) {
+            _logger.error("Failed to start asset generation", err);
+            _updateMenuIfActiveDoc(id, false);
         }
     }
 
     /**
      * Enable asset generation for the given Document ID, causing all annotated
      * assets in the given document to be regenerated.
-     * 
-     * @private
+     *
+     * Update menu state accordingly
+     *
      * @param {!number} id The document ID for which asset generation should be enabled.
      */
-    function _startAssetGeneration(id) {
-        if (_waitingDocuments.hasOwnProperty(id)) {
-            return;
+    function startAssetGeneration(id) {
+        if (_documentIsGenerating(id)) {
+            throw new Error("Can not start asset generation, already in progress");
         }
 
-        var documentPromise = _documentManager.getDocument(id);
-        
-        _waitingDocuments[id] = documentPromise;
+        _updateMenuIfActiveDoc(id, true);
 
-        documentPromise.done(function (document) {
-            delete _waitingDocuments[id];
+        _logger.info("Starting asset generation, retrieving document", id);
 
-            if (_canceledDocuments.hasOwnProperty(id)) {
-                delete _canceledDocuments[id];
-            } else {
-                if (!_assetManagers.hasOwnProperty(id)) {
-                    _assetManagers[id] = new AssetManager(_generator, _config, _logger, document, _renderManager);
-
-                    document.on("closed", _stopAssetGeneration.bind(undefined, id));
-                    document.on("end", _restartAssetGeneration.bind(undefined, id));
-                    document.on("file", _handleFileChange.bind(undefined, id));
-                }
-                _assetManagers[id].start();
-            }
+        _documentManager.getDocument(id).done(_startAssetManager, function (err) {
+            _logger.error("Failed to start asset generation, could not retrieve document", err);
+            _updateMenuIfActiveDoc(id, false);
         });
     }
 
     /**
-     * Restart asset generation for the given Document ID. This is called when
-     * a Document emits an "end" event, indicating that there was an error
-     * updating its internal state as from Photoshop's change events.
-     * 
-     * @private
-     * @param {!number} id The document ID for which asset generation should be enabled.
+     * Abort generation of assets for the given document
+     *
+     * @param {!number} id
+     * @param {string=} reason
      */
-    function _restartAssetGeneration(id) {
-        _stopAssetGeneration(id);
-        _startAssetGeneration(id);
+    function stopAssetGeneration(id, reason) {
+        if (_documentIsGenerating(id)) {
+            _logger.info("Stopping asset generation", reason);
+            _updateMenuIfActiveDoc(id, false);
+            _assetManagers.get(id).stop();
+            _assetManagers.delete(id);
+        }
     }
 
+    /**
+     * For the current document, toggle assert generation
+     *
+     */
+    function toggleAssetGeneration() {
+        var id = _documentManager.getActiveDocumentID();
+
+        if (!id) {
+            return;
+        }
+
+        if (_documentIsGenerating(id)) {
+            _logger.debug("TOGGLE generation, current: TRUE");
+            stopAssetGeneration(id, "menu toggle");
+        } else {
+            _logger.debug("TOGGLE generation, current: FALSE");
+            startAssetGeneration(id);
+        }
+    }
+
+    /**
+     * Initialize the Assets plugin.
+     * 
+     * @param {Generator} generator The Generator instance for this plugin.
+     * @param {object} config Configuration options for this plugin.
+     * @param {Logger} logger The Logger instance for this plugin.
+     */
+    function init(generator, config, logger) {
+        _generator = generator;
+        _config = config;
+        _logger = logger;
+
+        _documentManager = new DocumentManager(generator, config, logger);
+        _stateManager = new StateManager(generator, config, logger, _documentManager);
+        _renderManager = new RenderManager(generator, config, logger);
+        _assetManagers = new Map();
+
+        if (!!_config["css-enabled"]) {
+            var SONToCSS = require("./lib/css/sontocss.js");
+            _SONToCSSConverter = new SONToCSS(generator, config, logger, _documentManager);
+        }
+
+        // For automated tests
+        exports.startAssetGeneration = startAssetGeneration;
+        exports._renderManager = _renderManager;
+        exports._stateManager = _stateManager;
+        exports._assetManagers = _assetManagers;
+        exports._layerNameParse = require("./lib/parser").parse;
+
+        _documentManager.on("activeDocumentChanged", function (id) {
+            _logger.debug("Handling activeDocumentChanged", id);
+            _stateManager.setState(id, _documentIsGenerating(id));
+        });
+
+        _documentManager.on("documentClosed", stopAssetGeneration);
+
+        _stateManager.on("menuToggled", toggleAssetGeneration);
+
+        Headlights.init(generator, logger, _stateManager, _renderManager);
+    }
+
+
+    exports.init = init;
+
+    // ######### For automated tests ##############
     /**
      * Get a copy of the plugin's config object. For automated testing only.
      * 
@@ -244,45 +238,6 @@
         }
     }
 
-
-    /**
-     * Initialize the Assets plugin.
-     * 
-     * @param {Generator} generator The Generator instance for this plugin.
-     * @param {object} config Configuration options for this plugin.
-     * @param {Logger} logger The Logger instance for this plugin.
-     */
-    function init(generator, config, logger) {
-        _generator = generator;
-        _config = config;
-        _logger = logger;
-
-        _documentManager = new DocumentManager(generator, config, logger);
-        _stateManager = new StateManager(generator, config, logger, _documentManager);
-        _renderManager = new RenderManager(generator, config, logger);
-
-        if (!!_config["css-enabled"]) {
-            var SONToCSS = require("./lib/css/sontocss.js");
-            _SONToCSSConverter = new SONToCSS(generator, config, logger, _documentManager);
-        }
-
-        // For automated tests
-        exports._renderManager = _renderManager;
-        exports._stateManager = _stateManager;
-        exports._assetManagers = _assetManagers;
-        exports._layerNameParse = require("./lib/parser").parse;
-
-        _stateManager.on("enabled", _startAssetGeneration);
-        _stateManager.on("disabled", _pauseAssetGeneration);
-        _documentManager.on("openDocumentsChanged", _handleOpenDocumentsChanged);
-
-        Headlights.init(generator, logger, _stateManager, _renderManager);
-    }
-
-
-    exports.init = init;
-
-    // For automated tests
     exports._getConfig = _getConfig;
     exports._setConfig = _setConfig;
 }());
