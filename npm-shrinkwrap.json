@@ -97,9 +97,9 @@
       "resolved": "https://registry.npmjs.org/q/-/q-1.0.1.tgz"
     },
     "svgobjectmodelgenerator": {
-      "version": "0.6.1",
-      "from": "git+https://github.com/adobe-photoshop/svgObjectModelGenerator.git#release-0.6",
-      "resolved": "git+https://github.com/adobe-photoshop/svgObjectModelGenerator.git#e454829d17ee84d18aca40798351a3c77e7d4d13"
+      "version": "0.6.2",
+      "from": "git+https://github.com/adobe-photoshop/svgObjectModelGenerator.git#v0.6.2",
+      "resolved": "git+https://github.com/adobe-photoshop/svgObjectModelGenerator.git#0a6127de3515092db2b8dcd7a11f7f083fb0e16f"
     },
     "tmp": {
       "version": "0.0.28",
