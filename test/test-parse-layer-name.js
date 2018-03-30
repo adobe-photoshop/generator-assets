@@ -28,8 +28,6 @@
 
     var _parserManager = new ParserManager();
 
-    var assert = require("nodeunit").assert;
-
     /**
      * Calls parser on a given layername
      *  and returns the error message if parser throws
@@ -46,7 +44,7 @@
         }
     };
 
-    assert.callsMatchSpecification = function (test, callback, spec) {
+    var _callsMatchSpecification = function (test, callback, spec) {
         Object.keys(spec).forEach(function (argument) {
             var actual   = JSON.stringify(callback(argument)),
                 expected = JSON.stringify(spec[argument]);
@@ -66,9 +64,8 @@
             "Foo.PnG":                    [{ name: "Foo.PnG",      file: "Foo.PnG",  extension: "png" }],
             "Foo.WeBp":                   [{ name: "Foo.WeBp",     file: "Foo.WeBp", extension: "webp" }]
         };
-
-        test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, _parseTest, spec);
+        test.expect(Object.keys(spec).length);
+        _callsMatchSpecification(test, _parseTest, spec);
         test.done();
     };
 
@@ -90,8 +87,8 @@
             "foo.jpg-33.33%":     [{ name: "foo.jpg-33.33%" }]
         };
         
-        test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, _parseTest, spec);
+        test.expect(Object.keys(spec).length);
+        _callsMatchSpecification(test, _parseTest, spec);
         test.done();
     };
 
@@ -109,8 +106,8 @@
             "foo.png-42.22":              [{ name: "foo.png-42.22" }]
         };
         
-        test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, _parseTest, spec);
+        test.expect(Object.keys(spec).length);
+        _callsMatchSpecification(test, _parseTest, spec);
         test.done();
     };
 
@@ -132,8 +129,8 @@
             "foo.webp-33.33%":     [{ name: "foo.webp-33.33%" }]
         };
         
-        test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, _parseTest, spec);
+        test.expect(Object.keys(spec).length);
+        _callsMatchSpecification(test, _parseTest, spec);
         test.done();
     };
 
@@ -155,8 +152,8 @@
             "0.00% foo.png":              [{ name: "0.00% foo.png",   file: "foo.png",  extension: "png", scale: 0}]
         };
         
-        test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, _parseTest, spec);
+        test.expect(Object.keys(spec).length);
+        _callsMatchSpecification(test, _parseTest, spec);
         test.done();
     };
 
@@ -230,8 +227,8 @@
             ]
         };
 
-        test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, _parseTest, spec);
+        test.expect(Object.keys(spec).length);
+        _callsMatchSpecification(test, _parseTest, spec);
         test.done();
     };
     
@@ -263,8 +260,8 @@
                 canvasWidth: 444, canvasHeight: 555, canvasOffsetX: -99, canvasOffsetY: 66 }]
         };
         
-        test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, _parseTest, spec);
+        test.expect(Object.keys(spec).length);
+        _callsMatchSpecification(test, _parseTest, spec);
         test.done();
     };
 
@@ -286,8 +283,8 @@
             "Layer 1.png  + Layer 2.jpg": [layer1PNG, layer2JPG]
         };
         
-        test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, _parseTest, spec);
+        test.expect(Object.keys(spec).length);
+        _callsMatchSpecification(test, _parseTest, spec);
         test.done();
     };
 
@@ -299,8 +296,8 @@
             ]
         };
         
-        test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, _parseTest, spec);
+        test.expect(Object.keys(spec).length);
+        _callsMatchSpecification(test, _parseTest, spec);
         test.done();
     };
 
@@ -360,8 +357,8 @@
 
         };
         
-        test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, _parseTest, spec);
+        test.expect(Object.keys(spec).length);
+        _callsMatchSpecification(test, _parseTest, spec);
         test.done();
     };
 
@@ -439,8 +436,8 @@
             ]
         };
         
-        test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, _parseTest, spec);
+        test.expect(Object.keys(spec).length);
+        _callsMatchSpecification(test, _parseTest, spec);
         test.done();
     };
 
@@ -514,8 +511,8 @@
             ]
         };
         
-        test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, _parseTest, spec);
+        test.expect(Object.keys(spec).length);
+        _callsMatchSpecification(test, _parseTest, spec);
         test.done();
     };
 
@@ -531,8 +528,8 @@
             ]
         };
         
-        test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, _parseTest, spec);
+        test.expect(Object.keys(spec).length);
+        _callsMatchSpecification(test, _parseTest, spec);
         test.done();
     };
 
@@ -573,8 +570,8 @@
             ]
         };
 
-        test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, _parseTest, spec);
+        test.expect(Object.keys(spec).length);
+        _callsMatchSpecification(test, _parseTest, spec);
         test.done();
     };
 }());
