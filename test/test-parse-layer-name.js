@@ -147,9 +147,9 @@
             "05% foo.png":                [{ name: "05% foo.png",  file: "foo.png",  extension: "png", scale: 0.05}],
             "1%foo.png":                  [{ name: "1%foo.png",    file: "foo.png",  extension: "png", scale: 0.01 }],
             "33.33%foo.png":              [{ name: "33.33%foo.png",
-            file: "foo.png",  extension: "png", scale: 0.3333 }],
+                file: "foo.png",  extension: "png", scale: 0.3333 }],
             "0.99% foo.png":              [{ name: "0.99% foo.png",
-            file: "foo.png",  extension: "png", scale: 0.009899999999999999 }],
+                file: "foo.png",  extension: "png", scale: 0.009899999999999999 }],
             // Parses correctly, but analyze will throw error (0% scaling not allowed)
             "0% foo.png":                 [{ name: "0% foo.png",   file: "foo.png",  extension: "png", scale: 0}],
             "0.00% foo.png":              [{ name: "0.00% foo.png",   file: "foo.png",  extension: "png", scale: 0}]
@@ -563,10 +563,12 @@
                 { "default": true, name: "1000x1000cm mongo/", folder: ["mongo"], width: 1000, height: 1000,
                 heightUnit: "cm" }
             ],
-            "default": [ // at least one default spec is require
+            // at least one default spec is require
+            "default": [
                 { name: "default" }
             ],
-            "default.png": [ // doesn't conflict with existing filenames
+            // doesn't conflict with existing filenames
+            "default.png": [
                 { name: "default.png", file: "default.png", extension: "png" }
             ]
         };
