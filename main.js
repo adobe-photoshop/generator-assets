@@ -21,6 +21,8 @@
  * 
  */
 
+/* jshint latedef: false */
+
 (function () {
     "use strict";
 
@@ -81,7 +83,7 @@
      * 
      * @private
      * @param {number} id The ID of the Document that changed
-     * @param {{previous: string=, previousSaved: boolean=}}} change The file
+     * @param {{previous: string=, previousSaved: boolean=}} change The file
      *      change event emitted by the Document
      */
     function _handleFileChange(id, change) {
@@ -90,27 +92,6 @@
             _stopAssetGeneration(id);
             _stateManager.deactivate(id);
         }
-    }
-
-    /**
-     * Handler for a the "openDocumentsChanged" event emitted by the DocumentManager.
-     * Registers a generatorSettings change to update the StateManager appropiately
-     * 
-     * @private
-     * @param {Array.<number>} all The complete set of open document IDs
-     * @param {Array.<number>=} opened The set of newly opened document IDs
-     */
-    function _handleOpenDocumentsChanged(all, opened) {
-        var open = opened || all;
-
-        open.forEach(function (id) {
-            _documentManager.getDocument(id).done(function (document) {
-                document.on("generatorSettings", _handleDocGeneratorSettingsChange.bind(undefined, id));
-            }, function (error) {
-                _logger.warning("Error getting document during a document changed event, " +
-                    "document was likely closed.", error);
-            });
-        });
     }
 
     /**
@@ -132,10 +113,10 @@
      * Handler for a the "generatorSettings" change event fired by Document objects. Updates
      * the state manger based on the current doc setting if the enable settings actually 
      * changed
-     * 
+     *
      * @private
      * @param {number} id The ID of the Document that changed
-     * @param {{previous: settings=, current: settings=}}} change The previous and current
+     * @param {{previous: settings=, current: settings=}} change The previous and current
      *      document settings
      */
     function _handleDocGeneratorSettingsChange(id, change) {
@@ -151,6 +132,27 @@
                 _stateManager.deactivate(id);
             }
         }
+    }
+
+    /**
+     * Handler for a the "openDocumentsChanged" event emitted by the DocumentManager.
+     * Registers a generatorSettings change to update the StateManager appropiately
+     *
+     * @private
+     * @param {Array.<number>} all The complete set of open document IDs
+     * @param {Array.<number>=} opened The set of newly opened document IDs
+     */
+    function _handleOpenDocumentsChanged(all, opened) {
+        var open = opened || all;
+
+        open.forEach(function (id) {
+            _documentManager.getDocument(id).done(function (document) {
+                document.on("generatorSettings", _handleDocGeneratorSettingsChange.bind(undefined, id));
+            }, function (error) {
+                _logger.warning("Error getting document during a document changed event, " +
+                    "document was likely closed.", error);
+            });
+        });
     }
 
     /**
