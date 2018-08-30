@@ -227,14 +227,17 @@
      * 
      * @private
      * @param {object} config
+     * @param {boolean=} keepExisting if true then don't delete previous configs first. default: false
      */
-    function _setConfig(config) {
+    function _setConfig(config, keepExisting) {
         var property;
 
-        // clear out the existing properties
-        for (property in _config) {
-            if (_config.hasOwnProperty(property)) {
-                delete _config[property];
+        // optionally clean out the existing properties first
+        if (!keepExisting) {
+            for (property in _config) {
+                if (_config.hasOwnProperty(property)) {
+                    delete _config[property];
+                }
             }
         }
 
