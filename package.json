@@ -16,7 +16,7 @@
   "dependencies": {
     "fs-extra": "^5.0.0",
     "q": "~1.0",
-    "svgobjectmodelgenerator": "git+https://github.com/adobe-photoshop/svgObjectModelGenerator.git#v0.6.2",
+    "svgobjectmodelgenerator": "github:adobe-photoshop/svgObjectModelGenerator#v0.6.2",
     "tmp": "0.0.33"
   },
   "devDependencies": {
