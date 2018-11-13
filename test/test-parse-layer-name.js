@@ -28,8 +28,6 @@
 
     var _parserManager = new ParserManager();
 
-    var assert = require("nodeunit").assert;
-
     /**
      * Calls parser on a given layername
      *  and returns the error message if parser throws
@@ -46,7 +44,7 @@
         }
     };
 
-    assert.callsMatchSpecification = function (test, callback, spec) {
+    var _callsMatchSpecification = function (test, callback, spec) {
         Object.keys(spec).forEach(function (argument) {
             var actual   = JSON.stringify(callback(argument)),
                 expected = JSON.stringify(spec[argument]);
@@ -66,9 +64,8 @@
             "Foo.PnG":                    [{ name: "Foo.PnG",      file: "Foo.PnG",  extension: "png" }],
             "Foo.WeBp":                   [{ name: "Foo.WeBp",     file: "Foo.WeBp", extension: "webp" }]
         };
-
-        test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, _parseTest, spec);
+        test.expect(Object.keys(spec).length);
+        _callsMatchSpecification(test, _parseTest, spec);
         test.done();
     };
 
@@ -90,8 +87,8 @@
             "foo.jpg-33.33%":     [{ name: "foo.jpg-33.33%" }]
         };
         
-        test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, _parseTest, spec);
+        test.expect(Object.keys(spec).length);
+        _callsMatchSpecification(test, _parseTest, spec);
         test.done();
     };
 
@@ -109,8 +106,8 @@
             "foo.png-42.22":              [{ name: "foo.png-42.22" }]
         };
         
-        test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, _parseTest, spec);
+        test.expect(Object.keys(spec).length);
+        _callsMatchSpecification(test, _parseTest, spec);
         test.done();
     };
 
@@ -132,8 +129,8 @@
             "foo.webp-33.33%":     [{ name: "foo.webp-33.33%" }]
         };
         
-        test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, _parseTest, spec);
+        test.expect(Object.keys(spec).length);
+        _callsMatchSpecification(test, _parseTest, spec);
         test.done();
     };
 
@@ -147,16 +144,16 @@
             "05% foo.png":                [{ name: "05% foo.png",  file: "foo.png",  extension: "png", scale: 0.05}],
             "1%foo.png":                  [{ name: "1%foo.png",    file: "foo.png",  extension: "png", scale: 0.01 }],
             "33.33%foo.png":              [{ name: "33.33%foo.png",
-            file: "foo.png",  extension: "png", scale: 0.3333 }],
+                file: "foo.png",  extension: "png", scale: 0.3333 }],
             "0.99% foo.png":              [{ name: "0.99% foo.png",
-            file: "foo.png",  extension: "png", scale: 0.009899999999999999 }],
+                file: "foo.png",  extension: "png", scale: 0.009899999999999999 }],
             // Parses correctly, but analyze will throw error (0% scaling not allowed)
             "0% foo.png":                 [{ name: "0% foo.png",   file: "foo.png",  extension: "png", scale: 0}],
             "0.00% foo.png":              [{ name: "0.00% foo.png",   file: "foo.png",  extension: "png", scale: 0}]
         };
         
-        test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, _parseTest, spec);
+        test.expect(Object.keys(spec).length);
+        _callsMatchSpecification(test, _parseTest, spec);
         test.done();
     };
 
@@ -230,8 +227,8 @@
             ]
         };
 
-        test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, _parseTest, spec);
+        test.expect(Object.keys(spec).length);
+        _callsMatchSpecification(test, _parseTest, spec);
         test.done();
     };
     
@@ -263,8 +260,8 @@
                 canvasWidth: 444, canvasHeight: 555, canvasOffsetX: -99, canvasOffsetY: 66 }]
         };
         
-        test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, _parseTest, spec);
+        test.expect(Object.keys(spec).length);
+        _callsMatchSpecification(test, _parseTest, spec);
         test.done();
     };
 
@@ -286,8 +283,8 @@
             "Layer 1.png  + Layer 2.jpg": [layer1PNG, layer2JPG]
         };
         
-        test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, _parseTest, spec);
+        test.expect(Object.keys(spec).length);
+        _callsMatchSpecification(test, _parseTest, spec);
         test.done();
     };
 
@@ -299,8 +296,8 @@
             ]
         };
         
-        test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, _parseTest, spec);
+        test.expect(Object.keys(spec).length);
+        _callsMatchSpecification(test, _parseTest, spec);
         test.done();
     };
 
@@ -360,8 +357,8 @@
 
         };
         
-        test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, _parseTest, spec);
+        test.expect(Object.keys(spec).length);
+        _callsMatchSpecification(test, _parseTest, spec);
         test.done();
     };
 
@@ -439,8 +436,8 @@
             ]
         };
         
-        test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, _parseTest, spec);
+        test.expect(Object.keys(spec).length);
+        _callsMatchSpecification(test, _parseTest, spec);
         test.done();
     };
 
@@ -514,8 +511,8 @@
             ]
         };
         
-        test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, _parseTest, spec);
+        test.expect(Object.keys(spec).length);
+        _callsMatchSpecification(test, _parseTest, spec);
         test.done();
     };
 
@@ -531,8 +528,8 @@
             ]
         };
         
-        test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, _parseTest, spec);
+        test.expect(Object.keys(spec).length);
+        _callsMatchSpecification(test, _parseTest, spec);
         test.done();
     };
 
@@ -563,16 +560,18 @@
                 { "default": true, name: "1000x1000cm mongo/", folder: ["mongo"], width: 1000, height: 1000,
                 heightUnit: "cm" }
             ],
-            "default": [ // at least one default spec is require
+            // at least one default spec is require
+            "default": [
                 { name: "default" }
             ],
-            "default.png": [ // doesn't conflict with existing filenames
+            // doesn't conflict with existing filenames
+            "default.png": [
                 { name: "default.png", file: "default.png", extension: "png" }
             ]
         };
 
-        test.expect(Object.keys(spec).length + 1);
-        test.callsMatchSpecification(test, _parseTest, spec);
+        test.expect(Object.keys(spec).length);
+        _callsMatchSpecification(test, _parseTest, spec);
         test.done();
     };
 }());
