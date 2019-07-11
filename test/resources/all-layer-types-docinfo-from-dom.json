@@ -56,6 +56,9 @@
     ],
     "count": 46,
     "file": "/Users/mvujovic/Code/generator/plugins/generator-assets/test/resources/all-layer-types.psd",
+    "name":"all-layer-types.psd",
+    "extension": ".psd",
+    "directory": "/Users/mvujovic/Code/generator/plugins/generator-assets/test/resources",
     "generatorSettings": {
         "generator_45_assets": {
             "json": "{\"enabled\":false}"
