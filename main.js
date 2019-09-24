@@ -186,6 +186,9 @@
                 }
                 _assetManagers[id].start();
             }
+        }, function (err) {
+            delete _waitingDocuments[id];
+            _logger.error("Failed to start asset generation for document", id, err);
         });
     }
 
