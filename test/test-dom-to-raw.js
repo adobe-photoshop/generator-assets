@@ -51,4 +51,38 @@
         test.done();
     };
 
+    exports.testFileChangeApplyChange = function (test) {
+        var generator = null,
+            config = null,
+            logger = {
+                warn: function () {},
+                error: function () {}
+            },
+            rawDocinfo = JSON.parse(
+                fs.readFileSync("./test/resources/all-layer-types-docinfo.json", "utf8")
+            ),
+            document = new Document(generator, config, logger, rawDocinfo),
+            originalFile = document.file,
+            changedFile = "/tmp/renamed.psd",
+            fileChangeEvent;
+
+        document.on("file", function (change) {
+            fileChangeEvent = change;
+        });
+
+        var applied = document._applyChange({
+            id: document.id,
+            version: document.version,
+            timeStamp: document.timeStamp + 1,
+            count: document.count + 1,
+            file: changedFile
+        });
+
+        test.strictEqual(applied, true, "Expected file change to apply successfully");
+        test.strictEqual(document.file, changedFile, "Expected file to be updated");
+        test.ok(fileChangeEvent, "Expected file change event to be emitted");
+        test.strictEqual(fileChangeEvent.previous, originalFile, "Expected previous file in change event");
+        test.done();
+    };
+
 }());
